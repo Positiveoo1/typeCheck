@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
 import { words } from '../words.js';
 
 const DEFAULT_WORD_COUNT = 90;
@@ -78,6 +79,7 @@ function TypingTest({
   testValue,
   onFinish,
   restartKey,
+  restartPulse,
   onRestart,
   onActiveChange
 }) {
@@ -93,6 +95,9 @@ function TypingTest({
   const typedTextRef = useRef('');
   const startedAtRef = useRef(null);
   const tabArmedRef = useRef(false);
+  const previousMistakesRef = useRef(0);
+  const mistakeControls = useAnimationControls();
+  const restartControls = useAnimationControls();
 
   const elapsedSeconds =
     typedText.length === 0
@@ -115,9 +120,31 @@ function TypingTest({
     setIsRunning(false);
     startedAtRef.current = null;
     typedTextRef.current = '';
+    previousMistakesRef.current = 0;
     onActiveChange(false);
     requestAnimationFrame(() => inputRef.current?.focus());
   }, [testType, testValue, restartKey, onActiveChange]);
+
+  useEffect(() => {
+    if (stats.mistakes > previousMistakesRef.current) {
+      mistakeControls.start({
+        x: [0, -10, 9, -6, 4, 0],
+        transition: { duration: 0.34, ease: 'easeOut' }
+      });
+    }
+
+    previousMistakesRef.current = stats.mistakes;
+  }, [mistakeControls, stats.mistakes]);
+
+  useEffect(() => {
+    if (restartPulse === 0) return;
+
+    restartControls.start({
+      rotate: [0, -7, 7, 0],
+      scale: [1, 0.94, 1.04, 1],
+      transition: { duration: 0.38, ease: 'easeOut' }
+    });
+  }, [restartControls, restartPulse]);
 
   useEffect(() => {
     typedTextRef.current = typedText;
@@ -212,30 +239,73 @@ function TypingTest({
   };
 
   return (
-    <main className="test-shell">
-      <div className="stats-row" aria-label="Live typing stats">
-        <div>
+    <motion.main
+      className="test-shell"
+      layout
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -14 }}
+      transition={{ duration: 0.24, ease: 'easeOut' }}
+    >
+      <motion.div
+        className="stats-row"
+        aria-label="Live typing stats"
+        layout
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.055 } }
+        }}
+      >
+        <motion.div
+          layout
+          variants={{
+            hidden: { opacity: 0, y: 10 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
           <span>wpm</span>
           <strong>{stats.wpm}</strong>
-        </div>
-        <div>
+        </motion.div>
+        <motion.div
+          layout
+          variants={{
+            hidden: { opacity: 0, y: 10 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
           <span>acc</span>
           <strong>{stats.accuracy}%</strong>
-        </div>
-        <div>
+        </motion.div>
+        <motion.div
+          layout
+          animate={mistakeControls}
+          variants={{
+            hidden: { opacity: 0, y: 10 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
           <span>mistakes</span>
           <strong>{stats.mistakes}</strong>
-        </div>
-        <div>
+        </motion.div>
+        <motion.div
+          layout
+          variants={{
+            hidden: { opacity: 0, y: 10 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
           <span>{testType === 'time' ? 'time' : 'elapsed'}</span>
           <strong>
             {testType === 'time' ? timeLeft : Math.round(elapsedTime)}s
           </strong>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      <div
+      <motion.div
         className="word-display"
+        animate={mistakeControls}
         onClick={focusInput}
         onKeyDown={focusInput}
         role="button"
@@ -281,7 +351,7 @@ function TypingTest({
             )}
           </span>
         ))}
-      </div>
+      </motion.div>
 
       <textarea
         aria-label="Typing input"
@@ -296,11 +366,18 @@ function TypingTest({
       />
 
       <div className="test-actions">
-        <button className="restart" onClick={onRestart} type="button">
+        <motion.button
+          animate={restartControls}
+          className="restart"
+          onClick={onRestart}
+          type="button"
+          whileHover={{ y: -1, scale: 1.03 }}
+          whileTap={{ scale: 0.92, rotate: -4 }}
+        >
           Restart
-        </button>
+        </motion.button>
       </div>
-    </main>
+    </motion.main>
   );
 }
 

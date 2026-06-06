@@ -138,6 +138,8 @@ h2 {
 
 .mode {
   min-width: 54px;
+  position: relative;
+  overflow: hidden;
 }
 
 .mode:hover:not(:disabled),
@@ -148,7 +150,18 @@ h2 {
 
 .mode.active {
   color: #10120f;
+}
+
+.mode-active-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
   background: #cfc257;
+}
+
+.mode-text {
+  position: relative;
+  z-index: 1;
 }
 
 .mode:disabled {
@@ -318,6 +331,20 @@ h2 {
   margin: auto;
   padding: 40px 0;
   text-align: center;
+}
+
+.best-burst {
+  width: fit-content;
+  margin: 0 auto 18px;
+  padding: 8px 14px;
+  border: 1px solid rgba(182, 227, 108, 0.36);
+  border-radius: 8px;
+  color: #10120f;
+  background: #b9dc6d;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: 0 0 34px rgba(182, 227, 108, 0.18);
 }
 
 .result-grid {
