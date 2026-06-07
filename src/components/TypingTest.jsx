@@ -23,7 +23,7 @@ function calculateStats(targetText, typedText, elapsedSeconds) {
     }
   }
 
-  const safeElapsedSeconds = Math.max(1, elapsedSeconds);
+  const safeElapsedSeconds = Math.max(0.1, elapsedSeconds);
   const wpm = Math.round(correctChars / 5 / (safeElapsedSeconds / 60));
   const accuracy =
     typedText.length === 0
@@ -33,7 +33,7 @@ function calculateStats(targetText, typedText, elapsedSeconds) {
   return {
     accuracy,
     correctChars,
-    elapsedSeconds: Math.round(safeElapsedSeconds),
+    elapsedSeconds: safeElapsedSeconds,
     mistakes: wrongChars,
     wpm,
     wrongChars
@@ -81,6 +81,7 @@ function TypingTest({
   restartKey,
   restartPulse,
   onRestart,
+  onStart,
   onActiveChange
 }) {
   const [targetText, setTargetText] = useState(() =>
@@ -90,10 +91,15 @@ function TypingTest({
   const [timeLeft, setTimeLeft] = useState(testType === 'time' ? testValue : 0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [isTypingFocused, setIsTypingFocused] = useState(false);
   const inputRef = useRef(null);
+  const wordDisplayRef = useRef(null);
   const currentLetterRef = useRef(null);
   const typedTextRef = useRef('');
   const startedAtRef = useRef(null);
+  const isTypingFocusedRef = useRef(false);
+  const hasStartedRef = useRef(false);
+  const hasFinishedRef = useRef(false);
   const tabArmedRef = useRef(false);
   const previousMistakesRef = useRef(0);
   const mistakeControls = useAnimationControls();
@@ -111,6 +117,7 @@ function TypingTest({
     [elapsedSeconds, targetText, typedText]
   );
   const wordTokens = useMemo(() => buildWordTokens(targetText), [targetText]);
+  const isIdle = typedText.length === 0 && !isRunning;
 
   useEffect(() => {
     setTargetText(shuffleWords(getTargetWordCount(testType, testValue)));
@@ -119,10 +126,13 @@ function TypingTest({
     setElapsedTime(0);
     setIsRunning(false);
     startedAtRef.current = null;
+    hasStartedRef.current = false;
+    hasFinishedRef.current = false;
+    isTypingFocusedRef.current = false;
+    setIsTypingFocused(false);
     typedTextRef.current = '';
     previousMistakesRef.current = 0;
     onActiveChange(false);
-    requestAnimationFrame(() => inputRef.current?.focus());
   }, [testType, testValue, restartKey, onActiveChange]);
 
   useEffect(() => {
@@ -154,12 +164,12 @@ function TypingTest({
     if (!isRunning) return undefined;
 
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startedAtRef.current) / 1000);
+      const elapsed = (performance.now() - startedAtRef.current) / 1000;
       setElapsedTime(elapsed);
 
       if (testType !== 'time') return;
 
-      const nextTimeLeft = Math.max(0, testValue - elapsed);
+      const nextTimeLeft = Math.max(0, testValue - Math.floor(elapsed));
       setTimeLeft(nextTimeLeft);
 
       if (nextTimeLeft === 0) {
@@ -182,12 +192,21 @@ function TypingTest({
   useEffect(() => {
     currentLetterRef.current?.scrollIntoView({
       block: 'center',
-      inline: 'nearest'
+      inline: 'nearest',
+      behavior: 'smooth'
     });
   }, [typedText]);
 
   useEffect(() => {
     const handleShortcut = (event) => {
+      const tagName = event.target?.tagName?.toLowerCase();
+      const isFormField =
+        tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+
+      if (isFormField || event.target?.isContentEditable) {
+        return;
+      }
+
       if (event.key === 'Tab') {
         event.preventDefault();
         tabArmedRef.current = true;
@@ -208,21 +227,48 @@ function TypingTest({
     return () => window.removeEventListener('keydown', handleShortcut);
   }, [onRestart]);
 
+  useEffect(() => {
+    const blurWhenClickingOutside = (event) => {
+      if (wordDisplayRef.current?.contains(event.target)) return;
+      if (event.target === inputRef.current) return;
+
+      isTypingFocusedRef.current = false;
+      setIsTypingFocused(false);
+      inputRef.current?.blur();
+    };
+
+    document.addEventListener('pointerdown', blurWhenClickingOutside);
+    return () => {
+      document.removeEventListener('pointerdown', blurWhenClickingOutside);
+    };
+  }, []);
+
   const handleChange = (event) => {
     if (testType === 'time' && timeLeft === 0) return;
-
-    const value = event.target.value;
-    if (!isRunning && value.length > 0) {
-      startedAtRef.current = Date.now();
-      setIsRunning(true);
-      onActiveChange(true);
+    if (hasFinishedRef.current) return;
+    if (!isTypingFocusedRef.current) {
+      event.target.value = typedText;
+      return;
     }
 
-    const nextTypedText = value.slice(0, targetText.length);
+    const value = event.target.value;
+    if (!hasStartedRef.current && value.length > 0) {
+      startedAtRef.current = performance.now();
+      hasStartedRef.current = true;
+      setIsRunning(true);
+      onActiveChange(true);
+      onStart({ testType, testValue });
+    }
+
+    const hasJumpedForward = value.length > typedText.length + 1;
+    const nextTypedText = hasJumpedForward
+      ? value.slice(0, typedText.length + 1)
+      : value.slice(0, targetText.length);
     setTypedText(nextTypedText);
 
     if (testType === 'words' && nextTypedText.length === targetText.length) {
-      const elapsed = (Date.now() - startedAtRef.current) / 1000;
+      const elapsed = (performance.now() - startedAtRef.current) / 1000;
+      hasFinishedRef.current = true;
       setElapsedTime(elapsed);
       setIsRunning(false);
       onActiveChange(false);
@@ -235,6 +281,8 @@ function TypingTest({
   };
 
   const focusInput = () => {
+    isTypingFocusedRef.current = true;
+    setIsTypingFocused(true);
     inputRef.current?.focus();
   };
 
@@ -298,16 +346,26 @@ function TypingTest({
         >
           <span>{testType === 'time' ? 'time' : 'elapsed'}</span>
           <strong>
-            {testType === 'time' ? timeLeft : Math.round(elapsedTime)}s
+            {testType === 'time' ? timeLeft : elapsedTime.toFixed(1)}s
           </strong>
         </motion.div>
       </motion.div>
 
       <motion.div
-        className="word-display"
+        className={[
+          'word-display',
+          isIdle ? 'idle' : '',
+          isTypingFocused ? 'typing-focused' : ''
+        ]
+          .filter(Boolean)
+          .join(' ')}
         animate={mistakeControls}
-        onClick={focusInput}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          focusInput();
+        }}
         onKeyDown={focusInput}
+        ref={wordDisplayRef}
         role="button"
         tabIndex="0"
       >
@@ -360,6 +418,12 @@ function TypingTest({
         autoCorrect="off"
         className="hidden-input"
         onChange={handleChange}
+        onBlur={() => {
+          isTypingFocusedRef.current = false;
+          setIsTypingFocused(false);
+        }}
+        onDrop={(event) => event.preventDefault()}
+        onPaste={(event) => event.preventDefault()}
         ref={inputRef}
         spellCheck="false"
         value={typedText}

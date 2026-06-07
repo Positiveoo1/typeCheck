@@ -22,6 +22,10 @@ const cardVariants = {
   visible: { opacity: 1, y: 0, scale: 1 }
 };
 
+function formatSeconds(seconds) {
+  return seconds < 10 ? seconds.toFixed(1) : Math.round(seconds);
+}
+
 function Results({ stats, onRestart }) {
   return (
     <motion.section
@@ -77,7 +81,7 @@ function Results({ stats, onRestart }) {
         </motion.div>
         <motion.div variants={cardVariants} whileHover={{ y: -3 }}>
           <span>elapsed</span>
-          <strong>{stats.elapsedSeconds}s</strong>
+          <strong>{formatSeconds(stats.elapsedSeconds)}s</strong>
         </motion.div>
       </motion.div>
 

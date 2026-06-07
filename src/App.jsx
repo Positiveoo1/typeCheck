@@ -1,18 +1,231 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import Dashboard from './components/Dashboard.jsx';
 import Header from './components/Header.jsx';
 import Results from './components/Results.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
+import { auth, db } from './services/firebase.js';
+
+const SETTINGS_KEY = 'typecheck-settings';
+const DASHBOARD_KEY = 'typecheck-dashboard';
+const THEME_KEY = 'typecheck-theme';
+const THEMES = ['matrix', 'serika', 'botanical', 'midnight', 'rose'];
+const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
+const DEFAULT_SETTINGS = {
+  testType: 'time',
+  timeMode: 30,
+  wordMode: 10
+};
+
+function loadPage() {
+  return window.location.hash === '#dashboard' ? 'dashboard' : 'test';
+}
+
+function loadTheme() {
+  try {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    return THEMES.includes(savedTheme) ? savedTheme : 'matrix';
+  } catch {
+    return 'matrix';
+  }
+}
+
+function saveTheme(theme) {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function createModeStats() {
+  return {
+    started: 0,
+    completed: 0,
+    incomplete: 0,
+    bestWpm: 0,
+    bestAccuracy: 0
+  };
+}
+
+function createEmptyDashboard() {
+  return {
+    started: 0,
+    completed: 0,
+    incomplete: 0,
+    modes: Object.fromEntries(MODE_LABELS.map((label) => [label, createModeStats()])),
+    results: []
+  };
+}
+
+function loadSettings() {
+  try {
+    const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+
+    return {
+      testType:
+        savedSettings?.testType === 'words' || savedSettings?.testType === 'time'
+          ? savedSettings.testType
+          : DEFAULT_SETTINGS.testType,
+      timeMode: [15, 30, 60].includes(savedSettings?.timeMode)
+        ? savedSettings.timeMode
+        : DEFAULT_SETTINGS.timeMode,
+      wordMode: [10, 30, 60].includes(savedSettings?.wordMode)
+        ? savedSettings.wordMode
+        : DEFAULT_SETTINGS.wordMode
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(settings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function loadDashboard() {
+  try {
+    const savedDashboard = JSON.parse(localStorage.getItem(DASHBOARD_KEY));
+    const emptyDashboard = createEmptyDashboard();
+
+    if (!savedDashboard) return emptyDashboard;
+
+    return {
+      started: Number(savedDashboard.started) || 0,
+      completed: Number(savedDashboard.completed) || 0,
+      incomplete: Number(savedDashboard.incomplete) || 0,
+      modes: Object.fromEntries(
+        MODE_LABELS.map((label) => [
+          label,
+          {
+            ...createModeStats(),
+            ...(savedDashboard.modes?.[label] || {})
+          }
+        ])
+      ),
+      results: Array.isArray(savedDashboard.results)
+        ? savedDashboard.results.slice(0, 20)
+        : []
+    };
+  } catch {
+    return createEmptyDashboard();
+  }
+}
+
+function saveDashboard(dashboard) {
+  try {
+    localStorage.setItem(DASHBOARD_KEY, JSON.stringify(dashboard));
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function getModeLabel(testType, testValue) {
+  return testType === 'words' ? `${testValue} words` : `${testValue}s`;
+}
+
+function createId() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`;
+}
 
 function App() {
-  const [testType, setTestType] = useState('time');
-  const [timeMode, setTimeMode] = useState(30);
-  const [wordMode, setWordMode] = useState(10);
+  const [settings, setSettings] = useState(loadSettings);
+  const [dashboard, setDashboard] = useState(loadDashboard);
+  const activeAttemptRef = useRef(null);
+  const [currentPage, setCurrentPage] = useState(loadPage);
+  const [theme, setTheme] = useState(loadTheme);
   const [restartKey, setRestartKey] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState(null);
   const [restartPulse, setRestartPulse] = useState(0);
+  const [user, setUser] = useState(null);
+
+  const { testType, timeMode, wordMode } = settings;
+
+  const updateDashboard = useCallback((updater) => {
+    setDashboard((currentDashboard) => {
+      const nextDashboard = updater(currentDashboard);
+      saveDashboard(nextDashboard);
+      return nextDashboard;
+    });
+  }, []);
+
+  const markIncompleteAttempt = useCallback(() => {
+    const currentAttempt = activeAttemptRef.current;
+    if (!currentAttempt) return;
+
+    updateDashboard((currentDashboard) => {
+      const mode = currentDashboard.modes[currentAttempt.modeLabel] || createModeStats();
+
+      return {
+        ...currentDashboard,
+        incomplete: currentDashboard.incomplete + 1,
+        modes: {
+          ...currentDashboard.modes,
+          [currentAttempt.modeLabel]: {
+            ...mode,
+            incomplete: mode.incomplete + 1
+          }
+        }
+      };
+    });
+
+    activeAttemptRef.current = null;
+  }, [updateDashboard]);
+
+  useEffect(() => {
+    if (!auth) return undefined;
+
+    return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentPage(loadPage());
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const currentAttempt = activeAttemptRef.current;
+      if (!currentAttempt) return;
+
+      const currentDashboard = loadDashboard();
+      const mode = currentDashboard.modes[currentAttempt.modeLabel] || createModeStats();
+      const nextDashboard = {
+        ...currentDashboard,
+        incomplete: currentDashboard.incomplete + 1,
+        modes: {
+          ...currentDashboard.modes,
+          [currentAttempt.modeLabel]: {
+            ...mode,
+            incomplete: mode.incomplete + 1
+          }
+        }
+      };
+
+      saveDashboard(nextDashboard);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const finishTest = useCallback((nextResult) => {
     const bestKey = `typecheck-best-${nextResult.testType}-${nextResult.modeLabel}`;
@@ -34,58 +247,198 @@ function App() {
       }
     }
 
-    setResult({
+    const completedResult = {
       ...nextResult,
       bestWpm: Math.max(previousBest, nextResult.wpm),
       isPersonalBest
+    };
+
+    setResult(completedResult);
+    activeAttemptRef.current = null;
+
+    updateDashboard((currentDashboard) => {
+      const mode = currentDashboard.modes[completedResult.modeLabel] || createModeStats();
+      const nextMode = {
+        ...mode,
+        completed: mode.completed + 1,
+        bestWpm: Math.max(mode.bestWpm || 0, completedResult.wpm),
+        bestAccuracy: Math.max(mode.bestAccuracy || 0, completedResult.accuracy)
+      };
+
+      return {
+        ...currentDashboard,
+        completed: currentDashboard.completed + 1,
+        modes: {
+          ...currentDashboard.modes,
+          [completedResult.modeLabel]: nextMode
+        },
+        results: [
+          {
+            id: createId(),
+            accuracy: completedResult.accuracy,
+            elapsedSeconds: completedResult.elapsedSeconds,
+            modeLabel: completedResult.modeLabel,
+            testType: completedResult.testType,
+            wpm: completedResult.wpm,
+            wrongChars: completedResult.wrongChars
+          },
+          ...currentDashboard.results
+        ].slice(0, 20)
+      };
     });
-  }, []);
+
+    if (user && db) {
+      addDoc(collection(db, 'users', user.uid, 'results'), {
+        accuracy: completedResult.accuracy,
+        correctChars: completedResult.correctChars,
+        elapsedSeconds: completedResult.elapsedSeconds,
+        modeLabel: completedResult.modeLabel,
+        testType: completedResult.testType,
+        wpm: completedResult.wpm,
+        wrongChars: completedResult.wrongChars,
+        createdAt: serverTimestamp()
+      }).catch((error) => {
+        console.error('Failed to save result:', error);
+      });
+    }
+  }, [updateDashboard, user]);
+
+  const handleTestStart = useCallback((startedTest) => {
+    if (activeAttemptRef.current) return;
+
+    const modeLabel = getModeLabel(startedTest.testType, startedTest.testValue);
+    const attempt = {
+      id: createId(),
+      modeLabel,
+      testType: startedTest.testType,
+      testValue: startedTest.testValue
+    };
+
+    activeAttemptRef.current = attempt;
+
+    updateDashboard((currentDashboard) => {
+      const mode = currentDashboard.modes[modeLabel] || createModeStats();
+
+      return {
+        ...currentDashboard,
+        started: currentDashboard.started + 1,
+        modes: {
+          ...currentDashboard.modes,
+          [modeLabel]: {
+            ...mode,
+            started: mode.started + 1
+          }
+        }
+      };
+    });
+  }, [updateDashboard]);
 
   const restart = useCallback(() => {
+    markIncompleteAttempt();
     setRestartPulse((pulse) => pulse + 1);
     setResult(null);
     setIsActive(false);
     setRestartKey((key) => key + 1);
-  }, []);
+  }, [markIncompleteAttempt]);
 
   const handleSettingsChange = (nextType, nextValue) => {
-    setTestType(nextType);
-    if (nextType === 'time') {
-      setTimeMode(nextValue);
-    } else {
-      setWordMode(nextValue);
-    }
+    markIncompleteAttempt();
 
+    const nextSettings = {
+      ...settings,
+      testType: nextType,
+      ...(nextType === 'time'
+        ? { timeMode: nextValue }
+        : { wordMode: nextValue })
+    };
+
+    setSettings(nextSettings);
+    saveSettings(nextSettings);
     setResult(null);
     setRestartKey((key) => key + 1);
   };
 
+  const handleSignOut = () => {
+    if (!auth) return;
+    signOut(auth);
+  };
+
+  const handleThemeChange = (nextTheme) => {
+    setTheme(nextTheme);
+    saveTheme(nextTheme);
+  };
+
+  const navigate = (nextPage, options = {}) => {
+    if (nextPage === currentPage) {
+      if (nextPage === 'test' && options.restart) {
+        restart();
+      }
+
+      return;
+    }
+
+    if (nextPage === 'dashboard') {
+      markIncompleteAttempt();
+      setResult(null);
+      setIsActive(false);
+      setRestartKey((key) => key + 1);
+    } else if (options.restart) {
+      restart();
+    }
+
+    window.location.hash = nextPage === 'dashboard' ? 'dashboard' : 'test';
+    setCurrentPage(nextPage);
+  };
+
   return (
     <LayoutGroup>
-      <motion.div className="app" layout>
-        <Header />
-
-        <TestSettings
-          disabled={isActive}
-          onSettingsChange={handleSettingsChange}
-          selectedType={testType}
-          selectedValue={testType === 'time' ? timeMode : wordMode}
+      <motion.div className="app" data-theme={theme} layout>
+        <Header
+          currentPage={currentPage}
+          onNavigate={navigate}
+          onSignOut={handleSignOut}
+          onThemeChange={handleThemeChange}
+          theme={theme}
+          user={user}
         />
 
         <AnimatePresence mode="wait">
-          {result ? (
-            <Results key="results" onRestart={restart} stats={result} />
+          {currentPage === 'dashboard' ? (
+            <Dashboard key="dashboard" dashboard={dashboard} />
           ) : (
-            <TypingTest
-              key="test"
-              onActiveChange={setIsActive}
-              onFinish={finishTest}
-              onRestart={restart}
-              restartPulse={restartPulse}
-              restartKey={restartKey}
-              testType={testType}
-              testValue={testType === 'time' ? timeMode : wordMode}
-            />
+            <motion.div
+              key="test-page"
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              <TestSettings
+                disabled={isActive}
+                onSettingsChange={handleSettingsChange}
+                selectedType={testType}
+                selectedValue={testType === 'time' ? timeMode : wordMode}
+              />
+
+              <AnimatePresence mode="wait">
+                {result ? (
+                  <Results key="results" onRestart={restart} stats={result} />
+                ) : (
+                  <TypingTest
+                    key="test"
+                    onActiveChange={setIsActive}
+                    onFinish={finishTest}
+                    onRestart={restart}
+                    onStart={handleTestStart}
+                    restartPulse={restartPulse}
+                    restartKey={restartKey}
+                    testType={testType}
+                    testValue={testType === 'time' ? timeMode : wordMode}
+                  />
+                )}
+              </AnimatePresence>
+            </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
