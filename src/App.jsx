@@ -13,6 +13,7 @@ import { auth, db } from './services/firebase.js';
 const SETTINGS_KEY = 'typecheck-settings';
 const DASHBOARD_KEY = 'typecheck-dashboard';
 const THEME_KEY = 'typecheck-theme';
+const MOBILE_TIP_KEY = 'typecheck-mobile-tip-dismissed';
 const THEMES = ['matrix', 'serika', 'botanical', 'midnight', 'rose'];
 const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
 const DEFAULT_SETTINGS = {
@@ -37,6 +38,22 @@ function loadTheme() {
 function saveTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function loadMobileTipDismissed() {
+  try {
+    return localStorage.getItem(MOBILE_TIP_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function saveMobileTipDismissed() {
+  try {
+    localStorage.setItem(MOBILE_TIP_KEY, 'true');
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
@@ -152,6 +169,7 @@ function App() {
   const [isAuthReady, setIsAuthReady] = useState(!auth);
   const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
+  const [showMobileTip, setShowMobileTip] = useState(() => !loadMobileTipDismissed());
   const [pendingPage, setPendingPage] = useState(null);
 
   const { testType, timeMode, wordMode } = settings;
@@ -414,6 +432,11 @@ function App() {
     saveTheme(nextTheme);
   };
 
+  const dismissMobileTip = () => {
+    setShowMobileTip(false);
+    saveMobileTipDismissed();
+  };
+
   const navigate = (nextPage, options = {}) => {
     if (nextPage === 'dashboard' && isAuthReady && !user) {
       setPendingPage('dashboard');
@@ -453,6 +476,27 @@ function App() {
           theme={theme}
           user={user}
         />
+
+        <AnimatePresence>
+          {showMobileTip && (
+            <motion.div
+              className="mobile-tip"
+              initial={{ opacity: 0, y: -10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <span>A laptop keyboard gives the most accurate typing results.</span>
+              <button
+                aria-label="Dismiss mobile typing tip"
+                onClick={dismissMobileTip}
+                type="button"
+              >
+                x
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div
           className={

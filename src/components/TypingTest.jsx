@@ -1,85 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useAnimationControls } from 'framer-motion';
-import { words } from '../words.js';
-
-const DEFAULT_WORD_COUNT = 90;
-
-function shuffleWords(wordCount = DEFAULT_WORD_COUNT) {
-  const uniqueWords = [...new Set(words)];
-
-  for (let index = uniqueWords.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1));
-    [uniqueWords[index], uniqueWords[randomIndex]] = [
-      uniqueWords[randomIndex],
-      uniqueWords[index]
-    ];
-  }
-
-  return uniqueWords.slice(0, wordCount).join(' ');
-}
-
-function calculateStats(targetText, typedText, elapsedSeconds) {
-  let correctChars = 0;
-  let wrongChars = 0;
-
-  for (let index = 0; index < typedText.length; index += 1) {
-    if (typedText[index] === targetText[index]) {
-      correctChars += 1;
-    } else {
-      wrongChars += 1;
-    }
-  }
-
-  const safeElapsedSeconds = Math.max(0.1, elapsedSeconds);
-  const wpm = Math.round(correctChars / 5 / (safeElapsedSeconds / 60));
-  const accuracy =
-    typedText.length === 0
-      ? 100
-      : Math.round((correctChars / typedText.length) * 100);
-
-  return {
-    accuracy,
-    correctChars,
-    elapsedSeconds: safeElapsedSeconds,
-    mistakes: wrongChars,
-    wpm,
-    wrongChars
-  };
-}
-
-function buildWordTokens(text) {
-  let charIndex = 0;
-
-  return text.split(' ').map((word, wordIndex, wordArray) => {
-    const letters = word.split('').map((char) => {
-      const token = { char, index: charIndex };
-      charIndex += 1;
-      return token;
-    });
-
-    const space =
-      wordIndex < wordArray.length - 1
-        ? {
-            char: ' ',
-            index: charIndex++
-          }
-        : null;
-
-    return {
-      id: `${word}-${wordIndex}`,
-      letters,
-      space
-    };
-  });
-}
-
-function getTargetWordCount(testType, testValue) {
-  return testType === 'words' ? testValue : DEFAULT_WORD_COUNT;
-}
-
-function getModeLabel(testType, testValue) {
-  return testType === 'words' ? `${testValue} words` : `${testValue}s`;
-}
+import {
+  buildWordTokens,
+  calculateStats,
+  getModeLabel,
+  getNextTypedText,
+  getTargetWordCount,
+  getTimeLeft,
+  shuffleWords
+} from '../typingLogic.js';
 
 function TypingTest({
   testType,
@@ -115,9 +44,7 @@ function TypingTest({
   const elapsedSeconds =
     typedText.length === 0
       ? 0
-      : testType === 'time'
-        ? testValue - timeLeft
-        : elapsedTime;
+      : elapsedTime;
 
   const stats = useMemo(
     () => calculateStats(targetText, typedText, elapsedSeconds),
@@ -176,7 +103,7 @@ function TypingTest({
 
       if (testType !== 'time') return;
 
-      const nextTimeLeft = Math.max(0, testValue - Math.floor(elapsed));
+      const nextTimeLeft = getTimeLeft(testValue, elapsed);
       setTimeLeft(nextTimeLeft);
 
       if (nextTimeLeft === 0) {
@@ -267,10 +194,7 @@ function TypingTest({
       onStart({ testType, testValue });
     }
 
-    const hasJumpedForward = value.length > typedText.length + 1;
-    const nextTypedText = hasJumpedForward
-      ? value.slice(0, typedText.length + 1)
-      : value.slice(0, targetText.length);
+    const nextTypedText = getNextTypedText(targetText, typedText, value);
     setTypedText(nextTypedText);
 
     if (testType === 'words' && nextTypedText.length === targetText.length) {
