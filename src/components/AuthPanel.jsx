@@ -25,7 +25,12 @@ function getFriendlyError(error) {
   return messages[error.code] || `${error.code}: ${error.message}`;
 }
 
-function AuthPanel({ onClose, onSuccess }) {
+function AuthPanel({
+  className = 'auth-panel',
+  message = '',
+  onClose,
+  onSuccess
+}) {
   const [mode, setMode] = useState('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,7 +74,7 @@ function AuthPanel({ onClose, onSuccess }) {
 
   return (
     <motion.section
-      className="auth-panel"
+      className={className}
       initial={{ opacity: 0, y: -8, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -81,6 +86,8 @@ function AuthPanel({ onClose, onSuccess }) {
         </p>
       ) : (
         <form className="auth-form" onSubmit={submit}>
+          {message && <p className="auth-note">{message}</p>}
+
           <div className="auth-panel-top">
             <div className="auth-tabs" role="tablist" aria-label="Account mode">
               <button

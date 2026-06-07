@@ -5,10 +5,17 @@ import { words } from '../words.js';
 const DEFAULT_WORD_COUNT = 90;
 
 function shuffleWords(wordCount = DEFAULT_WORD_COUNT) {
-  return Array.from({ length: wordCount }, () => {
-    const index = Math.floor(Math.random() * words.length);
-    return words[index];
-  }).join(' ');
+  const uniqueWords = [...new Set(words)];
+
+  for (let index = uniqueWords.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [uniqueWords[index], uniqueWords[randomIndex]] = [
+      uniqueWords[randomIndex],
+      uniqueWords[index]
+    ];
+  }
+
+  return uniqueWords.slice(0, wordCount).join(' ');
 }
 
 function calculateStats(targetText, typedText, elapsedSeconds) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import AuthPanel from './components/AuthPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Header from './components/Header.jsx';
 import Results from './components/Results.jsx';
@@ -148,16 +149,22 @@ function App() {
   const [result, setResult] = useState(null);
   const [restartPulse, setRestartPulse] = useState(0);
   const [user, setUser] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(!auth);
+  const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
+  const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
+  const [pendingPage, setPendingPage] = useState(null);
 
   const { testType, timeMode, wordMode } = settings;
 
   const updateDashboard = useCallback((updater) => {
+    if (!user) return;
+
     setDashboard((currentDashboard) => {
       const nextDashboard = updater(currentDashboard);
       saveDashboard(nextDashboard);
       return nextDashboard;
     });
-  }, []);
+  }, [user]);
 
   const markIncompleteAttempt = useCallback(() => {
     const currentAttempt = activeAttemptRef.current;
@@ -183,10 +190,35 @@ function App() {
   }, [updateDashboard]);
 
   useEffect(() => {
-    if (!auth) return undefined;
+    if (!auth) {
+      setIsAuthReady(true);
+      return undefined;
+    }
 
-    return onAuthStateChanged(auth, setUser);
-  }, []);
+    return onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+      setIsAuthReady(true);
+
+      if (nextUser) {
+        setIsAuthGateOpen(false);
+
+        if (pendingPage === 'dashboard') {
+          window.location.hash = 'dashboard';
+          setCurrentPage('dashboard');
+          setPendingPage(null);
+        }
+      }
+    });
+  }, [pendingPage]);
+
+  useEffect(() => {
+    if (!isAuthReady || user || currentPage !== 'dashboard') return;
+
+    window.location.hash = 'test';
+    setCurrentPage('test');
+    setPendingPage('dashboard');
+    setIsAuthGateOpen(true);
+  }, [currentPage, isAuthReady, user]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -203,6 +235,8 @@ function App() {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
+      if (!user) return;
+
       const currentAttempt = activeAttemptRef.current;
       if (!currentAttempt) return;
 
@@ -225,21 +259,23 @@ function App() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [user]);
 
   const finishTest = useCallback((nextResult) => {
     const bestKey = `typecheck-best-${nextResult.testType}-${nextResult.modeLabel}`;
     let previousBest = 0;
 
-    try {
-      previousBest = Number(localStorage.getItem(bestKey)) || 0;
-    } catch {
-      previousBest = 0;
+    if (user) {
+      try {
+        previousBest = Number(localStorage.getItem(bestKey)) || 0;
+      } catch {
+        previousBest = 0;
+      }
     }
 
-    const isPersonalBest = nextResult.wpm > previousBest;
+    const isPersonalBest = Boolean(user) && nextResult.wpm > previousBest;
 
-    if (isPersonalBest && typeof localStorage !== 'undefined') {
+    if (user && isPersonalBest && typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem(bestKey, String(nextResult.wpm));
       } catch {
@@ -249,7 +285,7 @@ function App() {
 
     const completedResult = {
       ...nextResult,
-      bestWpm: Math.max(previousBest, nextResult.wpm),
+      bestWpm: user ? Math.max(previousBest, nextResult.wpm) : 0,
       isPersonalBest
     };
 
@@ -304,6 +340,7 @@ function App() {
   }, [updateDashboard, user]);
 
   const handleTestStart = useCallback((startedTest) => {
+    if (!user) return;
     if (activeAttemptRef.current) return;
 
     const modeLabel = getModeLabel(startedTest.testType, startedTest.testValue);
@@ -331,7 +368,7 @@ function App() {
         }
       };
     });
-  }, [updateDashboard]);
+  }, [updateDashboard, user]);
 
   const restart = useCallback(() => {
     markIncompleteAttempt();
@@ -359,8 +396,17 @@ function App() {
   };
 
   const handleSignOut = () => {
+    setIsSignOutConfirmOpen(true);
+  };
+
+  const confirmSignOut = () => {
     if (!auth) return;
+    setPendingPage(null);
+    setIsAuthGateOpen(false);
+    window.location.hash = 'test';
+    setCurrentPage('test');
     signOut(auth);
+    setIsSignOutConfirmOpen(false);
   };
 
   const handleThemeChange = (nextTheme) => {
@@ -369,6 +415,12 @@ function App() {
   };
 
   const navigate = (nextPage, options = {}) => {
+    if (nextPage === 'dashboard' && isAuthReady && !user) {
+      setPendingPage('dashboard');
+      setIsAuthGateOpen(true);
+      return;
+    }
+
     if (nextPage === currentPage) {
       if (nextPage === 'test' && options.restart) {
         restart();
@@ -402,42 +454,129 @@ function App() {
           user={user}
         />
 
-        <AnimatePresence mode="wait">
-          {currentPage === 'dashboard' ? (
-            <Dashboard key="dashboard" dashboard={dashboard} />
-          ) : (
-            <motion.div
-              key="test-page"
-              layout
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-            >
-              <TestSettings
-                disabled={isActive}
-                onSettingsChange={handleSettingsChange}
-                selectedType={testType}
-                selectedValue={testType === 'time' ? timeMode : wordMode}
-              />
+        <div
+          className={
+            isAuthGateOpen || isSignOutConfirmOpen
+              ? 'page-content gated-blur'
+              : 'page-content'
+          }
+        >
+          <AnimatePresence mode="wait">
+            {currentPage === 'dashboard' && user ? (
+              <Dashboard key="dashboard" dashboard={dashboard} />
+            ) : (
+              <motion.div
+                key="test-page"
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                <TestSettings
+                  disabled={isActive}
+                  onSettingsChange={handleSettingsChange}
+                  selectedType={testType}
+                  selectedValue={testType === 'time' ? timeMode : wordMode}
+                />
 
-              <AnimatePresence mode="wait">
-                {result ? (
-                  <Results key="results" onRestart={restart} stats={result} />
-                ) : (
-                  <TypingTest
-                    key="test"
-                    onActiveChange={setIsActive}
-                    onFinish={finishTest}
-                    onRestart={restart}
-                    onStart={handleTestStart}
-                    restartPulse={restartPulse}
-                    restartKey={restartKey}
-                    testType={testType}
-                    testValue={testType === 'time' ? timeMode : wordMode}
-                  />
-                )}
-              </AnimatePresence>
+                <AnimatePresence mode="wait">
+                  {result ? (
+                    <Results key="results" onRestart={restart} stats={result} />
+                  ) : (
+                    <TypingTest
+                      key="test"
+                      onActiveChange={setIsActive}
+                      onFinish={finishTest}
+                      onRestart={restart}
+                      onStart={handleTestStart}
+                      restartPulse={restartPulse}
+                      restartKey={restartKey}
+                      testType={testType}
+                      testValue={testType === 'time' ? timeMode : wordMode}
+                    />
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <AnimatePresence>
+          {isAuthGateOpen && (
+            <motion.div
+              className="auth-gate"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <button
+                aria-label="Close sign in prompt"
+                className="auth-gate-backdrop"
+                onClick={() => {
+                  setPendingPage(null);
+                  setIsAuthGateOpen(false);
+                }}
+                type="button"
+              />
+              <AuthPanel
+                className="auth-panel auth-panel-modal"
+                message="Sign in to save results and view your typing performance."
+                onClose={() => {
+                  setPendingPage(null);
+                  setIsAuthGateOpen(false);
+                }}
+                onSuccess={() => setIsAuthGateOpen(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isSignOutConfirmOpen && (
+            <motion.div
+              className="auth-gate"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              <button
+                aria-label="Close sign out confirmation"
+                className="auth-gate-backdrop"
+                onClick={() => setIsSignOutConfirmOpen(false)}
+                type="button"
+              />
+              <motion.section
+                className="confirm-panel"
+                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <p className="eyebrow">account</p>
+                <h2>Sign out?</h2>
+                <p className="confirm-copy">
+                  Your saved typing performance stays in your account.
+                </p>
+                <div className="confirm-actions">
+                  <button
+                    className="confirm-secondary"
+                    onClick={() => setIsSignOutConfirmOpen(false)}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="confirm-primary"
+                    onClick={confirmSignOut}
+                    type="button"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </motion.section>
             </motion.div>
           )}
         </AnimatePresence>
