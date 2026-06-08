@@ -26,7 +26,60 @@ function formatSeconds(seconds) {
   return seconds < 10 ? seconds.toFixed(1) : Math.round(seconds);
 }
 
-function Results({ stats, onRestart }) {
+function SpeedReplay({ history = [] }) {
+  const speedHistory =
+    Array.isArray(history) && history.length > 0
+      ? history
+      : [
+          { elapsedSeconds: 0, wpm: 0 },
+          { elapsedSeconds: 1, wpm: 0 }
+        ];
+  const peakWpm = Math.max(...speedHistory.map((point) => point.wpm), 1);
+
+  return (
+    <motion.div
+      className="speed-replay"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.16, duration: 0.28, ease: 'easeOut' }}
+    >
+      <div className="speed-replay-top">
+        <span>speed replay</span>
+        <strong>{statsLabel(speedHistory.at(-1)?.wpm || 0)} WPM</strong>
+      </div>
+      <div className="speed-track" aria-hidden="true">
+        {speedHistory.map((point, index) => (
+          <motion.span
+            className="speed-bar"
+            key={`${point.elapsedSeconds}-${index}`}
+            style={{
+              height: `${Math.max(8, (point.wpm / peakWpm) * 100)}%`
+            }}
+            initial={{ scaleY: 0.12, opacity: 0.42 }}
+            animate={{ scaleY: 1, opacity: 1 }}
+            transition={{
+              delay: 0.2 + index * Math.min(0.035, 0.7 / speedHistory.length),
+              duration: 0.26,
+              ease: 'easeOut'
+            }}
+          />
+        ))}
+        <motion.span
+          className="speed-cursor"
+          initial={{ left: '0%' }}
+          animate={{ left: '100%' }}
+          transition={{ delay: 0.2, duration: 1.5, ease: 'easeInOut' }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+function statsLabel(value) {
+  return Math.round(value);
+}
+
+function Results({ stats, onNextGame, onTryAgain }) {
   return (
     <motion.section
       className="results"
@@ -85,15 +138,28 @@ function Results({ stats, onRestart }) {
         </motion.div>
       </motion.div>
 
-      <motion.button
-        className="primary-action"
-        onClick={onRestart}
-        type="button"
-        whileHover={{ y: -2, scale: 1.04 }}
-        whileTap={{ scale: 0.93, rotate: -3 }}
-      >
-        Try again
-      </motion.button>
+      <SpeedReplay history={stats.speedHistory} />
+
+      <div className="result-actions">
+        <motion.button
+          className="primary-action"
+          onClick={onTryAgain}
+          type="button"
+          whileHover={{ y: -2, scale: 1.04 }}
+          whileTap={{ scale: 0.93, rotate: -3 }}
+        >
+          Try again
+        </motion.button>
+        <motion.button
+          className="secondary-action"
+          onClick={onNextGame}
+          type="button"
+          whileHover={{ y: -2, scale: 1.04 }}
+          whileTap={{ scale: 0.93, rotate: 3 }}
+        >
+          Next game
+        </motion.button>
+      </div>
     </motion.section>
   );
 }

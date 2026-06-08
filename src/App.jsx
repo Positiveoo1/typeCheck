@@ -171,6 +171,8 @@ function App() {
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
   const [showMobileTip, setShowMobileTip] = useState(() => !loadMobileTipDismissed());
   const [pendingPage, setPendingPage] = useState(null);
+  const [replayTargetText, setReplayTargetText] = useState(null);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
   const { testType, timeMode, wordMode } = settings;
 
@@ -241,6 +243,16 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    setIsPageLoading(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setIsPageLoading(false);
+    }, 520);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [currentPage]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -388,16 +400,31 @@ function App() {
     });
   }, [updateDashboard, user]);
 
-  const restart = useCallback(() => {
+  const resetTest = useCallback((options = {}) => {
     markIncompleteAttempt();
+    setReplayTargetText(options.targetText || null);
     setRestartPulse((pulse) => pulse + 1);
     setResult(null);
     setIsActive(false);
     setRestartKey((key) => key + 1);
   }, [markIncompleteAttempt]);
 
+  const restart = useCallback(() => {
+    resetTest();
+  }, [resetTest]);
+
+  const tryAgain = useCallback(() => {
+    if (!result?.targetText) {
+      resetTest();
+      return;
+    }
+
+    resetTest({ targetText: result.targetText });
+  }, [resetTest, result]);
+
   const handleSettingsChange = (nextType, nextValue) => {
     markIncompleteAttempt();
+    setReplayTargetText(null);
 
     const nextSettings = {
       ...settings,
@@ -454,6 +481,7 @@ function App() {
 
     if (nextPage === 'dashboard') {
       markIncompleteAttempt();
+      setReplayTargetText(null);
       setResult(null);
       setIsActive(false);
       setRestartKey((key) => key + 1);
@@ -468,6 +496,20 @@ function App() {
   return (
     <LayoutGroup>
       <motion.div className="app" data-theme={theme} layout>
+        <AnimatePresence>
+          {(!isAuthReady || isPageLoading) && (
+            <motion.div
+              className="page-loading-bar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <span />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <Header
           currentPage={currentPage}
           onNavigate={navigate}
@@ -526,7 +568,12 @@ function App() {
 
                 <AnimatePresence mode="wait">
                   {result ? (
-                    <Results key="results" onRestart={restart} stats={result} />
+                    <Results
+                      key="results"
+                      onNextGame={restart}
+                      onTryAgain={tryAgain}
+                      stats={result}
+                    />
                   ) : (
                     <TypingTest
                       key="test"
@@ -538,6 +585,7 @@ function App() {
                       restartKey={restartKey}
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
+                      targetTextOverride={replayTargetText}
                     />
                   )}
                 </AnimatePresence>

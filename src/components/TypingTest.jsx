@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useAnimationControls } from 'framer-motion';
 import {
   buildWordTokens,
@@ -18,10 +18,11 @@ function TypingTest({
   restartPulse,
   onRestart,
   onStart,
-  onActiveChange
+  onActiveChange,
+  targetTextOverride
 }) {
   const [targetText, setTargetText] = useState(() =>
-    shuffleWords(getTargetWordCount(testType, testValue))
+    targetTextOverride || shuffleWords(getTargetWordCount(testType, testValue))
   );
   const [typedText, setTypedText] = useState('');
   const [timeLeft, setTimeLeft] = useState(testType === 'time' ? testValue : 0);
@@ -33,12 +34,12 @@ function TypingTest({
   const currentLetterRef = useRef(null);
   const typedTextRef = useRef('');
   const startedAtRef = useRef(null);
+  const accumulatedElapsedRef = useRef(0);
   const isTypingFocusedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const hasFinishedRef = useRef(false);
   const tabArmedRef = useRef(false);
-  const previousMistakesRef = useRef(0);
-  const mistakeControls = useAnimationControls();
+  const speedHistoryRef = useRef([]);
   const restartControls = useAnimationControls();
 
   const elapsedSeconds =
@@ -53,32 +54,87 @@ function TypingTest({
   const wordTokens = useMemo(() => buildWordTokens(targetText), [targetText]);
   const isIdle = typedText.length === 0 && !isRunning;
 
+  const recordSpeedSnapshot = (elapsedSeconds, nextTypedText) => {
+    const normalizedElapsedSeconds = Math.max(0, elapsedSeconds);
+    const snapshot = calculateStats(
+      targetText,
+      nextTypedText,
+      normalizedElapsedSeconds
+    );
+    const lastSnapshot = speedHistoryRef.current.at(-1);
+
+    if (
+      lastSnapshot &&
+      normalizedElapsedSeconds - lastSnapshot.elapsedSeconds < 0.45 &&
+      snapshot.wpm === lastSnapshot.wpm
+    ) {
+      return;
+    }
+
+    speedHistoryRef.current = [
+      ...speedHistoryRef.current,
+      {
+        elapsedSeconds: normalizedElapsedSeconds,
+        wpm: snapshot.wpm
+      }
+    ].slice(-90);
+  };
+
+  const createResult = (nextTypedText, elapsedSeconds) => {
+    const finalStats = calculateStats(targetText, nextTypedText, elapsedSeconds);
+    const speedHistory = [...speedHistoryRef.current];
+    const lastSnapshot = speedHistory.at(-1);
+
+    if (
+      !lastSnapshot ||
+      lastSnapshot.elapsedSeconds !== finalStats.elapsedSeconds ||
+      lastSnapshot.wpm !== finalStats.wpm
+    ) {
+      speedHistory.push({
+        elapsedSeconds: finalStats.elapsedSeconds,
+        wpm: finalStats.wpm
+      });
+    }
+
+    return {
+      ...finalStats,
+      modeLabel: getModeLabel(testType, testValue),
+      speedHistory,
+      targetText,
+      testType
+    };
+  };
+
+  const pauseWordTimer = useCallback(() => {
+    if (testType !== 'words') return;
+    if (!isRunning || !startedAtRef.current || hasFinishedRef.current) return;
+
+    const elapsed = (performance.now() - startedAtRef.current) / 1000;
+    accumulatedElapsedRef.current += elapsed;
+    startedAtRef.current = null;
+    setElapsedTime(accumulatedElapsedRef.current);
+    setIsRunning(false);
+    onActiveChange(false);
+  }, [isRunning, onActiveChange, testType]);
+
   useEffect(() => {
-    setTargetText(shuffleWords(getTargetWordCount(testType, testValue)));
+    setTargetText(
+      targetTextOverride || shuffleWords(getTargetWordCount(testType, testValue))
+    );
     setTypedText('');
     setTimeLeft(testType === 'time' ? testValue : 0);
     setElapsedTime(0);
     setIsRunning(false);
     startedAtRef.current = null;
+    accumulatedElapsedRef.current = 0;
     hasStartedRef.current = false;
     hasFinishedRef.current = false;
     isTypingFocusedRef.current = false;
     setIsTypingFocused(false);
     typedTextRef.current = '';
-    previousMistakesRef.current = 0;
+    speedHistoryRef.current = [];
     onActiveChange(false);
-  }, [testType, testValue, restartKey, onActiveChange]);
-
-  useEffect(() => {
-    if (stats.mistakes > previousMistakesRef.current) {
-      mistakeControls.start({
-        x: [0, -10, 9, -6, 4, 0],
-        transition: { duration: 0.34, ease: 'easeOut' }
-      });
-    }
-
-    previousMistakesRef.current = stats.mistakes;
-  }, [mistakeControls, stats.mistakes]);
+  }, [testType, testValue, restartKey, onActiveChange, targetTextOverride]);
 
   useEffect(() => {
     if (restartPulse === 0) return;
@@ -99,24 +155,23 @@ function TypingTest({
 
     const interval = setInterval(() => {
       const elapsed = (performance.now() - startedAtRef.current) / 1000;
-      setElapsedTime(elapsed);
+      const totalElapsed =
+        testType === 'words'
+          ? accumulatedElapsedRef.current + elapsed
+          : elapsed;
+      setElapsedTime(totalElapsed);
+      recordSpeedSnapshot(totalElapsed, typedTextRef.current);
 
       if (testType !== 'time') return;
 
-      const nextTimeLeft = getTimeLeft(testValue, elapsed);
+      const nextTimeLeft = getTimeLeft(testValue, totalElapsed);
       setTimeLeft(nextTimeLeft);
 
       if (nextTimeLeft === 0) {
         clearInterval(interval);
         setIsRunning(false);
         onActiveChange(false);
-        onFinish(
-          {
-            ...calculateStats(targetText, typedTextRef.current, testValue),
-            modeLabel: getModeLabel(testType, testValue),
-            testType
-          }
-        );
+        onFinish(createResult(typedTextRef.current, testValue));
       }
     }, 250);
 
@@ -162,20 +217,28 @@ function TypingTest({
   }, [onRestart]);
 
   useEffect(() => {
+    const blurTypingArea = () => {
+      pauseWordTimer();
+      isTypingFocusedRef.current = false;
+      setIsTypingFocused(false);
+      inputRef.current?.blur();
+      wordDisplayRef.current?.blur();
+    };
+
     const blurWhenClickingOutside = (event) => {
       if (wordDisplayRef.current?.contains(event.target)) return;
       if (event.target === inputRef.current) return;
 
-      isTypingFocusedRef.current = false;
-      setIsTypingFocused(false);
-      inputRef.current?.blur();
+      blurTypingArea();
     };
 
     document.addEventListener('pointerdown', blurWhenClickingOutside);
+    window.addEventListener('blur', pauseWordTimer);
     return () => {
       document.removeEventListener('pointerdown', blurWhenClickingOutside);
+      window.removeEventListener('blur', pauseWordTimer);
     };
-  }, []);
+  }, [pauseWordTimer]);
 
   const handleChange = (event) => {
     if (testType === 'time' && timeLeft === 0) return;
@@ -189,25 +252,36 @@ function TypingTest({
     if (!hasStartedRef.current && value.length > 0) {
       startedAtRef.current = performance.now();
       hasStartedRef.current = true;
+      speedHistoryRef.current = [{ elapsedSeconds: 0, wpm: 0 }];
       setIsRunning(true);
       onActiveChange(true);
       onStart({ testType, testValue });
+    } else if (
+      testType === 'words' &&
+      hasStartedRef.current &&
+      !isRunning &&
+      value !== typedText
+    ) {
+      startedAtRef.current = performance.now();
+      setIsRunning(true);
+      onActiveChange(true);
     }
 
     const nextTypedText = getNextTypedText(targetText, typedText, value);
     setTypedText(nextTypedText);
 
     if (testType === 'words' && nextTypedText.length === targetText.length) {
-      const elapsed = (performance.now() - startedAtRef.current) / 1000;
+      const currentRunElapsed = startedAtRef.current
+        ? (performance.now() - startedAtRef.current) / 1000
+        : 0;
+      const elapsed = accumulatedElapsedRef.current + currentRunElapsed;
       hasFinishedRef.current = true;
+      accumulatedElapsedRef.current = elapsed;
       setElapsedTime(elapsed);
       setIsRunning(false);
       onActiveChange(false);
-      onFinish({
-        ...calculateStats(targetText, nextTypedText, elapsed),
-        modeLabel: getModeLabel(testType, testValue),
-        testType
-      });
+      recordSpeedSnapshot(elapsed, nextTypedText);
+      onFinish(createResult(nextTypedText, elapsed));
     }
   };
 
@@ -259,7 +333,6 @@ function TypingTest({
         </motion.div>
         <motion.div
           layout
-          animate={mistakeControls}
           variants={{
             hidden: { opacity: 0, y: 10 },
             visible: { opacity: 1, y: 0 }
@@ -290,7 +363,6 @@ function TypingTest({
         ]
           .filter(Boolean)
           .join(' ')}
-        animate={mistakeControls}
         onPointerDown={(event) => {
           event.preventDefault();
           focusInput();
@@ -350,11 +422,14 @@ function TypingTest({
         className="hidden-input"
         onChange={handleChange}
         onBlur={() => {
+          pauseWordTimer();
           isTypingFocusedRef.current = false;
           setIsTypingFocused(false);
+          wordDisplayRef.current?.blur();
         }}
         onDrop={(event) => event.preventDefault()}
         onPaste={(event) => event.preventDefault()}
+        readOnly={!isTypingFocused}
         ref={inputRef}
         spellCheck="false"
         value={typedText}
