@@ -915,8 +915,8 @@ h2 {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(16px, 3vh, 28px);
-  padding: clamp(22px, 5vh, 42px) 0 28px;
+  gap: clamp(12px, 2.2vh, 20px);
+  padding: clamp(18px, 4vh, 32px) 0 24px;
 }
 
 .stats-row {
@@ -952,8 +952,8 @@ h2 {
 
 .word-display {
   width: 100%;
-  height: clamp(210px, 34vh, 320px);
-  padding: 12px 14px 20px;
+  height: clamp(150px, 25vh, 230px);
+  padding: 10px 12px 16px;
   overflow-y: auto;
   overflow-x: hidden;
   border: 1px solid transparent;
@@ -962,8 +962,8 @@ h2 {
   text-align: left;
   background: rgba(255, 255, 255, 0.01);
   cursor: text;
-  font-size: clamp(1.55rem, 3.3vw, 2.55rem);
-  line-height: 1.72;
+  font-size: clamp(1.25rem, 2.55vw, 2rem);
+  line-height: 1.62;
   letter-spacing: 0;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -982,6 +982,69 @@ h2 {
     black calc(100% - 34px),
     transparent 100%
   );
+}
+
+.visual-keyboard {
+  width: min(820px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 6px;
+  user-select: none;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.keyboard-key {
+  height: clamp(30px, 4.2vw, 42px);
+  min-width: clamp(28px, 4.2vw, 42px);
+  padding: 0 8px;
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.032);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.16);
+  font-size: clamp(0.62rem, 1.4vw, 0.8rem);
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  transition:
+    background 90ms ease,
+    border-color 90ms ease,
+    box-shadow 90ms ease,
+    color 90ms ease,
+    transform 90ms ease;
+}
+
+.keyboard-key-medium {
+  min-width: clamp(42px, 6.4vw, 64px);
+}
+
+.keyboard-key-wide {
+  min-width: clamp(56px, 8vw, 86px);
+}
+
+.keyboard-key-extra {
+  min-width: clamp(70px, 10vw, 112px);
+}
+
+.keyboard-key-space {
+  width: min(330px, 42vw);
+}
+
+.keyboard-key.pressed {
+  color: var(--bg);
+  border-color: rgba(var(--accent-2-rgb), 0.8);
+  background: var(--accent-2);
+  box-shadow:
+    0 0 18px rgba(var(--caret-rgb), 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  transform: translateY(2px) scale(0.98);
 }
 
 .word-display::-webkit-scrollbar {
@@ -1391,9 +1454,25 @@ h2 {
   }
 
   .word-display {
-    height: clamp(190px, 36vh, 280px);
-    font-size: 1.55rem;
+    height: clamp(140px, 26vh, 210px);
+    font-size: 1.28rem;
     line-height: 1.65;
+  }
+
+  .visual-keyboard {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .visual-keyboard::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .keyboard-row {
+    min-width: 650px;
   }
 }
 
@@ -1449,5 +1528,9 @@ h2 {
   .stats-row strong,
   .result-grid strong {
     font-size: 1.25rem;
+  }
+
+  .word-display {
+    height: 138px;
   }
 }

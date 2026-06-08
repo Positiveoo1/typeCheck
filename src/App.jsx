@@ -1,19 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc
+} from 'firebase/firestore';
 import AuthPanel from './components/AuthPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Header from './components/Header.jsx';
 import Results from './components/Results.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
-import { auth, db } from './services/firebase.js';
+import { auth, db, isFirebaseConfigured } from './services/firebase.js';
 
 const SETTINGS_KEY = 'typecheck-settings';
-const DASHBOARD_KEY = 'typecheck-dashboard';
 const THEME_KEY = 'typecheck-theme';
-const MOBILE_TIP_KEY = 'typecheck-mobile-tip-dismissed';
 const THEMES = ['matrix', 'serika', 'botanical', 'midnight', 'rose'];
 const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
 const DEFAULT_SETTINGS = {
@@ -38,22 +47,6 @@ function loadTheme() {
 function saveTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, theme);
-  } catch {
-    // Storage can be unavailable in private or restricted browser contexts.
-  }
-}
-
-function loadMobileTipDismissed() {
-  try {
-    return localStorage.getItem(MOBILE_TIP_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function saveMobileTipDismissed() {
-  try {
-    localStorage.setItem(MOBILE_TIP_KEY, 'true');
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
@@ -108,41 +101,26 @@ function saveSettings(settings) {
   }
 }
 
-function loadDashboard() {
-  try {
-    const savedDashboard = JSON.parse(localStorage.getItem(DASHBOARD_KEY));
-    const emptyDashboard = createEmptyDashboard();
+function normalizeDashboard(savedDashboard, results = savedDashboard?.results) {
+  const emptyDashboard = createEmptyDashboard();
 
-    if (!savedDashboard) return emptyDashboard;
+  if (!savedDashboard) return emptyDashboard;
 
-    return {
-      started: Number(savedDashboard.started) || 0,
-      completed: Number(savedDashboard.completed) || 0,
-      incomplete: Number(savedDashboard.incomplete) || 0,
-      modes: Object.fromEntries(
-        MODE_LABELS.map((label) => [
-          label,
-          {
-            ...createModeStats(),
-            ...(savedDashboard.modes?.[label] || {})
-          }
-        ])
-      ),
-      results: Array.isArray(savedDashboard.results)
-        ? savedDashboard.results.slice(0, 20)
-        : []
-    };
-  } catch {
-    return createEmptyDashboard();
-  }
-}
-
-function saveDashboard(dashboard) {
-  try {
-    localStorage.setItem(DASHBOARD_KEY, JSON.stringify(dashboard));
-  } catch {
-    // Storage can be unavailable in private or restricted browser contexts.
-  }
+  return {
+    started: Number(savedDashboard.started) || 0,
+    completed: Number(savedDashboard.completed) || 0,
+    incomplete: Number(savedDashboard.incomplete) || 0,
+    modes: Object.fromEntries(
+      MODE_LABELS.map((label) => [
+        label,
+        {
+          ...createModeStats(),
+          ...(savedDashboard.modes?.[label] || {})
+        }
+      ])
+    ),
+    results: Array.isArray(results) ? results.slice(0, 20) : []
+  };
 }
 
 function getModeLabel(testType, testValue) {
@@ -155,9 +133,56 @@ function createId() {
     : `${Date.now()}-${Math.random()}`;
 }
 
+function getDashboardDocRef(userId) {
+  return doc(db, 'users', userId, 'stats', 'dashboard');
+}
+
+function getUserDocRef(userId) {
+  return doc(db, 'users', userId);
+}
+
+function getResultsCollectionRef(userId) {
+  return collection(db, 'users', userId, 'results');
+}
+
+function serializeDashboard(dashboard) {
+  return {
+    completed: dashboard.completed,
+    incomplete: dashboard.incomplete,
+    modes: dashboard.modes,
+    started: dashboard.started,
+    updatedAt: serverTimestamp()
+  };
+}
+
+async function loadFirebaseDashboard(userId) {
+  if (!db) return createEmptyDashboard();
+
+  const [dashboardSnapshot, resultsSnapshot] = await Promise.all([
+    getDoc(getDashboardDocRef(userId)),
+    getDocs(query(getResultsCollectionRef(userId), orderBy('createdAt', 'desc'), limit(20)))
+  ]);
+
+  const results = resultsSnapshot.docs.map((resultDoc) => {
+    const data = resultDoc.data();
+
+    return {
+      id: resultDoc.id,
+      accuracy: Number(data.accuracy) || 0,
+      elapsedSeconds: Number(data.elapsedSeconds) || 0,
+      modeLabel: data.modeLabel || '',
+      testType: data.testType || 'time',
+      wpm: Number(data.wpm) || 0,
+      wrongChars: Number(data.wrongChars) || 0
+    };
+  });
+
+  return normalizeDashboard(dashboardSnapshot.data(), results);
+}
+
 function App() {
   const [settings, setSettings] = useState(loadSettings);
-  const [dashboard, setDashboard] = useState(loadDashboard);
+  const [dashboard, setDashboard] = useState(createEmptyDashboard);
   const activeAttemptRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(loadPage);
   const [theme, setTheme] = useState(loadTheme);
@@ -169,22 +194,95 @@ function App() {
   const [isAuthReady, setIsAuthReady] = useState(!auth);
   const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
-  const [showMobileTip, setShowMobileTip] = useState(() => !loadMobileTipDismissed());
+  const [showMobileTip, setShowMobileTip] = useState(true);
   const [pendingPage, setPendingPage] = useState(null);
+  const [pendingResultSave, setPendingResultSave] = useState(null);
   const [replayTargetText, setReplayTargetText] = useState(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
 
   const { testType, timeMode, wordMode } = settings;
 
   const updateDashboard = useCallback((updater) => {
-    if (!user) return;
+    if (!user || !db) return;
 
     setDashboard((currentDashboard) => {
       const nextDashboard = updater(currentDashboard);
-      saveDashboard(nextDashboard);
+
+      setDoc(getDashboardDocRef(user.uid), serializeDashboard(nextDashboard), {
+        merge: true
+      }).catch((error) => {
+        console.error('Failed to save dashboard:', error);
+      });
+
       return nextDashboard;
     });
   }, [user]);
+
+  const saveCompletedResult = useCallback((completedResult, options = {}) => {
+    if (!user || !db) {
+      if (!isFirebaseConfigured) {
+        console.error('Firebase is not configured. Add VITE_FIREBASE_* values before saving performance.');
+      }
+      return;
+    }
+
+    setDoc(
+      getUserDocRef(user.uid),
+      {
+        email: user.email || null,
+        lastActiveAt: serverTimestamp()
+      },
+      { merge: true }
+    ).catch((error) => {
+      console.error('Failed to update user profile:', error);
+    });
+
+    updateDashboard((currentDashboard) => {
+      const mode = currentDashboard.modes[completedResult.modeLabel] || createModeStats();
+      const nextMode = {
+        ...mode,
+        started: mode.started + (options.countStarted ? 1 : 0),
+        completed: mode.completed + 1,
+        bestWpm: Math.max(mode.bestWpm || 0, completedResult.wpm),
+        bestAccuracy: Math.max(mode.bestAccuracy || 0, completedResult.accuracy)
+      };
+
+      return {
+        ...currentDashboard,
+        started: currentDashboard.started + (options.countStarted ? 1 : 0),
+        completed: currentDashboard.completed + 1,
+        modes: {
+          ...currentDashboard.modes,
+          [completedResult.modeLabel]: nextMode
+        },
+        results: [
+          {
+            id: createId(),
+            accuracy: completedResult.accuracy,
+            elapsedSeconds: completedResult.elapsedSeconds,
+            modeLabel: completedResult.modeLabel,
+            testType: completedResult.testType,
+            wpm: completedResult.wpm,
+            wrongChars: completedResult.wrongChars
+          },
+          ...currentDashboard.results
+        ].slice(0, 20)
+      };
+    });
+
+    addDoc(getResultsCollectionRef(user.uid), {
+      accuracy: completedResult.accuracy,
+      correctChars: completedResult.correctChars,
+      elapsedSeconds: completedResult.elapsedSeconds,
+      modeLabel: completedResult.modeLabel,
+      testType: completedResult.testType,
+      wpm: completedResult.wpm,
+      wrongChars: completedResult.wrongChars,
+      createdAt: serverTimestamp()
+    }).catch((error) => {
+      console.error('Failed to save result:', error);
+    });
+  }, [updateDashboard, user]);
 
   const markIncompleteAttempt = useCallback(() => {
     const currentAttempt = activeAttemptRef.current;
@@ -215,11 +313,36 @@ function App() {
       return undefined;
     }
 
-    return onAuthStateChanged(auth, (nextUser) => {
-      setUser(nextUser);
-      setIsAuthReady(true);
+    let isSubscribed = true;
 
-      if (nextUser) {
+    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+      const syncAuthState = async () => {
+        setIsAuthReady(false);
+
+        if (!nextUser) {
+          if (!isSubscribed) return;
+
+          setUser(null);
+          setDashboard(createEmptyDashboard());
+          setIsAuthReady(true);
+          return;
+        }
+
+        let nextDashboard = createEmptyDashboard();
+
+        try {
+          nextDashboard = await loadFirebaseDashboard(nextUser.uid);
+        } catch (error) {
+          if (isSubscribed) {
+            console.error('Failed to load dashboard:', error);
+          }
+        }
+
+        if (!isSubscribed) return;
+
+        setUser(nextUser);
+        setDashboard(nextDashboard);
+        setIsAuthReady(true);
         setIsAuthGateOpen(false);
 
         if (pendingPage === 'dashboard') {
@@ -227,8 +350,15 @@ function App() {
           setCurrentPage('dashboard');
           setPendingPage(null);
         }
-      }
+      };
+
+      syncAuthState();
     });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, [pendingPage]);
 
   useEffect(() => {
@@ -239,6 +369,15 @@ function App() {
     setPendingPage('dashboard');
     setIsAuthGateOpen(true);
   }, [currentPage, isAuthReady, user]);
+
+  useEffect(() => {
+    if (!isAuthReady || !user || !pendingResultSave) return;
+
+    saveCompletedResult(pendingResultSave.result, {
+      countStarted: pendingResultSave.countStarted
+    });
+    setPendingResultSave(null);
+  }, [isAuthReady, pendingResultSave, saveCompletedResult, user]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -263,55 +402,12 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (!user) return;
-
-      const currentAttempt = activeAttemptRef.current;
-      if (!currentAttempt) return;
-
-      const currentDashboard = loadDashboard();
-      const mode = currentDashboard.modes[currentAttempt.modeLabel] || createModeStats();
-      const nextDashboard = {
-        ...currentDashboard,
-        incomplete: currentDashboard.incomplete + 1,
-        modes: {
-          ...currentDashboard.modes,
-          [currentAttempt.modeLabel]: {
-            ...mode,
-            incomplete: mode.incomplete + 1
-          }
-        }
-      };
-
-      saveDashboard(nextDashboard);
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user]);
-
   const finishTest = useCallback((nextResult) => {
-    const bestKey = `typecheck-best-${nextResult.testType}-${nextResult.modeLabel}`;
-    let previousBest = 0;
-
-    if (user) {
-      try {
-        previousBest = Number(localStorage.getItem(bestKey)) || 0;
-      } catch {
-        previousBest = 0;
-      }
-    }
+    const previousBest = Number(
+      dashboard.modes[nextResult.modeLabel]?.bestWpm
+    ) || 0;
 
     const isPersonalBest = Boolean(user) && nextResult.wpm > previousBest;
-
-    if (user && isPersonalBest && typeof localStorage !== 'undefined') {
-      try {
-        localStorage.setItem(bestKey, String(nextResult.wpm));
-      } catch {
-        // Storage can be unavailable in private or restricted browser contexts.
-      }
-    }
 
     const completedResult = {
       ...nextResult,
@@ -322,52 +418,18 @@ function App() {
     setResult(completedResult);
     activeAttemptRef.current = null;
 
-    updateDashboard((currentDashboard) => {
-      const mode = currentDashboard.modes[completedResult.modeLabel] || createModeStats();
-      const nextMode = {
-        ...mode,
-        completed: mode.completed + 1,
-        bestWpm: Math.max(mode.bestWpm || 0, completedResult.wpm),
-        bestAccuracy: Math.max(mode.bestAccuracy || 0, completedResult.accuracy)
-      };
-
-      return {
-        ...currentDashboard,
-        completed: currentDashboard.completed + 1,
-        modes: {
-          ...currentDashboard.modes,
-          [completedResult.modeLabel]: nextMode
-        },
-        results: [
-          {
-            id: createId(),
-            accuracy: completedResult.accuracy,
-            elapsedSeconds: completedResult.elapsedSeconds,
-            modeLabel: completedResult.modeLabel,
-            testType: completedResult.testType,
-            wpm: completedResult.wpm,
-            wrongChars: completedResult.wrongChars
-          },
-          ...currentDashboard.results
-        ].slice(0, 20)
-      };
-    });
-
     if (user && db) {
-      addDoc(collection(db, 'users', user.uid, 'results'), {
-        accuracy: completedResult.accuracy,
-        correctChars: completedResult.correctChars,
-        elapsedSeconds: completedResult.elapsedSeconds,
-        modeLabel: completedResult.modeLabel,
-        testType: completedResult.testType,
-        wpm: completedResult.wpm,
-        wrongChars: completedResult.wrongChars,
-        createdAt: serverTimestamp()
-      }).catch((error) => {
-        console.error('Failed to save result:', error);
+      saveCompletedResult(completedResult);
+    } else if (auth && isFirebaseConfigured) {
+      setPendingResultSave({
+        countStarted: true,
+        result: completedResult
       });
+      setIsAuthGateOpen(true);
+    } else {
+      console.error('Typing performance was not saved because Firebase is not configured.');
     }
-  }, [updateDashboard, user]);
+  }, [dashboard.modes, saveCompletedResult, user]);
 
   const handleTestStart = useCallback((startedTest) => {
     if (!user) return;
@@ -455,13 +517,13 @@ function App() {
   };
 
   const handleThemeChange = (nextTheme) => {
+    if (!THEMES.includes(nextTheme)) return;
     setTheme(nextTheme);
     saveTheme(nextTheme);
   };
 
   const dismissMobileTip = () => {
     setShowMobileTip(false);
-    saveMobileTipDismissed();
   };
 
   const navigate = (nextPage, options = {}) => {

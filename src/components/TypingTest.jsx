@@ -10,6 +10,129 @@ import {
   shuffleWords
 } from '../typingLogic.js';
 
+const KEYBOARD_ROWS = [
+  [
+    { code: 'Backquote', label: '`' },
+    { code: 'Digit1', label: '1' },
+    { code: 'Digit2', label: '2' },
+    { code: 'Digit3', label: '3' },
+    { code: 'Digit4', label: '4' },
+    { code: 'Digit5', label: '5' },
+    { code: 'Digit6', label: '6' },
+    { code: 'Digit7', label: '7' },
+    { code: 'Digit8', label: '8' },
+    { code: 'Digit9', label: '9' },
+    { code: 'Digit0', label: '0' },
+    { code: 'Minus', label: '-' },
+    { code: 'Equal', label: '=' },
+    { code: 'Backspace', label: 'backspace', size: 'wide' }
+  ],
+  [
+    { code: 'Tab', label: 'tab', size: 'medium' },
+    { code: 'KeyQ', label: 'q' },
+    { code: 'KeyW', label: 'w' },
+    { code: 'KeyE', label: 'e' },
+    { code: 'KeyR', label: 'r' },
+    { code: 'KeyT', label: 't' },
+    { code: 'KeyY', label: 'y' },
+    { code: 'KeyU', label: 'u' },
+    { code: 'KeyI', label: 'i' },
+    { code: 'KeyO', label: 'o' },
+    { code: 'KeyP', label: 'p' },
+    { code: 'BracketLeft', label: '[' },
+    { code: 'BracketRight', label: ']' },
+    { code: 'Backslash', label: '\\' }
+  ],
+  [
+    { code: 'CapsLock', label: 'caps', size: 'wide' },
+    { code: 'KeyA', label: 'a' },
+    { code: 'KeyS', label: 's' },
+    { code: 'KeyD', label: 'd' },
+    { code: 'KeyF', label: 'f' },
+    { code: 'KeyG', label: 'g' },
+    { code: 'KeyH', label: 'h' },
+    { code: 'KeyJ', label: 'j' },
+    { code: 'KeyK', label: 'k' },
+    { code: 'KeyL', label: 'l' },
+    { code: 'Semicolon', label: ';' },
+    { code: 'Quote', label: "'" },
+    { code: 'Enter', label: 'enter', size: 'wide' }
+  ],
+  [
+    { code: 'ShiftLeft', label: 'shift', size: 'extra' },
+    { code: 'KeyZ', label: 'z' },
+    { code: 'KeyX', label: 'x' },
+    { code: 'KeyC', label: 'c' },
+    { code: 'KeyV', label: 'v' },
+    { code: 'KeyB', label: 'b' },
+    { code: 'KeyN', label: 'n' },
+    { code: 'KeyM', label: 'm' },
+    { code: 'Comma', label: ',' },
+    { code: 'Period', label: '.' },
+    { code: 'Slash', label: '/' },
+    { code: 'ShiftRight', label: 'shift', size: 'extra' }
+  ],
+  [
+    { code: 'ControlLeft', label: 'ctrl', size: 'medium' },
+    { code: 'AltLeft', label: 'alt', size: 'medium' },
+    { code: 'Space', label: '', size: 'space' },
+    { code: 'AltRight', label: 'alt', size: 'medium' },
+    { code: 'ControlRight', label: 'ctrl', size: 'medium' }
+  ]
+];
+
+function playKeySound(audioContextRef) {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContext) return;
+
+  if (!audioContextRef.current) {
+    audioContextRef.current = new AudioContext();
+  }
+
+  const audioContext = audioContextRef.current;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const now = audioContext.currentTime;
+
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(520, now);
+  oscillator.frequency.exponentialRampToValueAtTime(360, now + 0.035);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.055, now + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.05);
+}
+
+function VisualKeyboard({ keyboardRef, pressedKeys }) {
+  return (
+    <div className="visual-keyboard" aria-hidden="true" ref={keyboardRef}>
+      {KEYBOARD_ROWS.map((row, rowIndex) => (
+        <div className="keyboard-row" key={`row-${rowIndex}`}>
+          {row.map((key) => (
+            <span
+              className={[
+                'keyboard-key',
+                key.size ? `keyboard-key-${key.size}` : '',
+                pressedKeys.has(key.code) ? 'pressed' : ''
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              key={key.code}
+            >
+              {key.label}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TypingTest({
   testType,
   testValue,
@@ -29,8 +152,11 @@ function TypingTest({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
+  const [pressedKeys, setPressedKeys] = useState(() => new Set());
   const inputRef = useRef(null);
   const wordDisplayRef = useRef(null);
+  const keyboardRef = useRef(null);
+  const audioContextRef = useRef(null);
   const currentLetterRef = useRef(null);
   const typedTextRef = useRef('');
   const startedAtRef = useRef(null);
@@ -217,6 +343,48 @@ function TypingTest({
   }, [onRestart]);
 
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!event.repeat) {
+        playKeySound(audioContextRef);
+      }
+
+      setPressedKeys((currentKeys) => {
+        if (currentKeys.has(event.code)) return currentKeys;
+
+        const nextKeys = new Set(currentKeys);
+        nextKeys.add(event.code);
+        return nextKeys;
+      });
+    };
+
+    const handleKeyUp = (event) => {
+      setPressedKeys((currentKeys) => {
+        if (!currentKeys.has(event.code)) return currentKeys;
+
+        const nextKeys = new Set(currentKeys);
+        nextKeys.delete(event.code);
+        return nextKeys;
+      });
+    };
+
+    const clearPressedKeys = () => {
+      setPressedKeys(new Set());
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', clearPressedKeys);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', clearPressedKeys);
+      audioContextRef.current?.close();
+      audioContextRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const blurTypingArea = () => {
       pauseWordTimer();
       isTypingFocusedRef.current = false;
@@ -227,6 +395,7 @@ function TypingTest({
 
     const blurWhenClickingOutside = (event) => {
       if (wordDisplayRef.current?.contains(event.target)) return;
+      if (keyboardRef.current?.contains(event.target)) return;
       if (event.target === inputRef.current) return;
 
       blurTypingArea();
@@ -434,6 +603,8 @@ function TypingTest({
         spellCheck="false"
         value={typedText}
       />
+
+      <VisualKeyboard keyboardRef={keyboardRef} pressedKeys={pressedKeys} />
 
       <div className="test-actions">
         <motion.button
