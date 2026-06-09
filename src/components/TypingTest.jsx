@@ -86,26 +86,71 @@ function playKeySound(audioContextRef) {
 
   if (!AudioContext) return;
 
-  if (!audioContextRef.current) {
+  if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
     audioContextRef.current = new AudioContext();
   }
 
   const audioContext = audioContextRef.current;
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const now = audioContext.currentTime;
+  const startSound = () => {
+    const now = audioContext.currentTime;
+    const output = audioContext.createGain();
+    const clickGain = audioContext.createGain();
+    const thockGain = audioContext.createGain();
+    const noiseBuffer = audioContext.createBuffer(
+      1,
+      Math.floor(audioContext.sampleRate * 0.018),
+      audioContext.sampleRate
+    );
+    const noiseData = noiseBuffer.getChannelData(0);
 
-  oscillator.type = 'sine';
-  oscillator.frequency.setValueAtTime(520, now);
-  oscillator.frequency.exponentialRampToValueAtTime(360, now + 0.035);
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.055, now + 0.004);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+    for (let index = 0; index < noiseData.length; index += 1) {
+      const fade = 1 - index / noiseData.length;
+      noiseData[index] = (Math.random() * 2 - 1) * fade;
+    }
 
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start(now);
-  oscillator.stop(now + 0.05);
+    const click = audioContext.createBufferSource();
+    const clickFilter = audioContext.createBiquadFilter();
+    const thock = audioContext.createOscillator();
+
+    output.gain.setValueAtTime(0.72, now);
+    output.connect(audioContext.destination);
+
+    click.buffer = noiseBuffer;
+    clickFilter.type = 'bandpass';
+    clickFilter.frequency.setValueAtTime(2600 + Math.random() * 420, now);
+    clickFilter.Q.setValueAtTime(1.8, now);
+
+    clickGain.gain.setValueAtTime(0.0001, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.105, now + 0.002);
+    clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.024);
+
+    thock.type = 'triangle';
+    thock.frequency.setValueAtTime(165 + Math.random() * 26, now);
+    thock.frequency.exponentialRampToValueAtTime(92, now + 0.044);
+
+    thockGain.gain.setValueAtTime(0.0001, now);
+    thockGain.gain.exponentialRampToValueAtTime(0.04, now + 0.006);
+    thockGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.052);
+
+    click.connect(clickFilter);
+    clickFilter.connect(clickGain);
+    clickGain.connect(output);
+
+    thock.connect(thockGain);
+    thockGain.connect(output);
+
+    click.start(now);
+    click.stop(now + 0.026);
+    thock.start(now);
+    thock.stop(now + 0.056);
+  };
+
+  if (audioContext.state === 'suspended') {
+    audioContext.resume().then(startSound).catch(() => {});
+    return;
+  }
+
+  startSound();
 }
 
 function VisualKeyboard({ keyboardRef, pressedKeys }) {
@@ -130,6 +175,35 @@ function VisualKeyboard({ keyboardRef, pressedKeys }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function ShortcutHints() {
+  const primaryKey =
+    typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+      ? 'Cmd'
+      : 'Ctrl';
+  const hints = [
+    { label: 'restart', keys: [primaryKey, 'Enter'] },
+    { label: 'modes', keys: ['Alt', '1-6'] },
+    { label: 'dashboard', keys: ['Alt', 'D'] },
+    { label: 'reset', keys: ['Esc'] }
+  ];
+
+  return (
+    <section className="shortcut-hints" aria-label="Keyboard shortcuts">
+      <span>shortcuts</span>
+      {hints.map((hint) => (
+        <div className="shortcut-chip" key={`${hint.label}-${hint.keys.join('-')}`}>
+          <strong>{hint.label}</strong>
+          <span className="shortcut-keys">
+            {hint.keys.map((key) => (
+              <kbd key={key}>{key}</kbd>
+            ))}
+          </span>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -167,6 +241,12 @@ function TypingTest({
   const tabArmedRef = useRef(false);
   const speedHistoryRef = useRef([]);
   const restartControls = useAnimationControls();
+
+  const focusInput = useCallback(() => {
+    isTypingFocusedRef.current = true;
+    setIsTypingFocused(true);
+    inputRef.current?.focus();
+  }, []);
 
   const elapsedSeconds =
     typedText.length === 0
@@ -255,12 +335,16 @@ function TypingTest({
     accumulatedElapsedRef.current = 0;
     hasStartedRef.current = false;
     hasFinishedRef.current = false;
-    isTypingFocusedRef.current = false;
-    setIsTypingFocused(false);
+    isTypingFocusedRef.current = true;
+    setIsTypingFocused(true);
     typedTextRef.current = '';
     speedHistoryRef.current = [];
     onActiveChange(false);
-  }, [testType, testValue, restartKey, onActiveChange, targetTextOverride]);
+
+    window.requestAnimationFrame(() => {
+      focusInput();
+    });
+  }, [testType, testValue, restartKey, focusInput, onActiveChange, targetTextOverride]);
 
   useEffect(() => {
     if (restartPulse === 0) return;
@@ -409,15 +493,15 @@ function TypingTest({
     };
   }, [pauseWordTimer]);
 
-  const handleChange = (event) => {
+  const applyTypedValue = (value) => {
     if (testType === 'time' && timeLeft === 0) return;
     if (hasFinishedRef.current) return;
     if (!isTypingFocusedRef.current) {
-      event.target.value = typedText;
       return;
     }
 
-    const value = event.target.value;
+    const currentTypedText = typedTextRef.current;
+
     if (!hasStartedRef.current && value.length > 0) {
       startedAtRef.current = performance.now();
       hasStartedRef.current = true;
@@ -429,14 +513,15 @@ function TypingTest({
       testType === 'words' &&
       hasStartedRef.current &&
       !isRunning &&
-      value !== typedText
+      value !== currentTypedText
     ) {
       startedAtRef.current = performance.now();
       setIsRunning(true);
       onActiveChange(true);
     }
 
-    const nextTypedText = getNextTypedText(targetText, typedText, value);
+    const nextTypedText = getNextTypedText(targetText, currentTypedText, value);
+    typedTextRef.current = nextTypedText;
     setTypedText(nextTypedText);
 
     if (testType === 'words' && nextTypedText.length === targetText.length) {
@@ -454,10 +539,13 @@ function TypingTest({
     }
   };
 
-  const focusInput = () => {
-    isTypingFocusedRef.current = true;
-    setIsTypingFocused(true);
-    inputRef.current?.focus();
+  const handleChange = (event) => {
+    if (!isTypingFocusedRef.current) {
+      event.target.value = typedText;
+      return;
+    }
+
+    applyTypedValue(event.target.value);
   };
 
   return (
@@ -605,6 +693,8 @@ function TypingTest({
       />
 
       <VisualKeyboard keyboardRef={keyboardRef} pressedKeys={pressedKeys} />
+
+      <ShortcutHints />
 
       <div className="test-actions">
         <motion.button

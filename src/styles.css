@@ -449,6 +449,59 @@ h2 {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.shortcut-hints {
+  width: min(620px, 100%);
+  margin: -4px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.shortcut-chip {
+  min-height: 26px;
+  padding: 3px 6px 3px 7px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.024);
+}
+
+.shortcut-chip strong {
+  color: var(--subtle);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.shortcut-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.shortcut-keys kbd {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.2);
+  border-radius: 5px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--heading);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  font: inherit;
+  font-size: 0.64rem;
+  line-height: 1;
+  text-transform: none;
+}
+
 .auth-panel {
   position: absolute;
   right: 0;
@@ -985,23 +1038,23 @@ h2 {
 }
 
 .visual-keyboard {
-  width: min(820px, 100%);
+  width: min(660px, 100%);
   margin: 0 auto;
   display: grid;
-  gap: 6px;
+  gap: 4px;
   user-select: none;
 }
 
 .keyboard-row {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .keyboard-key {
-  height: clamp(30px, 4.2vw, 42px);
-  min-width: clamp(28px, 4.2vw, 42px);
-  padding: 0 8px;
+  height: clamp(24px, 3.2vw, 34px);
+  min-width: clamp(22px, 3.2vw, 34px);
+  padding: 0 5px;
   border: 1px solid rgba(var(--accent-rgb), 0.16);
   border-radius: 7px;
   display: grid;
@@ -1009,10 +1062,11 @@ h2 {
   color: var(--muted);
   background: rgba(255, 255, 255, 0.032);
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.16);
-  font-size: clamp(0.62rem, 1.4vw, 0.8rem);
+  font-size: clamp(0.54rem, 1.05vw, 0.7rem);
   font-weight: 800;
   line-height: 1;
   text-transform: uppercase;
+  font-family: inherit;
   transition:
     background 90ms ease,
     border-color 90ms ease,
@@ -1022,19 +1076,19 @@ h2 {
 }
 
 .keyboard-key-medium {
-  min-width: clamp(42px, 6.4vw, 64px);
+  min-width: clamp(34px, 4.8vw, 50px);
 }
 
 .keyboard-key-wide {
-  min-width: clamp(56px, 8vw, 86px);
+  min-width: clamp(44px, 6.2vw, 66px);
 }
 
 .keyboard-key-extra {
-  min-width: clamp(70px, 10vw, 112px);
+  min-width: clamp(56px, 8vw, 86px);
 }
 
 .keyboard-key-space {
-  width: min(330px, 42vw);
+  width: min(240px, 36vw);
 }
 
 .keyboard-key.pressed {
@@ -1461,18 +1515,57 @@ h2 {
 
   .visual-keyboard {
     width: 100%;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-  }
-
-  .visual-keyboard::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    overflow: visible;
+    gap: 3px;
   }
 
   .keyboard-row {
-    min-width: 650px;
+    gap: 2px;
+  }
+
+  .keyboard-key {
+    height: clamp(20px, 5.3vw, 25px);
+    min-width: clamp(16px, 4.2vw, 21px);
+    padding: 0 2px;
+    border-radius: 5px;
+    font-size: clamp(0.42rem, 1.7vw, 0.56rem);
+  }
+
+  .keyboard-key-medium {
+    min-width: clamp(28px, 7.4vw, 38px);
+  }
+
+  .keyboard-key-wide {
+    min-width: clamp(38px, 10.2vw, 52px);
+  }
+
+  .keyboard-key-extra {
+    min-width: clamp(44px, 12vw, 62px);
+  }
+
+  .keyboard-key-space {
+    width: min(180px, 38vw);
+  }
+
+  .shortcut-hints {
+    width: 100%;
+    gap: 5px;
+    font-size: 0.62rem;
+  }
+
+  .shortcut-chip {
+    min-height: 24px;
+  }
+
+  .shortcut-chip strong {
+    font-size: 0.6rem;
+  }
+
+  .shortcut-keys kbd {
+    min-width: 18px;
+    height: 17px;
+    padding: 0 4px;
+    font-size: 0.58rem;
   }
 }
 

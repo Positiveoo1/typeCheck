@@ -25,6 +25,8 @@ const SETTINGS_KEY = 'typecheck-settings';
 const THEME_KEY = 'typecheck-theme';
 const THEMES = ['matrix', 'serika', 'botanical', 'midnight', 'rose'];
 const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
+const SHORTCUT_TIME_MODES = [15, 30, 60];
+const SHORTCUT_WORD_MODES = [10, 30, 60];
 const DEFAULT_SETTINGS = {
   testType: 'time',
   timeMode: 30,
@@ -484,7 +486,7 @@ function App() {
     resetTest({ targetText: result.targetText });
   }, [resetTest, result]);
 
-  const handleSettingsChange = (nextType, nextValue) => {
+  const handleSettingsChange = useCallback((nextType, nextValue) => {
     markIncompleteAttempt();
     setReplayTargetText(null);
 
@@ -500,7 +502,7 @@ function App() {
     saveSettings(nextSettings);
     setResult(null);
     setRestartKey((key) => key + 1);
-  };
+  }, [markIncompleteAttempt, settings]);
 
   const handleSignOut = () => {
     setIsSignOutConfirmOpen(true);
@@ -554,6 +556,102 @@ function App() {
     window.location.hash = nextPage === 'dashboard' ? 'dashboard' : 'test';
     setCurrentPage(nextPage);
   };
+
+  useEffect(() => {
+    const handleKeyboardShortcut = (event) => {
+      const tagName = event.target?.tagName?.toLowerCase();
+      const isFormField =
+        tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+      const isEditable = isFormField || event.target?.isContentEditable;
+      const hasModifier = event.altKey || event.ctrlKey || event.metaKey;
+      const normalizedKey = event.key.toLowerCase();
+
+      if (isAuthGateOpen || isSignOutConfirmOpen) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setPendingPage(null);
+          setIsAuthGateOpen(false);
+          setIsSignOutConfirmOpen(false);
+        }
+
+        return;
+      }
+
+      if (isEditable && !hasModifier && event.key !== 'Escape') {
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        restart();
+        return;
+      }
+
+      if (result && event.key === 'Enter' && !hasModifier) {
+        event.preventDefault();
+
+        if (event.shiftKey) {
+          tryAgain();
+        } else {
+          restart();
+        }
+
+        return;
+      }
+
+      if (event.key === 'Escape' && currentPage === 'test') {
+        event.preventDefault();
+        restart();
+        return;
+      }
+
+      if (!event.altKey || event.ctrlKey || event.metaKey) return;
+
+      if (normalizedKey === 't') {
+        event.preventDefault();
+        navigate('test');
+        return;
+      }
+
+      if (normalizedKey === 'd') {
+        event.preventDefault();
+        navigate('dashboard');
+        return;
+      }
+
+      if (currentPage !== 'test' || isActive) return;
+
+      const shortcutIndex = Number(event.key) - 1;
+
+      if (!Number.isInteger(shortcutIndex)) return;
+
+      if (shortcutIndex >= 0 && shortcutIndex < SHORTCUT_TIME_MODES.length) {
+        event.preventDefault();
+        handleSettingsChange('time', SHORTCUT_TIME_MODES[shortcutIndex]);
+        return;
+      }
+
+      const wordModeIndex = shortcutIndex - SHORTCUT_TIME_MODES.length;
+
+      if (wordModeIndex >= 0 && wordModeIndex < SHORTCUT_WORD_MODES.length) {
+        event.preventDefault();
+        handleSettingsChange('words', SHORTCUT_WORD_MODES[wordModeIndex]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyboardShortcut);
+    return () => window.removeEventListener('keydown', handleKeyboardShortcut);
+  }, [
+    currentPage,
+    handleSettingsChange,
+    isActive,
+    isAuthGateOpen,
+    isSignOutConfirmOpen,
+    navigate,
+    restart,
+    result,
+    tryAgain
+  ]);
 
   return (
     <LayoutGroup>
