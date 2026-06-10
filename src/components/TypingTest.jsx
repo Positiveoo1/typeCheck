@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { motion, useAnimationControls } from 'framer-motion';
 import {
   buildWordTokens,
@@ -207,6 +207,12 @@ function ShortcutHints() {
   );
 }
 
+function isLastWordFullyCorrect(targetText, typedText) {
+  const lastWordStart = targetText.lastIndexOf(' ') + 1;
+
+  return typedText.slice(lastWordStart) === targetText.slice(lastWordStart);
+}
+
 function TypingTest({
   testType,
   testValue,
@@ -227,6 +233,12 @@ function TypingTest({
   const [isRunning, setIsRunning] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
   const [pressedKeys, setPressedKeys] = useState(() => new Set());
+  const [caretPosition, setCaretPosition] = useState({
+    height: 0,
+    left: 0,
+    top: 0,
+    visible: false
+  });
   const inputRef = useRef(null);
   const wordDisplayRef = useRef(null);
   const keyboardRef = useRef(null);
@@ -396,6 +408,42 @@ function TypingTest({
     });
   }, [typedText]);
 
+  useLayoutEffect(() => {
+    const currentElement = currentLetterRef.current;
+    const wordDisplay = wordDisplayRef.current;
+
+    if (!currentElement || !wordDisplay) {
+      setCaretPosition((currentPosition) =>
+        currentPosition.visible
+          ? { ...currentPosition, visible: false }
+          : currentPosition
+      );
+      return;
+    }
+
+    const updateCaretPosition = () => {
+      const currentRect = currentElement.getBoundingClientRect();
+      const displayRect = wordDisplay.getBoundingClientRect();
+
+      setCaretPosition({
+        height: currentRect.height,
+        left: currentRect.left - displayRect.left + wordDisplay.scrollLeft - 2,
+        top: currentRect.top - displayRect.top + wordDisplay.scrollTop,
+        visible: true
+      });
+    };
+
+    updateCaretPosition();
+
+    const animationFrameId = window.requestAnimationFrame(updateCaretPosition);
+    window.addEventListener('resize', updateCaretPosition);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', updateCaretPosition);
+    };
+  }, [targetText, typedText]);
+
   useEffect(() => {
     const handleShortcut = (event) => {
       const tagName = event.target?.tagName?.toLowerCase();
@@ -524,7 +572,11 @@ function TypingTest({
     typedTextRef.current = nextTypedText;
     setTypedText(nextTypedText);
 
-    if (testType === 'words' && nextTypedText.length === targetText.length) {
+    if (
+      testType === 'words' &&
+      nextTypedText.length === targetText.length &&
+      isLastWordFullyCorrect(targetText, nextTypedText)
+    ) {
       const currentRunElapsed = startedAtRef.current
         ? (performance.now() - startedAtRef.current) / 1000
         : 0;
@@ -616,7 +668,8 @@ function TypingTest({
         className={[
           'word-display',
           isIdle ? 'idle' : '',
-          isTypingFocused ? 'typing-focused' : ''
+          isTypingFocused ? 'typing-focused' : '',
+          isRunning ? 'caret-active' : 'caret-idle'
         ]
           .filter(Boolean)
           .join(' ')}
@@ -629,6 +682,17 @@ function TypingTest({
         role="button"
         tabIndex="0"
       >
+        <span
+          className="typing-caret"
+          style={{
+            height: `${caretPosition.height}px`,
+            left: `${caretPosition.left}px`,
+            top: `${caretPosition.top}px`
+          }}
+          aria-hidden="true"
+          data-visible={caretPosition.visible && isTypingFocused}
+        />
+
         {wordTokens.map((word) => (
           <span className="word" key={word.id}>
             {word.letters.map(({ char, index }) => {

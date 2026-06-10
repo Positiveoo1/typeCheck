@@ -32,6 +32,19 @@ const DEFAULT_SETTINGS = {
   timeMode: 30,
   wordMode: 10
 };
+const MIN_CUSTOM_TIME = 5;
+const MAX_CUSTOM_TIME = 300;
+
+function normalizeTimeMode(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) return DEFAULT_SETTINGS.timeMode;
+
+  return Math.min(
+    MAX_CUSTOM_TIME,
+    Math.max(MIN_CUSTOM_TIME, Math.round(numericValue))
+  );
+}
 
 function loadPage() {
   return window.location.hash === '#dashboard' ? 'dashboard' : 'test';
@@ -83,9 +96,7 @@ function loadSettings() {
         savedSettings?.testType === 'words' || savedSettings?.testType === 'time'
           ? savedSettings.testType
           : DEFAULT_SETTINGS.testType,
-      timeMode: [15, 30, 60].includes(savedSettings?.timeMode)
-        ? savedSettings.timeMode
-        : DEFAULT_SETTINGS.timeMode,
+      timeMode: normalizeTimeMode(savedSettings?.timeMode),
       wordMode: [10, 30, 60].includes(savedSettings?.wordMode)
         ? savedSettings.wordMode
         : DEFAULT_SETTINGS.wordMode
@@ -494,7 +505,7 @@ function App() {
       ...settings,
       testType: nextType,
       ...(nextType === 'time'
-        ? { timeMode: nextValue }
+        ? { timeMode: normalizeTimeMode(nextValue) }
         : { wordMode: nextValue })
     };
 

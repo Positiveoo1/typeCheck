@@ -743,6 +743,10 @@ h2 {
   gap: 6px;
 }
 
+.custom-time {
+  position: relative;
+}
+
 .settings-divider {
   width: 1px;
   height: 24px;
@@ -958,6 +962,92 @@ h2 {
   z-index: 1;
 }
 
+.custom-time-toggle {
+  min-width: 42px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.settings-gear {
+  position: relative;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.settings-gear::before,
+.settings-gear::after {
+  content: '';
+  position: absolute;
+  inset: 4px -5px;
+  border-top: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.settings-gear::after {
+  transform: rotate(90deg);
+}
+
+.custom-time-value {
+  white-space: nowrap;
+}
+
+.custom-time-panel {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 15;
+  width: 176px;
+  padding: 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.14);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg-soft) 96%, black);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+}
+
+.custom-time-panel label {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.custom-time-panel input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 7px;
+  padding: 0 10px;
+  color: var(--heading);
+  background: rgba(16, 18, 15, 0.62);
+  outline: 0;
+}
+
+.custom-time-panel input:focus {
+  border-color: rgba(var(--caret-rgb), 0.38);
+  box-shadow: 0 0 0 3px rgba(var(--caret-rgb), 0.08);
+}
+
+.custom-time-panel button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: var(--bg);
+  background: var(--accent-2);
+  cursor: pointer;
+  font-weight: 800;
+}
+
 .mode:disabled {
   cursor: not-allowed;
   opacity: 0.52;
@@ -1004,6 +1094,7 @@ h2 {
 }
 
 .word-display {
+  position: relative;
   width: 100%;
   height: clamp(150px, 25vh, 230px);
   padding: 10px 12px 16px;
@@ -1035,6 +1126,34 @@ h2 {
     black calc(100% - 34px),
     transparent 100%
   );
+}
+
+.typing-caret {
+  position: absolute;
+  z-index: 2;
+  width: 2px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  background: var(--caret);
+  box-shadow: 0 0 16px rgba(var(--caret-rgb), 0.55);
+  transition:
+    left 0.1s ease-out,
+    top 0.1s ease-out,
+    height 0.1s ease-out,
+    opacity 120ms ease;
+}
+
+.typing-caret[data-visible='true'] {
+  opacity: 1;
+}
+
+.word-display.caret-idle .typing-caret[data-visible='true'] {
+  animation: caretPulse 1s ease-in-out infinite;
+}
+
+.word-display.caret-active .typing-caret {
+  animation: none;
 }
 
 .visual-keyboard {
@@ -1151,27 +1270,6 @@ h2 {
   width: 0.55em;
 }
 
-.word-space.current {
-  position: relative;
-}
-
-.word-space.current::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 12%;
-  width: 2px;
-  height: 76%;
-  border-radius: 999px;
-  background: var(--caret);
-  animation: caretPulse 1s ease-in-out infinite;
-  box-shadow: 0 0 16px rgba(var(--caret-rgb), 0.55);
-}
-
-.word-display:not(.typing-focused) .word-space.current::before {
-  content: none;
-}
-
 .letter {
   position: relative;
   border-radius: 3px;
@@ -1191,47 +1289,9 @@ h2 {
   background: rgba(var(--accent-2-rgb), 0.055);
 }
 
-.letter.current::before {
-  content: '';
-  position: absolute;
-  left: -2px;
-  top: 12%;
-  width: 2px;
-  height: 76%;
-  border-radius: 999px;
-  background: var(--caret);
-  animation: caretPulse 1s ease-in-out infinite;
-  box-shadow: 0 0 16px rgba(var(--caret-rgb), 0.55);
-}
-
-.word-display:not(.typing-focused) .letter.current::before {
-  content: none;
-}
-
 .word-display.typing-focused .letter.current {
   color: var(--accent-2);
   background: rgba(var(--accent-2-rgb), 0.1);
-}
-
-.word-display.typing-focused.idle .letter.current::before {
-  width: 3px;
-  background: var(--caret);
-  animation: readyCaret 1.35s ease-in-out infinite;
-  box-shadow:
-    0 0 12px rgba(217, 245, 109, 0.9),
-    0 0 34px rgba(217, 245, 109, 0.42);
-}
-
-@keyframes readyCaret {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scaleY(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: scaleY(0.82);
-  }
 }
 
 @keyframes readyLetter {
