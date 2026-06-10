@@ -21,7 +21,16 @@ type SlugResponse =
     };
 
 function getSiteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
+  const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL;
+  const siteUrl = /^https?:\/\//i.test(rawSiteUrl)
+    ? rawSiteUrl
+    : `https://${rawSiteUrl}`;
+
+  try {
+    return new URL(siteUrl).origin;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
 }
 
 function getStaticPages(siteUrl: string): MetadataRoute.Sitemap {
