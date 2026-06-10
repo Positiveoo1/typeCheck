@@ -82,7 +82,7 @@ function AuthPanel({
     >
       {!isFirebaseConfigured ? (
         <p className="auth-note">
-          Add Firebase values to a local .env file to enable accounts.
+          Add Firebase environment variables to enable accounts.
         </p>
       ) : (
         <form className="auth-form" onSubmit={submit}>
