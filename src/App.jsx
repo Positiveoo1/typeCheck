@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
@@ -47,11 +49,15 @@ function normalizeTimeMode(value) {
 }
 
 function loadPage() {
+  if (typeof window === 'undefined') return 'test';
+
   return window.location.hash === '#dashboard' ? 'dashboard' : 'test';
 }
 
 function loadTheme() {
   try {
+    if (typeof localStorage === 'undefined') return 'matrix';
+
     const savedTheme = localStorage.getItem(THEME_KEY);
     return THEMES.includes(savedTheme) ? savedTheme : 'matrix';
   } catch {
@@ -61,6 +67,8 @@ function loadTheme() {
 
 function saveTheme(theme) {
   try {
+    if (typeof localStorage === 'undefined') return;
+
     localStorage.setItem(THEME_KEY, theme);
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
@@ -89,6 +97,8 @@ function createEmptyDashboard() {
 
 function loadSettings() {
   try {
+    if (typeof localStorage === 'undefined') return DEFAULT_SETTINGS;
+
     const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
 
     return {
@@ -108,6 +118,8 @@ function loadSettings() {
 
 function saveSettings(settings) {
   try {
+    if (typeof localStorage === 'undefined') return;
+
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
@@ -234,7 +246,7 @@ function App() {
   const saveCompletedResult = useCallback((completedResult, options = {}) => {
     if (!user || !db) {
       if (!isFirebaseConfigured) {
-        console.error('Firebase is not configured. Add VITE_FIREBASE_* values before saving performance.');
+        console.error('Firebase is not configured. Add NEXT_PUBLIC_FIREBASE_* values before saving performance.');
       }
       return;
     }
@@ -395,6 +407,12 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    setCurrentPage(loadPage());
+    setTheme(loadTheme());
+    setSettings(loadSettings());
+  }, []);
 
   useEffect(() => {
     setIsPageLoading(true);
