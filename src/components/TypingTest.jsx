@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { motion, useAnimationControls } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   buildWordTokens,
   calculateStats,
@@ -12,23 +12,6 @@ import {
 
 const KEYBOARD_ROWS = [
   [
-    { code: 'Backquote', label: '`' },
-    { code: 'Digit1', label: '1' },
-    { code: 'Digit2', label: '2' },
-    { code: 'Digit3', label: '3' },
-    { code: 'Digit4', label: '4' },
-    { code: 'Digit5', label: '5' },
-    { code: 'Digit6', label: '6' },
-    { code: 'Digit7', label: '7' },
-    { code: 'Digit8', label: '8' },
-    { code: 'Digit9', label: '9' },
-    { code: 'Digit0', label: '0' },
-    { code: 'Minus', label: '-' },
-    { code: 'Equal', label: '=' },
-    { code: 'Backspace', label: 'backspace', size: 'wide' }
-  ],
-  [
-    { code: 'Tab', label: 'tab', size: 'medium' },
     { code: 'KeyQ', label: 'q' },
     { code: 'KeyW', label: 'w' },
     { code: 'KeyE', label: 'e' },
@@ -39,12 +22,9 @@ const KEYBOARD_ROWS = [
     { code: 'KeyI', label: 'i' },
     { code: 'KeyO', label: 'o' },
     { code: 'KeyP', label: 'p' },
-    { code: 'BracketLeft', label: '[' },
-    { code: 'BracketRight', label: ']' },
-    { code: 'Backslash', label: '\\' }
+    { code: 'Backspace', label: 'backspace', size: 'wide' }
   ],
   [
-    { code: 'CapsLock', label: 'caps', size: 'wide' },
     { code: 'KeyA', label: 'a' },
     { code: 'KeyS', label: 's' },
     { code: 'KeyD', label: 'd' },
@@ -53,31 +33,16 @@ const KEYBOARD_ROWS = [
     { code: 'KeyH', label: 'h' },
     { code: 'KeyJ', label: 'j' },
     { code: 'KeyK', label: 'k' },
-    { code: 'KeyL', label: 'l' },
-    { code: 'Semicolon', label: ';' },
-    { code: 'Quote', label: "'" },
-    { code: 'Enter', label: 'enter', size: 'wide' }
+    { code: 'KeyL', label: 'l' }
   ],
   [
-    { code: 'ShiftLeft', label: 'shift', size: 'extra' },
     { code: 'KeyZ', label: 'z' },
     { code: 'KeyX', label: 'x' },
     { code: 'KeyC', label: 'c' },
     { code: 'KeyV', label: 'v' },
     { code: 'KeyB', label: 'b' },
     { code: 'KeyN', label: 'n' },
-    { code: 'KeyM', label: 'm' },
-    { code: 'Comma', label: ',' },
-    { code: 'Period', label: '.' },
-    { code: 'Slash', label: '/' },
-    { code: 'ShiftRight', label: 'shift', size: 'extra' }
-  ],
-  [
-    { code: 'ControlLeft', label: 'ctrl', size: 'medium' },
-    { code: 'AltLeft', label: 'alt', size: 'medium' },
-    { code: 'Space', label: '', size: 'space' },
-    { code: 'AltRight', label: 'alt', size: 'medium' },
-    { code: 'ControlRight', label: 'ctrl', size: 'medium' }
+    { code: 'KeyM', label: 'm' }
   ]
 ];
 
@@ -183,26 +148,18 @@ function ShortcutHints() {
     typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
       ? 'Cmd'
       : 'Ctrl';
-  const hints = [
-    { label: 'restart', keys: [primaryKey, 'Enter'] },
-    { label: 'modes', keys: ['Alt', '1-6'] },
-    { label: 'dashboard', keys: ['Alt', 'D'] },
-    { label: 'reset', keys: ['Esc'] }
-  ];
+  const hint = { label: 'restart', keys: [primaryKey, 'Enter'] };
 
   return (
     <section className="shortcut-hints" aria-label="Keyboard shortcuts">
-      <span>shortcuts</span>
-      {hints.map((hint) => (
-        <div className="shortcut-chip" key={`${hint.label}-${hint.keys.join('-')}`}>
-          <strong>{hint.label}</strong>
-          <span className="shortcut-keys">
-            {hint.keys.map((key) => (
-              <kbd key={key}>{key}</kbd>
-            ))}
-          </span>
-        </div>
-      ))}
+      <div className="shortcut-chip">
+        <strong>{hint.label}</strong>
+        <span className="shortcut-keys">
+          {hint.keys.map((key) => (
+            <kbd key={key}>{key}</kbd>
+          ))}
+        </span>
+      </div>
     </section>
   );
 }
@@ -218,7 +175,6 @@ function TypingTest({
   testValue,
   onFinish,
   restartKey,
-  restartPulse,
   onRestart,
   onStart,
   onActiveChange,
@@ -252,7 +208,6 @@ function TypingTest({
   const hasFinishedRef = useRef(false);
   const tabArmedRef = useRef(false);
   const speedHistoryRef = useRef([]);
-  const restartControls = useAnimationControls();
 
   const focusInput = useCallback(() => {
     isTypingFocusedRef.current = true;
@@ -260,15 +215,6 @@ function TypingTest({
     inputRef.current?.focus();
   }, []);
 
-  const elapsedSeconds =
-    typedText.length === 0
-      ? 0
-      : elapsedTime;
-
-  const stats = useMemo(
-    () => calculateStats(targetText, typedText, elapsedSeconds),
-    [elapsedSeconds, targetText, typedText]
-  );
   const wordTokens = useMemo(() => buildWordTokens(targetText), [targetText]);
   const isIdle = typedText.length === 0 && !isRunning;
 
@@ -357,16 +303,6 @@ function TypingTest({
       focusInput();
     });
   }, [testType, testValue, restartKey, focusInput, onActiveChange, targetTextOverride]);
-
-  useEffect(() => {
-    if (restartPulse === 0) return;
-
-    restartControls.start({
-      rotate: [0, -7, 7, 0],
-      scale: [1, 0.94, 1.04, 1],
-      transition: { duration: 0.38, ease: 'easeOut' }
-    });
-  }, [restartControls, restartPulse]);
 
   useEffect(() => {
     typedTextRef.current = typedText;
@@ -610,61 +546,6 @@ function TypingTest({
       transition={{ duration: 0.24, ease: 'easeOut' }}
     >
       <motion.div
-        className="stats-row"
-        aria-label="Live typing stats"
-        layout
-        initial="hidden"
-        animate="visible"
-        variants={{
-          hidden: {},
-          visible: { transition: { staggerChildren: 0.055 } }
-        }}
-      >
-        <motion.div
-          layout
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
-        >
-          <span>wpm</span>
-          <strong>{stats.wpm}</strong>
-        </motion.div>
-        <motion.div
-          layout
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
-        >
-          <span>acc</span>
-          <strong>{stats.accuracy}%</strong>
-        </motion.div>
-        <motion.div
-          layout
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
-        >
-          <span>mistakes</span>
-          <strong>{stats.mistakes}</strong>
-        </motion.div>
-        <motion.div
-          layout
-          variants={{
-            hidden: { opacity: 0, y: 10 },
-            visible: { opacity: 1, y: 0 }
-          }}
-        >
-          <span>{testType === 'time' ? 'time' : 'elapsed'}</span>
-          <strong>
-            {testType === 'time' ? timeLeft : elapsedTime.toFixed(1)}s
-          </strong>
-        </motion.div>
-      </motion.div>
-
-      <motion.div
         className={[
           'word-display',
           isIdle ? 'idle' : '',
@@ -759,19 +640,6 @@ function TypingTest({
       <VisualKeyboard keyboardRef={keyboardRef} pressedKeys={pressedKeys} />
 
       <ShortcutHints />
-
-      <div className="test-actions">
-        <motion.button
-          animate={restartControls}
-          className="restart"
-          onClick={onRestart}
-          type="button"
-          whileHover={{ y: -1, scale: 1.03 }}
-          whileTap={{ scale: 0.92, rotate: -4 }}
-        >
-          Restart
-        </motion.button>
-      </div>
     </motion.main>
   );
 }

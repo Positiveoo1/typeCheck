@@ -214,7 +214,6 @@ function App() {
   const [restartKey, setRestartKey] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState(null);
-  const [restartPulse, setRestartPulse] = useState(0);
   const [user, setUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(!auth);
   const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
@@ -496,7 +495,6 @@ function App() {
   const resetTest = useCallback((options = {}) => {
     markIncompleteAttempt();
     setReplayTargetText(options.targetText || null);
-    setRestartPulse((pulse) => pulse + 1);
     setResult(null);
     setIsActive(false);
     setRestartKey((key) => key + 1);
@@ -770,7 +768,6 @@ function App() {
                       onFinish={finishTest}
                       onRestart={restart}
                       onStart={handleTestStart}
-                      restartPulse={restartPulse}
                       restartKey={restartKey}
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
