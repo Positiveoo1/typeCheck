@@ -12,10 +12,10 @@ const THEMES = [
 
 function Header({
   currentPage,
+  profile,
   theme,
   user,
   onNavigate,
-  onSignOut,
   onThemeChange
 }) {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -39,6 +39,10 @@ function Header({
     document.addEventListener('pointerdown', closeMenus);
     return () => document.removeEventListener('pointerdown', closeMenus);
   }, []);
+
+  const accountLabel = profile?.username
+    ? `@${profile.username}`
+    : user?.displayName || user?.email;
 
   return (
     <header className="header">
@@ -80,6 +84,26 @@ function Header({
           whileTap={{ scale: 0.94 }}
         >
           <span className="dashboard-icon" aria-hidden="true" />
+        </motion.button>
+        <motion.button
+          aria-label="Leaderboard"
+          className={currentPage === 'leaderboard' ? 'nav-icon active' : 'nav-icon'}
+          onClick={() => onNavigate('leaderboard')}
+          type="button"
+          whileHover={{ y: -1, scale: 1.04 }}
+          whileTap={{ scale: 0.94 }}
+        >
+          <span className="leaderboard-icon" aria-hidden="true" />
+        </motion.button>
+        <motion.button
+          aria-label="Profile"
+          className={currentPage === 'profile' ? 'nav-icon active' : 'nav-icon'}
+          onClick={() => onNavigate('profile')}
+          type="button"
+          whileHover={{ y: -1, scale: 1.04 }}
+          whileTap={{ scale: 0.94 }}
+        >
+          <span className="profile-icon" aria-hidden="true" />
         </motion.button>
 
         <div className="theme-menu">
@@ -136,16 +160,7 @@ function Header({
 
         {user ? (
           <div className="user-menu">
-            <span>{user.displayName || user.email}</span>
-            <motion.button
-              className="sign-out"
-              onClick={onSignOut}
-              type="button"
-              whileHover={{ y: -1, scale: 1.03 }}
-              whileTap={{ scale: 0.94 }}
-            >
-              Sign out
-            </motion.button>
+            <span>{accountLabel}</span>
           </div>
         ) : (
           <div className="profile-menu">

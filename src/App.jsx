@@ -18,6 +18,8 @@ import {
 import AuthPanel from './components/AuthPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import Header from './components/Header.jsx';
+import Leaderboard from './components/Leaderboard.jsx';
+import Profile from './components/Profile.jsx';
 import Results from './components/Results.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
@@ -30,6 +32,9 @@ const THEMES = ['matrix', 'serika', 'botanical', 'midnight', 'rose'];
 const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
 const SHORTCUT_TIME_MODES = [15, 30, 60];
 const SHORTCUT_WORD_MODES = [10, 30, 60];
+const PROFILE_RESULTS_LIMIT = 400;
+const LEADERBOARD_RESULTS_LIMIT = 500;
+const LEADERBOARD_MODE_LABEL = '10 words';
 const DEFAULT_SETTINGS = {
   testType: 'time',
   timeMode: 30,
@@ -52,7 +57,11 @@ function normalizeTimeMode(value) {
 function loadPage() {
   if (typeof window === 'undefined') return 'test';
 
-  return window.location.hash === '#dashboard' ? 'dashboard' : 'test';
+  if (window.location.hash === '#dashboard') return 'dashboard';
+  if (window.location.hash === '#leaderboard') return 'leaderboard';
+  if (window.location.hash === '#profile') return 'profile';
+
+  return 'test';
 }
 
 function loadTheme() {
@@ -92,7 +101,9 @@ function createEmptyDashboard() {
     completed: 0,
     incomplete: 0,
     modes: Object.fromEntries(MODE_LABELS.map((label) => [label, createModeStats()])),
-    results: []
+    results: [],
+    estimatedWordsTyped: 0,
+    totalTypingSeconds: 0
   };
 }
 
@@ -149,12 +160,32 @@ function saveOnboardingComplete() {
 
 function normalizeDashboard(savedDashboard, results = savedDashboard?.results) {
   const emptyDashboard = createEmptyDashboard();
+  const normalizedResults = Array.isArray(results)
+    ? results.slice(0, PROFILE_RESULTS_LIMIT)
+    : [];
+  const fallbackTypingSeconds = normalizedResults.reduce(
+    (totalSeconds, result) => totalSeconds + (Number(result.elapsedSeconds) || 0),
+    0
+  );
+  const fallbackEstimatedWords = normalizedResults.reduce(
+    (totalWords, result) => totalWords + Math.round((Number(result.correctChars) || 0) / 5),
+    0
+  );
 
-  if (!savedDashboard) return emptyDashboard;
+  if (!savedDashboard) {
+    return {
+      ...emptyDashboard,
+      estimatedWordsTyped: fallbackEstimatedWords,
+      results: normalizedResults,
+      totalTypingSeconds: fallbackTypingSeconds
+    };
+  }
 
   return {
     started: Number(savedDashboard.started) || 0,
     completed: Number(savedDashboard.completed) || 0,
+    estimatedWordsTyped:
+      Number(savedDashboard.estimatedWordsTyped) || fallbackEstimatedWords,
     incomplete: Number(savedDashboard.incomplete) || 0,
     modes: Object.fromEntries(
       MODE_LABELS.map((label) => [
@@ -165,7 +196,9 @@ function normalizeDashboard(savedDashboard, results = savedDashboard?.results) {
         }
       ])
     ),
-    results: Array.isArray(results) ? results.slice(0, 20) : []
+    results: normalizedResults,
+    totalTypingSeconds:
+      Number(savedDashboard.totalTypingSeconds) || fallbackTypingSeconds
   };
 }
 
@@ -191,14 +224,68 @@ function getResultsCollectionRef(userId) {
   return collection(db, 'users', userId, 'results');
 }
 
+function getLeaderboardCollectionRef() {
+  return collection(db, 'leaderboardResults');
+}
+
+function getPublicPlayerDocRef(userId) {
+  return doc(db, 'publicPlayers', userId);
+}
+
 function serializeDashboard(dashboard) {
   return {
     completed: dashboard.completed,
+    estimatedWordsTyped: dashboard.estimatedWordsTyped || 0,
     incomplete: dashboard.incomplete,
     modes: dashboard.modes,
     started: dashboard.started,
+    totalTypingSeconds: dashboard.totalTypingSeconds || 0,
     updatedAt: serverTimestamp()
   };
+}
+
+function normalizeProfile(savedProfile, user) {
+  const joinedAt =
+    savedProfile?.createdAt?.toDate?.() ||
+    savedProfile?.createdAt ||
+    user?.metadata?.creationTime ||
+    null;
+
+  return {
+    city: savedProfile?.city || '',
+    github: savedProfile?.github || '',
+    joinedAt,
+    occupation: savedProfile?.occupation || '',
+    username: savedProfile?.username || '',
+    website: savedProfile?.website || ''
+  };
+}
+
+async function loadFirebaseProfile(user) {
+  if (!db || !user) {
+    return normalizeProfile(null, user);
+  }
+
+  const userDocRef = getUserDocRef(user.uid);
+  const userSnapshot = await getDoc(userDocRef);
+  const savedProfile = userSnapshot.data();
+
+  if (!userSnapshot.exists() || !savedProfile?.createdAt) {
+    setDoc(
+      userDocRef,
+      {
+        createdAt: serverTimestamp(),
+        displayName: user.displayName || null,
+        email: user.email || null,
+        photoURL: user.photoURL || null
+      },
+      { merge: true }
+    ).catch((error) => {
+      console.error('Failed to initialize user profile:', error);
+    });
+  }
+
+  return normalizeProfile(savedProfile, user);
 }
 
 async function loadFirebaseDashboard(userId) {
@@ -206,7 +293,11 @@ async function loadFirebaseDashboard(userId) {
 
   const [dashboardSnapshot, resultsSnapshot] = await Promise.all([
     getDoc(getDashboardDocRef(userId)),
-    getDocs(query(getResultsCollectionRef(userId), orderBy('createdAt', 'desc'), limit(20)))
+    getDocs(query(
+      getResultsCollectionRef(userId),
+      orderBy('createdAt', 'desc'),
+      limit(PROFILE_RESULTS_LIMIT)
+    ))
   ]);
 
   const results = resultsSnapshot.docs.map((resultDoc) => {
@@ -215,6 +306,8 @@ async function loadFirebaseDashboard(userId) {
     return {
       id: resultDoc.id,
       accuracy: Number(data.accuracy) || 0,
+      correctChars: Number(data.correctChars) || 0,
+      createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
       elapsedSeconds: Number(data.elapsedSeconds) || 0,
       modeLabel: data.modeLabel || '',
       testType: data.testType || 'time',
@@ -224,6 +317,90 @@ async function loadFirebaseDashboard(userId) {
   });
 
   return normalizeDashboard(dashboardSnapshot.data(), results);
+}
+
+function toDisplayNameFromEmail(email) {
+  const localPart = String(email || '').split('@')[0];
+  const words = localPart
+    .split(/[._\-+\s]+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
+
+  if (words.length === 0) return 'Anonymous typist';
+
+  return words
+    .slice(0, 2)
+    .map((word) => `${word.slice(0, 1).toUpperCase()}${word.slice(1).toLowerCase()}`)
+    .join(' ');
+}
+
+function getLeaderboardPlayerName(profile) {
+  if (profile?.username) return `@${profile.username}`;
+  if (profile?.displayName) return profile.displayName;
+  if (profile?.fallbackName) return profile.fallbackName;
+
+  return 'Anonymous typist';
+}
+
+function serializePublicPlayer(profile, user) {
+  return {
+    displayName: user?.displayName || null,
+    fallbackName: toDisplayNameFromEmail(user?.email),
+    username: profile?.username || '',
+    updatedAt: serverTimestamp()
+  };
+}
+
+async function loadGlobalLeaderboard() {
+  if (!db) return [];
+
+  const resultsSnapshot = await getDocs(query(
+    getLeaderboardCollectionRef(),
+    orderBy('wpm', 'desc'),
+    limit(LEADERBOARD_RESULTS_LIMIT)
+  ));
+  const userIds = [...new Set(resultsSnapshot.docs
+    .map((resultDoc) => resultDoc.data().userId)
+    .filter(Boolean))];
+  const userProfiles = new Map();
+
+  await Promise.all(userIds.map(async (userId) => {
+    const userSnapshot = await getDoc(getPublicPlayerDocRef(userId));
+    userProfiles.set(userId, userSnapshot.data() || {});
+  }));
+
+  const rankedResults = resultsSnapshot.docs
+    .map((resultDoc) => {
+      const data = resultDoc.data();
+      const userId = data.userId || '';
+      const profile = userProfiles.get(userId) || {};
+
+      return {
+        id: resultDoc.id,
+        accuracy: Number(data.accuracy) || 0,
+        createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
+        modeLabel: data.modeLabel || '',
+        playerName: getLeaderboardPlayerName(profile),
+        testType: data.testType || 'time',
+        userId,
+        wpm: Number(data.wpm) || 0
+      };
+    })
+    .filter((result) => result.modeLabel === LEADERBOARD_MODE_LABEL)
+    .sort((firstResult, secondResult) => (
+      secondResult.wpm - firstResult.wpm ||
+      secondResult.accuracy - firstResult.accuracy ||
+      (new Date(secondResult.createdAt || 0) - new Date(firstResult.createdAt || 0))
+    ));
+  const bestByUser = new Map();
+
+  rankedResults.forEach((result) => {
+    if (!result.userId || bestByUser.has(result.userId)) return;
+
+    bestByUser.set(result.userId, result);
+  });
+
+  return [...bestByUser.values()].slice(0, 50);
 }
 
 const ONBOARDING_ITEMS = [
@@ -391,15 +568,21 @@ function Onboarding({ onDismiss }) {
 }
 
 function App() {
-  const [settings, setSettings] = useState(loadSettings);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [dashboard, setDashboard] = useState(createEmptyDashboard);
+  const [leaderboard, setLeaderboard] = useState({
+    entries: [],
+    error: '',
+    isLoading: false
+  });
   const activeAttemptRef = useRef(null);
-  const [currentPage, setCurrentPage] = useState(loadPage);
-  const [theme, setTheme] = useState(loadTheme);
+  const [currentPage, setCurrentPage] = useState('test');
+  const [theme, setTheme] = useState('matrix');
   const [restartKey, setRestartKey] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState(null);
   const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(() => normalizeProfile(null, null));
   const [isAuthReady, setIsAuthReady] = useState(!auth);
   const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
@@ -478,6 +661,8 @@ function App() {
           {
             id: createId(),
             accuracy: completedResult.accuracy,
+            correctChars: completedResult.correctChars,
+            createdAt: new Date(),
             elapsedSeconds: completedResult.elapsedSeconds,
             modeLabel: completedResult.modeLabel,
             testType: completedResult.testType,
@@ -485,7 +670,13 @@ function App() {
             wrongChars: completedResult.wrongChars
           },
           ...currentDashboard.results
-        ].slice(0, 20)
+        ].slice(0, PROFILE_RESULTS_LIMIT),
+        estimatedWordsTyped:
+          (Number(currentDashboard.estimatedWordsTyped) || 0) +
+          Math.round((Number(completedResult.correctChars) || 0) / 5),
+        totalTypingSeconds:
+          (Number(currentDashboard.totalTypingSeconds) || 0) +
+          (Number(completedResult.elapsedSeconds) || 0)
       };
     });
 
@@ -501,7 +692,28 @@ function App() {
     }).catch((error) => {
       console.error('Failed to save result:', error);
     });
-  }, [updateDashboard, user]);
+
+    setDoc(
+      getPublicPlayerDocRef(user.uid),
+      serializePublicPlayer(userProfile, user),
+      { merge: true }
+    ).catch((error) => {
+      console.error('Failed to update public player profile:', error);
+    });
+
+    if (completedResult.modeLabel === LEADERBOARD_MODE_LABEL) {
+      addDoc(getLeaderboardCollectionRef(), {
+        accuracy: completedResult.accuracy,
+        createdAt: serverTimestamp(),
+        modeLabel: completedResult.modeLabel,
+        testType: completedResult.testType,
+        userId: user.uid,
+        wpm: completedResult.wpm
+      }).catch((error) => {
+        console.error('Failed to save public leaderboard result:', error);
+      });
+    }
+  }, [updateDashboard, user, userProfile]);
 
   const markIncompleteAttempt = useCallback(() => {
     const currentAttempt = activeAttemptRef.current;
@@ -542,15 +754,20 @@ function App() {
           if (!isSubscribed) return;
 
           setUser(null);
+          setUserProfile(normalizeProfile(null, null));
           setDashboard(createEmptyDashboard());
           setIsAuthReady(true);
           return;
         }
 
         let nextDashboard = createEmptyDashboard();
+        let nextProfile = normalizeProfile(null, nextUser);
 
         try {
-          nextDashboard = await loadFirebaseDashboard(nextUser.uid);
+          [nextDashboard, nextProfile] = await Promise.all([
+            loadFirebaseDashboard(nextUser.uid),
+            loadFirebaseProfile(nextUser)
+          ]);
         } catch (error) {
           if (isSubscribed) {
             console.error('Failed to load dashboard:', error);
@@ -560,13 +777,24 @@ function App() {
         if (!isSubscribed) return;
 
         setUser(nextUser);
+        setUserProfile(nextProfile);
         setDashboard(nextDashboard);
         setIsAuthReady(true);
         setIsAuthGateOpen(false);
 
-        if (pendingPage === 'dashboard') {
-          window.location.hash = 'dashboard';
-          setCurrentPage('dashboard');
+        if (db) {
+          setDoc(
+            getPublicPlayerDocRef(nextUser.uid),
+            serializePublicPlayer(nextProfile, nextUser),
+            { merge: true }
+          ).catch((error) => {
+            console.error('Failed to update public player profile:', error);
+          });
+        }
+
+        if (pendingPage === 'dashboard' || pendingPage === 'profile') {
+          window.location.hash = `#${pendingPage}`;
+          setCurrentPage(pendingPage);
           setPendingPage(null);
         }
       };
@@ -581,11 +809,47 @@ function App() {
   }, [pendingPage]);
 
   useEffect(() => {
-    if (!isAuthReady || user || currentPage !== 'dashboard') return;
+    if (currentPage !== 'leaderboard') return undefined;
+
+    let isSubscribed = true;
+    setLeaderboard((currentLeaderboard) => ({
+      ...currentLeaderboard,
+      error: '',
+      isLoading: true
+    }));
+
+    loadGlobalLeaderboard()
+      .then((entries) => {
+        if (!isSubscribed) return;
+
+        setLeaderboard({
+          entries,
+          error: '',
+          isLoading: false
+        });
+      })
+      .catch((error) => {
+        if (!isSubscribed) return;
+
+        console.error('Failed to load leaderboard:', error);
+        setLeaderboard({
+          entries: [],
+          error: 'Could not load the leaderboard.',
+          isLoading: false
+        });
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (!isAuthReady || user || !['dashboard', 'profile'].includes(currentPage)) return;
 
     window.location.hash = 'test';
     setCurrentPage('test');
-    setPendingPage('dashboard');
+    setPendingPage(currentPage);
     setIsAuthGateOpen(true);
   }, [currentPage, isAuthReady, user]);
 
@@ -746,13 +1010,40 @@ function App() {
     saveTheme(nextTheme);
   };
 
+  const saveUserProfile = useCallback(async (nextProfile) => {
+    if (!user || !db) return;
+
+    const profilePayload = {
+      city: nextProfile.city || '',
+      displayName: user.displayName || null,
+      email: user.email || null,
+      github: nextProfile.github || '',
+      occupation: nextProfile.occupation || '',
+      photoURL: user.photoURL || null,
+      updatedAt: serverTimestamp(),
+      username: nextProfile.username || '',
+      website: nextProfile.website || ''
+    };
+
+    await setDoc(getUserDocRef(user.uid), profilePayload, { merge: true });
+    await setDoc(
+      getPublicPlayerDocRef(user.uid),
+      serializePublicPlayer(nextProfile, user),
+      { merge: true }
+    );
+    setUserProfile((currentProfile) => ({
+      ...currentProfile,
+      ...nextProfile
+    }));
+  }, [user]);
+
   const dismissMobileTip = () => {
     setShowMobileTip(false);
   };
 
   const navigate = (nextPage, options = {}) => {
-    if (nextPage === 'dashboard' && isAuthReady && !user) {
-      setPendingPage('dashboard');
+    if (['dashboard', 'profile'].includes(nextPage) && isAuthReady && !user) {
+      setPendingPage(nextPage);
       setIsAuthGateOpen(true);
       return;
     }
@@ -765,7 +1056,7 @@ function App() {
       return;
     }
 
-    if (nextPage === 'dashboard') {
+    if (nextPage === 'dashboard' || nextPage === 'profile' || nextPage === 'leaderboard') {
       markIncompleteAttempt();
       setReplayTargetText(null);
       setResult(null);
@@ -775,7 +1066,7 @@ function App() {
       restart();
     }
 
-    window.location.hash = nextPage === 'dashboard' ? 'dashboard' : 'test';
+    window.location.hash = nextPage === 'test' ? 'test' : nextPage;
     setCurrentPage(nextPage);
   };
 
@@ -843,6 +1134,18 @@ function App() {
         return;
       }
 
+      if (normalizedKey === 'l') {
+        event.preventDefault();
+        navigate('leaderboard');
+        return;
+      }
+
+      if (normalizedKey === 'p') {
+        event.preventDefault();
+        navigate('profile');
+        return;
+      }
+
       if (currentPage !== 'test' || isActive) return;
 
       const shortcutIndex = Number(event.key) - 1;
@@ -898,8 +1201,8 @@ function App() {
         <Header
           currentPage={currentPage}
           onNavigate={navigate}
-          onSignOut={handleSignOut}
           onThemeChange={handleThemeChange}
+          profile={userProfile}
           theme={theme}
           user={user}
         />
@@ -941,6 +1244,22 @@ function App() {
           <AnimatePresence mode="wait">
             {currentPage === 'dashboard' && user ? (
               <Dashboard key="dashboard" dashboard={dashboard} />
+            ) : currentPage === 'leaderboard' ? (
+              <Leaderboard
+                key="leaderboard"
+                entries={leaderboard.entries}
+                error={leaderboard.error}
+                isLoading={leaderboard.isLoading}
+              />
+            ) : currentPage === 'profile' && user ? (
+              <Profile
+                key="profile"
+                dashboard={dashboard}
+                onSaveProfile={saveUserProfile}
+                onSignOut={handleSignOut}
+                profile={userProfile}
+                user={user}
+              />
             ) : (
               <motion.div
                 key="test-page"

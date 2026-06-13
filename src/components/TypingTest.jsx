@@ -144,11 +144,7 @@ function VisualKeyboard({ keyboardRef, pressedKeys }) {
 }
 
 function ShortcutHints() {
-  const primaryKey =
-    typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform)
-      ? 'Cmd'
-      : 'Ctrl';
-  const hint = { label: 'restart', keys: [primaryKey, 'Enter'] };
+  const   hint =  { label: 'restart', keys: ['Esc'] };
 
   return (
     <section
