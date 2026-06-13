@@ -95,16 +95,18 @@ function Header({
         >
           <span className="leaderboard-icon" aria-hidden="true" />
         </motion.button>
-        <motion.button
-          aria-label="Profile"
-          className={currentPage === 'profile' ? 'nav-icon active' : 'nav-icon'}
-          onClick={() => onNavigate('profile')}
-          type="button"
-          whileHover={{ y: -1, scale: 1.04 }}
-          whileTap={{ scale: 0.94 }}
-        >
-          <span className="profile-icon" aria-hidden="true" />
-        </motion.button>
+        {user && (
+          <motion.button
+            aria-label="Profile"
+            className={currentPage === 'profile' ? 'nav-icon active' : 'nav-icon'}
+            onClick={() => onNavigate('profile')}
+            type="button"
+            whileHover={{ y: -1, scale: 1.04 }}
+            whileTap={{ scale: 0.94 }}
+          >
+            <span className="profile-icon" aria-hidden="true" />
+          </motion.button>
+        )}
 
         <div className="theme-menu">
           <motion.button
