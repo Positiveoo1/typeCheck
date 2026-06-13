@@ -55,7 +55,12 @@ function Header({
         </div>
       </motion.button>
 
-      <nav className="nav-actions" aria-label="Primary" ref={navRef}>
+      <nav
+        className="nav-actions"
+        aria-label="Primary"
+        data-onboarding-target="account-dashboard"
+        ref={navRef}
+      >
         <motion.button
           aria-label="Typing test"
           className={currentPage === 'test' ? 'nav-icon active' : 'nav-icon'}

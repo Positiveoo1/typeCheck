@@ -151,7 +151,11 @@ function ShortcutHints() {
   const hint = { label: 'restart', keys: [primaryKey, 'Enter'] };
 
   return (
-    <section className="shortcut-hints" aria-label="Keyboard shortcuts">
+    <section
+      className="shortcut-hints"
+      aria-label="Keyboard shortcuts"
+      data-onboarding-target="restart-shortcut"
+    >
       <div className="shortcut-chip">
         <strong>{hint.label}</strong>
         <span className="shortcut-keys">
@@ -217,6 +221,7 @@ function TypingTest({
 
   const wordTokens = useMemo(() => buildWordTokens(targetText), [targetText]);
   const isIdle = typedText.length === 0 && !isRunning;
+  const isReplay = Boolean(targetTextOverride);
 
   const recordSpeedSnapshot = (elapsedSeconds, nextTypedText) => {
     const normalizedElapsedSeconds = Math.max(0, elapsedSeconds);
@@ -545,6 +550,13 @@ function TypingTest({
       exit={{ opacity: 0, y: -14 }}
       transition={{ duration: 0.24, ease: 'easeOut' }}
     >
+      {isReplay && (
+        <div className="replay-badge" aria-label="Repeated game">
+          <span className="replay-icon" aria-hidden="true" />
+          <span>Repeated</span>
+        </div>
+      )}
+
       <motion.div
         className={[
           'word-display',
@@ -559,6 +571,7 @@ function TypingTest({
           focusInput();
         }}
         onKeyDown={focusInput}
+        data-onboarding-target="typing"
         ref={wordDisplayRef}
         role="button"
         tabIndex="0"
