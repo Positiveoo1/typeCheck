@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const TIME_MODES = [15, 30, 60];
@@ -14,6 +14,7 @@ const buttonMotion = {
 function TestSettings({ selectedType, selectedValue, onSettingsChange, disabled }) {
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
   const [customTime, setCustomTime] = useState(String(selectedValue));
+  const customTimeRef = useRef(null);
   const isCustomTimeSelected =
     selectedType === 'time' && !TIME_MODES.includes(selectedValue);
 
@@ -22,6 +23,19 @@ function TestSettings({ selectedType, selectedValue, onSettingsChange, disabled 
       setCustomTime(String(selectedValue));
     }
   }, [selectedType, selectedValue]);
+
+  useEffect(() => {
+    if (!isCustomTimeOpen) return undefined;
+
+    const closeCustomTime = (event) => {
+      if (customTimeRef.current?.contains(event.target)) return;
+
+      setIsCustomTimeOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeCustomTime);
+    return () => document.removeEventListener('pointerdown', closeCustomTime);
+  }, [isCustomTimeOpen]);
 
   const applyCustomTime = () => {
     const normalizedTime = Math.min(
@@ -71,7 +85,7 @@ function TestSettings({ selectedType, selectedValue, onSettingsChange, disabled 
             </motion.button>
           ))}
 
-          <div className="custom-time">
+          <div className="custom-time" ref={customTimeRef}>
             <motion.button
               aria-expanded={isCustomTimeOpen}
               aria-label="Custom time"
