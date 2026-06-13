@@ -45,77 +45,38 @@ const KEYBOARD_ROWS = [
     { code: 'KeyM', label: 'm' }
   ]
 ];
+const KEY_SOUND_SRC = '/audio/kSound.mp3';
+const KEY_SOUND_VOLUME = 0.9;
+const KEY_SOUND_POOL_SIZE = 8;
 
-function playKeySound(audioContextRef) {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
+function createKeyAudio() {
+  const audio = new Audio(KEY_SOUND_SRC);
+  audio.preload = 'auto';
+  audio.volume = KEY_SOUND_VOLUME;
+  return audio;
+}
 
-  if (!AudioContext) return;
+function playKeySound(audioPoolRef) {
+  if (typeof Audio === 'undefined') return;
 
-  if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-    audioContextRef.current = new AudioContext();
+  if (audioPoolRef.current.length === 0) {
+    audioPoolRef.current.push(createKeyAudio());
   }
 
-  const audioContext = audioContextRef.current;
-  const startSound = () => {
-    const now = audioContext.currentTime;
-    const output = audioContext.createGain();
-    const clickGain = audioContext.createGain();
-    const thockGain = audioContext.createGain();
-    const noiseBuffer = audioContext.createBuffer(
-      1,
-      Math.floor(audioContext.sampleRate * 0.018),
-      audioContext.sampleRate
-    );
-    const noiseData = noiseBuffer.getChannelData(0);
+  const availableAudio = audioPoolRef.current.find((audio) => audio.paused || audio.ended);
+  const audio =
+    availableAudio ||
+    (audioPoolRef.current.length < KEY_SOUND_POOL_SIZE
+      ? createKeyAudio()
+      : audioPoolRef.current[0]);
 
-    for (let index = 0; index < noiseData.length; index += 1) {
-      const fade = 1 - index / noiseData.length;
-      noiseData[index] = (Math.random() * 2 - 1) * fade;
-    }
-
-    const click = audioContext.createBufferSource();
-    const clickFilter = audioContext.createBiquadFilter();
-    const thock = audioContext.createOscillator();
-
-    output.gain.setValueAtTime(0.72, now);
-    output.connect(audioContext.destination);
-
-    click.buffer = noiseBuffer;
-    clickFilter.type = 'bandpass';
-    clickFilter.frequency.setValueAtTime(2600 + Math.random() * 420, now);
-    clickFilter.Q.setValueAtTime(1.8, now);
-
-    clickGain.gain.setValueAtTime(0.0001, now);
-    clickGain.gain.exponentialRampToValueAtTime(0.105, now + 0.002);
-    clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.024);
-
-    thock.type = 'triangle';
-    thock.frequency.setValueAtTime(165 + Math.random() * 26, now);
-    thock.frequency.exponentialRampToValueAtTime(92, now + 0.044);
-
-    thockGain.gain.setValueAtTime(0.0001, now);
-    thockGain.gain.exponentialRampToValueAtTime(0.04, now + 0.006);
-    thockGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.052);
-
-    click.connect(clickFilter);
-    clickFilter.connect(clickGain);
-    clickGain.connect(output);
-
-    thock.connect(thockGain);
-    thockGain.connect(output);
-
-    click.start(now);
-    click.stop(now + 0.026);
-    thock.start(now);
-    thock.stop(now + 0.056);
-  };
-
-  if (audioContext.state === 'suspended') {
-    audioContext.resume().then(startSound).catch(() => {});
-    return;
+  if (!audioPoolRef.current.includes(audio)) {
+    audioPoolRef.current.push(audio);
   }
 
-  startSound();
+  audio.volume = KEY_SOUND_VOLUME;
+  audio.currentTime = 0;
+  audio.play().catch(() => {});
 }
 
 function VisualKeyboard({ keyboardRef, pressedKeys }) {
@@ -198,7 +159,7 @@ function TypingTest({
   const inputRef = useRef(null);
   const wordDisplayRef = useRef(null);
   const keyboardRef = useRef(null);
-  const audioContextRef = useRef(null);
+  const keySoundPoolRef = useRef([]);
   const currentLetterRef = useRef(null);
   const typedTextRef = useRef('');
   const startedAtRef = useRef(null);
@@ -414,7 +375,7 @@ function TypingTest({
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (!event.repeat) {
-        playKeySound(audioContextRef);
+        playKeySound(keySoundPoolRef);
       }
 
       setPressedKeys((currentKeys) => {
@@ -448,8 +409,11 @@ function TypingTest({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', clearPressedKeys);
-      audioContextRef.current?.close();
-      audioContextRef.current = null;
+      keySoundPoolRef.current.forEach((audio) => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+      keySoundPoolRef.current = [];
     };
   }, []);
 
