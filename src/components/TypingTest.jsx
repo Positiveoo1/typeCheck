@@ -532,6 +532,31 @@ function TypingTest({
     }
   };
 
+  useEffect(() => {
+    const focusTypingFromKey = (event) => {
+      const tagName = event.target?.tagName?.toLowerCase();
+      const isFormField =
+        tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+
+      if (isTypingFocusedRef.current) return;
+      if (isFormField || event.target?.isContentEditable) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Tab' || event.key === 'Escape') return;
+
+      focusInput();
+
+      if (event.key.length === 1) {
+        event.preventDefault();
+        applyTypedValue(`${typedTextRef.current}${event.key}`);
+      }
+    };
+
+    window.addEventListener('keydown', focusTypingFromKey, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', focusTypingFromKey, { capture: true });
+    };
+  }, [focusInput, applyTypedValue]);
+
   const handleChange = (event) => {
     if (!isTypingFocusedRef.current) {
       event.target.value = typedText;
@@ -562,6 +587,7 @@ function TypingTest({
           'word-display',
           isIdle ? 'idle' : '',
           isTypingFocused ? 'typing-focused' : '',
+          !isTypingFocused ? 'typing-unfocused' : '',
           isRunning ? 'caret-active' : 'caret-idle'
         ]
           .filter(Boolean)
@@ -576,6 +602,13 @@ function TypingTest({
         role="button"
         tabIndex="0"
       >
+        {!isTypingFocused && (
+          <div className="focus-prompt" aria-hidden="true">
+            <span className="focus-pointer" />
+            <span>Click here or press any key to focus</span>
+          </div>
+        )}
+
         <span
           className="typing-caret"
           style={{
