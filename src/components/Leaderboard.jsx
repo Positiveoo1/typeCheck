@@ -14,7 +14,7 @@ function formatDate(value) {
   }).format(date);
 }
 
-function Leaderboard({ entries, error, isLoading }) {
+function Leaderboard({ entries, error, isLoading, onOpenProfile }) {
   return (
     <motion.main
       className="leaderboard-page"
@@ -58,10 +58,12 @@ function Leaderboard({ entries, error, isLoading }) {
               <span role="columnheader">date</span>
             </div>
             {entries.map((entry, index) => (
-              <motion.div
-                className="leaderboard-row"
+              <motion.button
+                className="leaderboard-row leaderboard-row-button"
                 key={`${entry.id}-${index}`}
+                onClick={() => onOpenProfile(entry.userId)}
                 role="row"
+                type="button"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.24) }}
@@ -74,7 +76,7 @@ function Leaderboard({ entries, error, isLoading }) {
                 <span data-label="accuracy" role="cell">{entry.accuracy}%</span>
                 <span data-label="mode" role="cell">{entry.modeLabel}</span>
                 <span data-label="date" role="cell">{formatDate(entry.createdAt)}</span>
-              </motion.div>
+              </motion.button>
             ))}
           </div>
         )}

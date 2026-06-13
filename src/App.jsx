@@ -20,6 +20,7 @@ import Dashboard from './components/Dashboard.jsx';
 import Header from './components/Header.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
 import Profile from './components/Profile.jsx';
+import PublicProfile from './components/PublicProfile.jsx';
 import Results from './components/Results.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
@@ -60,8 +61,16 @@ function loadPage() {
   if (window.location.hash === '#dashboard') return 'dashboard';
   if (window.location.hash === '#leaderboard') return 'leaderboard';
   if (window.location.hash === '#profile') return 'profile';
+  if (window.location.hash.startsWith('#player=')) return 'public-profile';
 
   return 'test';
+}
+
+function loadPublicProfileUserId() {
+  if (typeof window === 'undefined') return '';
+  if (!window.location.hash.startsWith('#player=')) return '';
+
+  return decodeURIComponent(window.location.hash.replace('#player=', ''));
 }
 
 function loadTheme() {
@@ -403,6 +412,55 @@ async function loadGlobalLeaderboard() {
   return [...bestByUser.values()].slice(0, 50);
 }
 
+async function loadPublicPlayerProfile(userId) {
+  if (!db || !userId) {
+    return {
+      error: 'Could not load this player profile.',
+      playerName: 'Player',
+      results: []
+    };
+  }
+
+  const [playerSnapshot, resultsSnapshot] = await Promise.all([
+    getDoc(getPublicPlayerDocRef(userId)),
+    getDocs(query(
+      getLeaderboardCollectionRef(),
+      orderBy('wpm', 'desc'),
+      limit(LEADERBOARD_RESULTS_LIMIT)
+    ))
+  ]);
+  const profile = playerSnapshot.data() || {};
+  const results = resultsSnapshot.docs
+    .map((resultDoc) => {
+      const data = resultDoc.data();
+
+      return {
+        id: resultDoc.id,
+        accuracy: Number(data.accuracy) || 0,
+        createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
+        modeLabel: data.modeLabel || '',
+        testType: data.testType || 'time',
+        userId: data.userId || '',
+        wpm: Number(data.wpm) || 0
+      };
+    })
+    .filter((result) => (
+      result.userId === userId &&
+      result.modeLabel === LEADERBOARD_MODE_LABEL
+    ))
+    .sort((firstResult, secondResult) => (
+      secondResult.wpm - firstResult.wpm ||
+      secondResult.accuracy - firstResult.accuracy ||
+      (new Date(secondResult.createdAt || 0) - new Date(firstResult.createdAt || 0))
+    ));
+
+  return {
+    error: '',
+    playerName: getLeaderboardPlayerName(profile),
+    results
+  };
+}
+
 const ONBOARDING_ITEMS = [
   {
     selector: '[data-onboarding-target="settings"]',
@@ -574,6 +632,13 @@ function App() {
     entries: [],
     error: '',
     isLoading: false
+  });
+  const [publicProfile, setPublicProfile] = useState({
+    error: '',
+    isLoading: false,
+    playerName: 'Player',
+    results: [],
+    userId: ''
   });
   const activeAttemptRef = useRef(null);
   const [currentPage, setCurrentPage] = useState('test');
@@ -845,6 +910,58 @@ function App() {
   }, [currentPage]);
 
   useEffect(() => {
+    if (currentPage !== 'public-profile') return undefined;
+
+    const userId = loadPublicProfileUserId();
+
+    if (!userId) {
+      setPublicProfile({
+        error: 'Could not load this player profile.',
+        isLoading: false,
+        playerName: 'Player',
+        results: [],
+        userId: ''
+      });
+      return undefined;
+    }
+
+    let isSubscribed = true;
+    setPublicProfile((currentProfile) => ({
+      ...currentProfile,
+      error: '',
+      isLoading: true,
+      userId
+    }));
+
+    loadPublicPlayerProfile(userId)
+      .then((nextProfile) => {
+        if (!isSubscribed) return;
+
+        setPublicProfile({
+          ...nextProfile,
+          isLoading: false,
+          userId
+        });
+      })
+      .catch((error) => {
+        if (!isSubscribed) return;
+
+        console.error('Failed to load public player profile:', error);
+        setPublicProfile({
+          error: 'Could not load this player profile.',
+          isLoading: false,
+          playerName: 'Player',
+          results: [],
+          userId
+        });
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [currentPage]);
+
+  useEffect(() => {
     if (!isAuthReady || user || !['dashboard', 'profile'].includes(currentPage)) return;
 
     window.location.hash = 'test';
@@ -1056,7 +1173,12 @@ function App() {
       return;
     }
 
-    if (nextPage === 'dashboard' || nextPage === 'profile' || nextPage === 'leaderboard') {
+    if (
+      nextPage === 'dashboard' ||
+      nextPage === 'profile' ||
+      nextPage === 'leaderboard' ||
+      nextPage === 'public-profile'
+    ) {
       markIncompleteAttempt();
       setReplayTargetText(null);
       setResult(null);
@@ -1068,6 +1190,18 @@ function App() {
 
     window.location.hash = nextPage === 'test' ? 'test' : nextPage;
     setCurrentPage(nextPage);
+  };
+
+  const openPublicProfile = (userId) => {
+    if (!userId) return;
+
+    markIncompleteAttempt();
+    setReplayTargetText(null);
+    setResult(null);
+    setIsActive(false);
+    setRestartKey((key) => key + 1);
+    window.location.hash = `player=${encodeURIComponent(userId)}`;
+    setCurrentPage('public-profile');
   };
 
   useEffect(() => {
@@ -1250,6 +1384,16 @@ function App() {
                 entries={leaderboard.entries}
                 error={leaderboard.error}
                 isLoading={leaderboard.isLoading}
+                onOpenProfile={openPublicProfile}
+              />
+            ) : currentPage === 'public-profile' ? (
+              <PublicProfile
+                key={`public-profile-${publicProfile.userId}`}
+                error={publicProfile.error}
+                isLoading={publicProfile.isLoading}
+                onBack={() => navigate('leaderboard')}
+                playerName={publicProfile.playerName}
+                results={publicProfile.results}
               />
             ) : currentPage === 'profile' && user ? (
               <Profile
