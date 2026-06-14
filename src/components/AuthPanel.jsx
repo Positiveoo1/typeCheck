@@ -40,6 +40,7 @@ function AuthPanel({
   const [hasAcceptedLegal, setHasAcceptedLegal] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const isRegisterMode = mode === 'register';
 
   const saveLegalConsent = async (signedInUser) => {
     if (!db || !signedInUser) return;
@@ -69,7 +70,7 @@ function AuthPanel({
     event.preventDefault();
     setError('');
 
-    if (requireLegalConsent()) return;
+    if (isRegisterMode && requireLegalConsent()) return;
 
     setIsLoading(true);
 
@@ -78,8 +79,7 @@ function AuthPanel({
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         await saveLegalConsent(credential.user);
       } else {
-        const credential = await signInWithEmailAndPassword(auth, email, password);
-        await saveLegalConsent(credential.user);
+        await signInWithEmailAndPassword(auth, email, password);
       }
       onSuccess();
     } catch (authError) {
@@ -93,13 +93,17 @@ function AuthPanel({
   const signInWithGoogle = async () => {
     setError('');
 
-    if (requireLegalConsent()) return;
+    if (isRegisterMode && requireLegalConsent()) return;
 
     setIsLoading(true);
 
     try {
       const credential = await signInWithPopup(auth, new GoogleAuthProvider());
-      await saveLegalConsent(credential.user);
+
+      if (isRegisterMode) {
+        await saveLegalConsent(credential.user);
+      }
+
       onSuccess();
     } catch (authError) {
       console.error('Google authentication failed:', authError);
@@ -172,26 +176,32 @@ function AuthPanel({
             type="password"
             value={password}
           />
-          <label className="auth-consent">
-            <input
-              checked={hasAcceptedLegal}
-              onChange={(event) => setHasAcceptedLegal(event.target.checked)}
-              type="checkbox"
-            />
-            <span>
-              I agree to the <a href="#terms" onClick={onClose}>Terms</a> and{' '}
-              <a href="#privacy" onClick={onClose}>Privacy Policy</a>.
-            </span>
-          </label>
+          {isRegisterMode && (
+            <label className="auth-consent">
+              <input
+                checked={hasAcceptedLegal}
+                onChange={(event) => setHasAcceptedLegal(event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                I agree to the <a href="#terms" onClick={onClose}>Terms</a> and{' '}
+                <a href="#privacy" onClick={onClose}>Privacy Policy</a>.
+              </span>
+            </label>
+          )}
           <motion.button
             className="auth-submit"
-            disabled={isLoading || !hasAcceptedLegal}
+            disabled={isLoading || (isRegisterMode && !hasAcceptedLegal)}
             type="submit"
             whileHover={
-              isLoading || !hasAcceptedLegal ? undefined : { y: -1, scale: 1.02 }
+              isLoading || (isRegisterMode && !hasAcceptedLegal)
+                ? undefined
+                : { y: -1, scale: 1.02 }
             }
             whileTap={
-              isLoading || !hasAcceptedLegal ? undefined : { scale: 0.95 }
+              isLoading || (isRegisterMode && !hasAcceptedLegal)
+                ? undefined
+                : { scale: 0.95 }
             }
           >
             {isLoading ? 'Working...' : mode === 'register' ? 'Create' : 'Enter'}
@@ -203,13 +213,19 @@ function AuthPanel({
 
           <motion.button
             className="google-submit"
-            disabled={isLoading || !hasAcceptedLegal}
+            disabled={isLoading || (isRegisterMode && !hasAcceptedLegal)}
             onClick={signInWithGoogle}
             type="button"
             whileHover={
-              isLoading || !hasAcceptedLegal ? undefined : { y: -1, scale: 1.02 }
+              isLoading || (isRegisterMode && !hasAcceptedLegal)
+                ? undefined
+                : { y: -1, scale: 1.02 }
             }
-            whileTap={isLoading || !hasAcceptedLegal ? undefined : { scale: 0.95 }}
+            whileTap={
+              isLoading || (isRegisterMode && !hasAcceptedLegal)
+                ? undefined
+                : { scale: 0.95 }
+            }
           >
             Continue with Google
           </motion.button>
