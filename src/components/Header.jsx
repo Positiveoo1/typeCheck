@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import AuthPanel from './AuthPanel.jsx';
+import {
+  DashboardIcon,
+  EmojiEventsIcon,
+  KeyboardIcon,
+  PaletteIcon,
+  PersonIcon
+} from './MaterialIcons.jsx';
 
 const THEMES = [
   { id: 'matrix', label: 'Matrix', colors: ['#10120f', '#b9dc6d', '#d6ca62'] },
@@ -74,7 +81,7 @@ function Header({
           whileHover={{ y: -1, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
         >
-          <span className="keyboard-icon" aria-hidden="true" />
+          <KeyboardIcon />
         </motion.button>
         <motion.button
           aria-label="Dashboard"
@@ -85,7 +92,7 @@ function Header({
           whileHover={{ y: -1, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
         >
-          <span className="dashboard-icon" aria-hidden="true" />
+          <DashboardIcon />
         </motion.button>
         <motion.button
           aria-label="Leaderboard"
@@ -96,7 +103,7 @@ function Header({
           whileHover={{ y: -1, scale: 1.04 }}
           whileTap={{ scale: 0.94 }}
         >
-          <span className="leaderboard-icon" aria-hidden="true" />
+          <EmojiEventsIcon />
         </motion.button>
         <div className="theme-menu">
           <motion.button
@@ -112,7 +119,7 @@ function Header({
             whileHover={{ y: -1, scale: 1.04 }}
             whileTap={{ scale: 0.94 }}
           >
-            <span className="palette-icon" aria-hidden="true" />
+            <PaletteIcon />
           </motion.button>
 
           <AnimatePresence>
@@ -162,7 +169,7 @@ function Header({
               whileHover={{ y: -1, scale: 1.04 }}
               whileTap={{ scale: 0.94 }}
             >
-              <span className="profile-icon" aria-hidden="true" />
+              <PersonIcon />
             </motion.button>
             <div className="user-menu">
               <span>{accountLabel}</span>
@@ -183,7 +190,7 @@ function Header({
               whileHover={{ y: -1, scale: 1.04 }}
               whileTap={{ scale: 0.94 }}
             >
-              <span aria-hidden="true" />
+              <PersonIcon />
             </motion.button>
 
             <AnimatePresence>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { SettingsIcon } from './MaterialIcons.jsx';
 
 const TIME_MODES = [15, 30, 60];
 const WORD_MODES = [10, 30, 60];
@@ -114,7 +115,7 @@ function TestSettings({
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
-              <span className="settings-gear" aria-hidden="true" />
+              <SettingsIcon />
               {isCustomTimeSelected && (
                 <span className="mode-text custom-time-value">{selectedValue}s</span>
               )}
