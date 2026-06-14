@@ -37,6 +37,7 @@ const PROFILE_RESULTS_LIMIT = 400;
 const LEADERBOARD_RESULTS_LIMIT = 500;
 const LEADERBOARD_MODE_LABEL = '10 words';
 const DEFAULT_SETTINGS = {
+  soundEnabled: true,
   testType: 'time',
   timeMode: 30,
   wordMode: 10
@@ -130,7 +131,11 @@ function loadSettings() {
       timeMode: normalizeTimeMode(savedSettings?.timeMode),
       wordMode: [10, 30, 60].includes(savedSettings?.wordMode)
         ? savedSettings.wordMode
-        : DEFAULT_SETTINGS.wordMode
+        : DEFAULT_SETTINGS.wordMode,
+      soundEnabled:
+        typeof savedSettings?.soundEnabled === 'boolean'
+          ? savedSettings.soundEnabled
+          : DEFAULT_SETTINGS.soundEnabled
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -658,7 +663,7 @@ function App() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
-  const { testType, timeMode, wordMode } = settings;
+  const { soundEnabled, testType, timeMode, wordMode } = settings;
 
   const updateDashboard = useCallback((updater) => {
     if (!user || !db) return;
@@ -1107,6 +1112,16 @@ function App() {
     setRestartKey((key) => key + 1);
   }, [markIncompleteAttempt, settings]);
 
+  const handleSoundToggle = useCallback((nextSoundEnabled) => {
+    const nextSettings = {
+      ...settings,
+      soundEnabled: nextSoundEnabled
+    };
+
+    setSettings(nextSettings);
+    saveSettings(nextSettings);
+  }, [settings]);
+
   const handleSignOut = () => {
     setIsSignOutConfirmOpen(true);
   };
@@ -1417,8 +1432,10 @@ function App() {
                   <TestSettings
                     disabled={isActive}
                     onSettingsChange={handleSettingsChange}
+                    onSoundToggle={handleSoundToggle}
                     selectedType={testType}
                     selectedValue={testType === 'time' ? timeMode : wordMode}
+                    soundEnabled={soundEnabled}
                   />
                 </div>
 
@@ -1438,6 +1455,7 @@ function App() {
                       onRestart={restart}
                       onStart={handleTestStart}
                       restartKey={restartKey}
+                      soundEnabled={soundEnabled}
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
                       targetTextOverride={replayTargetText}

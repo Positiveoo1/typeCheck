@@ -79,25 +79,30 @@ function playKeySound(audioPoolRef) {
   audio.play().catch(() => {});
 }
 
-function VisualKeyboard({ keyboardRef, pressedKeys }) {
+function VisualKeyboard({ keyboardRef, pressedKeyStates, pressedKeys }) {
   return (
     <div className="visual-keyboard" aria-hidden="true" ref={keyboardRef}>
       {KEYBOARD_ROWS.map((row, rowIndex) => (
         <div className="keyboard-row" key={`row-${rowIndex}`}>
-          {row.map((key) => (
-            <span
-              className={[
-                'keyboard-key',
-                key.size ? `keyboard-key-${key.size}` : '',
-                pressedKeys.has(key.code) ? 'pressed' : ''
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              key={key.code}
-            >
-              {key.label}
-            </span>
-          ))}
+          {row.map((key) => {
+            const keyState = pressedKeyStates[key.code];
+
+            return (
+              <span
+                className={[
+                  'keyboard-key',
+                  key.size ? `keyboard-key-${key.size}` : '',
+                  pressedKeys.has(key.code) ? 'pressed' : '',
+                  keyState ? `pressed-${keyState}` : ''
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                key={key.code}
+              >
+                {key.label}
+              </span>
+            );
+          })}
         </div>
       ))}
     </div>
@@ -139,6 +144,7 @@ function TypingTest({
   onRestart,
   onStart,
   onActiveChange,
+  soundEnabled,
   targetTextOverride
 }) {
   const [targetText, setTargetText] = useState('');
@@ -148,6 +154,7 @@ function TypingTest({
   const [isRunning, setIsRunning] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
   const [pressedKeys, setPressedKeys] = useState(() => new Set());
+  const [pressedKeyStates, setPressedKeyStates] = useState({});
   const [caretPosition, setCaretPosition] = useState({
     height: 0,
     left: 0,
@@ -246,6 +253,7 @@ function TypingTest({
       targetTextOverride || shuffleWords(getTargetWordCount(testType, testValue))
     );
     setTypedText('');
+    setPressedKeyStates({});
     setTimeLeft(testType === 'time' ? testValue : 0);
     setElapsedTime(0);
     setIsRunning(false);
@@ -296,14 +304,6 @@ function TypingTest({
     return () => clearInterval(interval);
   }, [isRunning, onActiveChange, onFinish, targetText, testType, testValue]);
 
-  useEffect(() => {
-    currentLetterRef.current?.scrollIntoView({
-      block: 'center',
-      inline: 'nearest',
-      behavior: 'smooth'
-    });
-  }, [typedText]);
-
   useLayoutEffect(() => {
     const currentElement = currentLetterRef.current;
     const wordDisplay = wordDisplayRef.current;
@@ -320,11 +320,22 @@ function TypingTest({
     const updateCaretPosition = () => {
       const currentRect = currentElement.getBoundingClientRect();
       const displayRect = wordDisplay.getBoundingClientRect();
+      const upperScrollEdge = displayRect.top + displayRect.height * 0.28;
+      const lowerScrollEdge = displayRect.top + displayRect.height * 0.68;
+
+      if (currentRect.top < upperScrollEdge) {
+        wordDisplay.scrollTop -= upperScrollEdge - currentRect.top;
+      } else if (currentRect.bottom > lowerScrollEdge) {
+        wordDisplay.scrollTop += currentRect.bottom - lowerScrollEdge;
+      }
+
+      const nextCurrentRect = currentElement.getBoundingClientRect();
+      const nextDisplayRect = wordDisplay.getBoundingClientRect();
 
       setCaretPosition({
-        height: currentRect.height,
-        left: currentRect.left - displayRect.left + wordDisplay.scrollLeft - 2,
-        top: currentRect.top - displayRect.top + wordDisplay.scrollTop,
+        height: nextCurrentRect.height,
+        left: nextCurrentRect.left - nextDisplayRect.left + wordDisplay.scrollLeft - 2,
+        top: nextCurrentRect.top - nextDisplayRect.top + wordDisplay.scrollTop,
         visible: true
       });
     };
@@ -371,10 +382,22 @@ function TypingTest({
   }, [onRestart]);
 
   useEffect(() => {
+    const getKeyState = (event) => {
+      if (!isTypingFocusedRef.current) return '';
+      if (event.key.length !== 1) return '';
+
+      const expectedChar = targetText[typedTextRef.current.length];
+      if (expectedChar === undefined) return '';
+
+      return event.key === expectedChar ? 'correct' : 'wrong';
+    };
+
     const handleKeyDown = (event) => {
-      if (!event.repeat) {
+      if (soundEnabled && !event.repeat) {
         playKeySound(keySoundPoolRef);
       }
+
+      const keyState = getKeyState(event);
 
       setPressedKeys((currentKeys) => {
         if (currentKeys.has(event.code)) return currentKeys;
@@ -383,6 +406,13 @@ function TypingTest({
         nextKeys.add(event.code);
         return nextKeys;
       });
+
+      if (keyState) {
+        setPressedKeyStates((currentStates) => ({
+          ...currentStates,
+          [event.code]: keyState
+        }));
+      }
     };
 
     const handleKeyUp = (event) => {
@@ -393,10 +423,19 @@ function TypingTest({
         nextKeys.delete(event.code);
         return nextKeys;
       });
+
+      setPressedKeyStates((currentStates) => {
+        if (!currentStates[event.code]) return currentStates;
+
+        const nextStates = { ...currentStates };
+        delete nextStates[event.code];
+        return nextStates;
+      });
     };
 
     const clearPressedKeys = () => {
       setPressedKeys(new Set());
+      setPressedKeyStates({});
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -413,7 +452,7 @@ function TypingTest({
       });
       keySoundPoolRef.current = [];
     };
-  }, []);
+  }, [soundEnabled, targetText]);
 
   useEffect(() => {
     const blurTypingArea = () => {
@@ -527,6 +566,7 @@ function TypingTest({
   return (
     <motion.main
       className="test-shell"
+      data-test-type={testType}
       layout
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
@@ -641,7 +681,11 @@ function TypingTest({
         value={typedText}
       />
 
-      <VisualKeyboard keyboardRef={keyboardRef} pressedKeys={pressedKeys} />
+      <VisualKeyboard
+        keyboardRef={keyboardRef}
+        pressedKeyStates={pressedKeyStates}
+        pressedKeys={pressedKeys}
+      />
 
       <ShortcutHints />
     </motion.main>

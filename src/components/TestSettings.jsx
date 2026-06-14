@@ -11,7 +11,14 @@ const buttonMotion = {
   tap: { scale: 0.96 }
 };
 
-function TestSettings({ selectedType, selectedValue, onSettingsChange, disabled }) {
+function TestSettings({
+  selectedType,
+  selectedValue,
+  soundEnabled,
+  onSettingsChange,
+  onSoundToggle,
+  disabled
+}) {
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
   const [customTime, setCustomTime] = useState(String(selectedValue));
   const customTimeRef = useRef(null);
@@ -174,6 +181,25 @@ function TestSettings({ selectedType, selectedValue, onSettingsChange, disabled 
             </motion.button>
           ))}
         </div>
+      </div>
+
+      <div className="settings-divider" aria-hidden="true" />
+
+      <div className="settings-row">
+        <span className="settings-label">sound</span>
+        <motion.button
+          aria-pressed={soundEnabled}
+          className={soundEnabled ? 'sound-toggle active' : 'sound-toggle'}
+          onClick={() => onSoundToggle(!soundEnabled)}
+          type="button"
+          whileHover={buttonMotion.hover}
+          whileTap={buttonMotion.tap}
+        >
+          <span className="sound-toggle-track" aria-hidden="true">
+            <span />
+          </span>
+          <span>{soundEnabled ? 'on' : 'off'}</span>
+        </motion.button>
       </div>
     </motion.section>
   );

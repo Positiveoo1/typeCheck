@@ -79,6 +79,47 @@ function statsLabel(value) {
   return Math.round(value);
 }
 
+function RecordCelebration() {
+  const particles = Array.from({ length: 18 }, (_, index) => ({
+    id: index,
+    x: 150 + (index % 6) * 24,
+    y: -78 + (index % 9) * 18,
+    top: 8 + (index % 6) * 17
+  }));
+
+  return (
+    <div className="record-celebration" aria-hidden="true">
+      <div className="record-glow" />
+      <div className="record-burst record-burst-left">
+        {particles.map((particle) => (
+          <span
+            key={`left-${particle.id}`}
+            style={{
+              '--particle-index': particle.id,
+              '--particle-top': `${particle.top}px`,
+              '--particle-x': `${particle.x}px`,
+              '--particle-y': `${particle.y}px`
+            }}
+          />
+        ))}
+      </div>
+      <div className="record-burst record-burst-right">
+        {particles.map((particle) => (
+          <span
+            key={`right-${particle.id}`}
+            style={{
+              '--particle-index': particle.id,
+              '--particle-top': `${particle.top}px`,
+              '--particle-x': `${particle.x}px`,
+              '--particle-y': `${particle.y}px`
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Results({ stats, onNextGame, onTryAgain }) {
   return (
     <motion.section
@@ -91,14 +132,17 @@ function Results({ stats, onNextGame, onTryAgain }) {
       transition={{ duration: 0.26, ease: 'easeOut' }}
     >
       {stats.isPersonalBest && (
-        <motion.div
-          className="best-burst"
-          initial={{ opacity: 0, scale: 0.82, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-        >
-          Personal best
-        </motion.div>
+        <>
+          <RecordCelebration />
+          <motion.div
+            className="best-burst"
+            initial={{ opacity: 0, scale: 0.82, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+          >
+            Personal best
+          </motion.div>
+        </>
       )}
 
       <p className="eyebrow">result</p>

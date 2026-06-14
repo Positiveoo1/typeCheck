@@ -535,6 +535,8 @@ h2 {
   border-radius: 8px;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   background: rgba(35, 39, 32, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -928,6 +930,53 @@ h2 {
   width: 1px;
   height: 24px;
   background: rgba(255, 255, 255, 0.08);
+}
+
+.sound-toggle {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.sound-toggle.active {
+  color: var(--heading);
+  background: rgba(var(--accent-2-rgb), 0.1);
+}
+
+.sound-toggle-track {
+  width: 32px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sound-toggle-track span {
+  width: 14px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  display: block;
+  background: var(--muted);
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.sound-toggle.active .sound-toggle-track span {
+  background: var(--accent-2);
+  transform: translateX(14px);
 }
 
 .dashboard-page {
@@ -1770,6 +1819,13 @@ h2 {
   padding: clamp(14px, 3vh, 28px) 0 18px;
 }
 
+@media (min-width: 900px) {
+  .test-shell[data-test-type='time'] {
+    width: min(1280px, calc(100vw - 64px));
+    margin-left: calc((100% - min(1280px, calc(100vw - 64px))) / 2);
+  }
+}
+
 .result-grid div {
   min-height: 72px;
   padding: 14px 16px;
@@ -1831,7 +1887,7 @@ h2 {
 .word-display {
   position: relative;
   width: 100%;
-  height: clamp(150px, 25vh, 230px);
+  height: clamp(126px, 20vh, 178px);
   padding: 10px 12px 16px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1950,6 +2006,15 @@ h2 {
     0 0 18px rgba(var(--caret-rgb), 0.28),
     inset 0 -1px 0 rgba(0, 0, 0, 0.18);
   transform: translateY(2px) scale(0.98);
+}
+
+.keyboard-key.pressed-wrong {
+  color: var(--heading);
+  border-color: color-mix(in srgb, var(--wrong) 82%, transparent);
+  background: var(--wrong);
+  box-shadow:
+    0 0 18px color-mix(in srgb, var(--wrong) 32%, transparent),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .word-display::-webkit-scrollbar {
@@ -2101,7 +2166,93 @@ h2 {
   width: min(720px, 100%);
   margin: auto;
   padding: 40px 0;
+  position: relative;
   text-align: center;
+}
+
+.record-celebration {
+  position: absolute;
+  inset: -42px -118px auto;
+  height: 260px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.record-glow {
+  position: absolute;
+  left: 50%;
+  top: 34px;
+  width: 190px;
+  aspect-ratio: 1;
+  border: 1px solid rgba(var(--caret-rgb), 0.2);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(var(--accent-2-rgb), 0.2), transparent 62%),
+    radial-gradient(circle, rgba(var(--caret-rgb), 0.14), transparent 42%);
+  opacity: 0;
+  transform: translateX(-50%) scale(0.2);
+  animation: recordGlow 2.5s ease-out forwards;
+}
+
+.record-burst {
+  position: absolute;
+  top: 54px;
+  width: 260px;
+  height: 150px;
+}
+
+.record-burst-left {
+  left: 0;
+}
+
+.record-burst-right {
+  right: 0;
+}
+
+.record-burst span {
+  --particle-index: 0;
+  --particle-top: 12px;
+  --particle-x: 150px;
+  --particle-y: -70px;
+  position: absolute;
+  top: var(--particle-top);
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--accent-3);
+  box-shadow: 0 0 22px rgba(var(--caret-rgb), 0.3);
+  opacity: 0;
+  transform: translateX(0) rotate(0deg) scale(0.7);
+}
+
+.record-burst-left span {
+  left: 0;
+  animation: recordBurstLeft 2.35s cubic-bezier(0.17, 0.82, 0.23, 1) forwards;
+  animation-delay: calc(var(--particle-index) * 42ms);
+}
+
+.record-burst-right span {
+  right: 0;
+  animation: recordBurstRight 2.35s cubic-bezier(0.17, 0.82, 0.23, 1) forwards;
+  animation-delay: calc(var(--particle-index) * 42ms);
+}
+
+.record-burst span:nth-child(3n + 1) {
+  width: 7px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--accent-2);
+}
+
+.record-burst span:nth-child(3n + 2) {
+  background: var(--caret);
+}
+
+.record-burst span:nth-child(4n) {
+  width: 5px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 .best-burst {
@@ -2116,6 +2267,88 @@ h2 {
   font-weight: 900;
   text-transform: uppercase;
   box-shadow: 0 0 34px rgba(var(--caret-rgb), 0.18);
+  animation: bestBurstPulse 2.5s ease-out forwards;
+}
+
+@keyframes recordGlow {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.18);
+  }
+
+  18% {
+    opacity: 0.75;
+  }
+
+  56% {
+    opacity: 0.42;
+    transform: translateX(-50%) scale(1.12);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.55);
+  }
+}
+
+@keyframes recordBurstLeft {
+  0% {
+    opacity: 0;
+    transform: translate(-58px, 36px) rotate(0deg) scale(0.35);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  62% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(var(--particle-x), var(--particle-y))
+      rotate(420deg)
+      scale(1.05);
+  }
+}
+
+@keyframes recordBurstRight {
+  0% {
+    opacity: 0;
+    transform: translate(58px, 36px) rotate(0deg) scale(0.35);
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  62% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--particle-x) * -1), var(--particle-y))
+      rotate(-420deg)
+      scale(1.05);
+  }
+}
+
+@keyframes bestBurstPulse {
+  0% {
+    box-shadow: 0 0 0 rgba(var(--caret-rgb), 0);
+  }
+
+  24% {
+    box-shadow:
+      0 0 34px rgba(var(--caret-rgb), 0.32),
+      0 0 0 10px rgba(var(--accent-2-rgb), 0.08);
+  }
+
+  100% {
+    box-shadow: 0 0 34px rgba(var(--caret-rgb), 0.18);
+  }
 }
 
 .result-grid {
@@ -2403,7 +2636,7 @@ h2 {
   }
 
   .word-display {
-    height: clamp(118px, 24vh, 180px);
+    height: clamp(104px, 20vh, 150px);
     font-size: 1.28rem;
     line-height: 1.65;
   }
@@ -2518,6 +2751,14 @@ h2 {
     padding: 12px;
   }
 
+  .record-celebration {
+    inset-inline: -18px;
+  }
+
+  .record-burst {
+    width: 190px;
+  }
+
   .result-grid strong {
     font-size: 1.25rem;
   }
@@ -2531,6 +2772,12 @@ h2 {
   }
 
   .word-display {
-    height: 116px;
+    height: 104px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-celebration {
+    display: none;
   }
 }
