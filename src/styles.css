@@ -1326,6 +1326,19 @@ h2 {
   background: rgba(255, 255, 255, 0.045);
 }
 
+.leaderboard-row.current-user {
+  border-color: rgba(var(--accent-2-rgb), 0.52);
+  background: rgba(var(--accent-2-rgb), 0.11);
+  box-shadow:
+    0 0 0 1px rgba(var(--caret-rgb), 0.08),
+    0 16px 42px rgba(0, 0, 0, 0.16);
+}
+
+.leaderboard-row.current-user:hover {
+  border-color: rgba(var(--accent-2-rgb), 0.7);
+  background: rgba(var(--accent-2-rgb), 0.15);
+}
+
 .leaderboard-head {
   min-height: 36px;
   color: var(--muted);
@@ -1350,6 +1363,21 @@ h2 {
 .leaderboard-rank {
   color: var(--accent-3);
   font-weight: 900;
+}
+
+.leaderboard-row .leaderboard-you {
+  margin-left: 8px;
+  padding: 3px 7px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.32);
+  border-radius: 999px;
+  display: inline-flex;
+  color: var(--bg);
+  background: var(--accent-2);
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 
 .public-profile-panel {

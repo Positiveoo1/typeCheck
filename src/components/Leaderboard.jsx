@@ -14,7 +14,7 @@ function formatDate(value) {
   }).format(date);
 }
 
-function Leaderboard({ entries, error, isLoading, onOpenProfile }) {
+function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }) {
   return (
     <motion.main
       className="leaderboard-page"
@@ -57,27 +57,38 @@ function Leaderboard({ entries, error, isLoading, onOpenProfile }) {
               <span role="columnheader">mode</span>
               <span role="columnheader">date</span>
             </div>
-            {entries.map((entry, index) => (
-              <motion.button
-                className="leaderboard-row leaderboard-row-button"
-                key={`${entry.id}-${index}`}
-                onClick={() => onOpenProfile(entry.userId)}
-                role="row"
-                type="button"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.24) }}
-              >
-                <span className="leaderboard-rank" data-label="rank" role="cell">
-                  #{index + 1}
-                </span>
-                <strong data-label="player" role="cell">{entry.playerName}</strong>
-                <span data-label="wpm" role="cell">{entry.wpm}</span>
-                <span data-label="accuracy" role="cell">{entry.accuracy}%</span>
-                <span data-label="mode" role="cell">{entry.modeLabel}</span>
-                <span data-label="date" role="cell">{formatDate(entry.createdAt)}</span>
-              </motion.button>
-            ))}
+            {entries.map((entry, index) => {
+              const isCurrentUser = currentUserId && entry.userId === currentUserId;
+
+              return (
+                <motion.button
+                  className={
+                    isCurrentUser
+                      ? 'leaderboard-row leaderboard-row-button current-user'
+                      : 'leaderboard-row leaderboard-row-button'
+                  }
+                  key={`${entry.id}-${index}`}
+                  onClick={() => onOpenProfile(entry.userId)}
+                  role="row"
+                  type="button"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.24) }}
+                >
+                  <span className="leaderboard-rank" data-label="rank" role="cell">
+                    #{index + 1}
+                  </span>
+                  <strong data-label="player" role="cell">
+                    {entry.playerName}
+                    {isCurrentUser && <span className="leaderboard-you">you</span>}
+                  </strong>
+                  <span data-label="wpm" role="cell">{entry.wpm}</span>
+                  <span data-label="accuracy" role="cell">{entry.accuracy}%</span>
+                  <span data-label="mode" role="cell">{entry.modeLabel}</span>
+                  <span data-label="date" role="cell">{formatDate(entry.createdAt)}</span>
+                </motion.button>
+              );
+            })}
           </div>
         )}
       </section>

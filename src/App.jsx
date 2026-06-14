@@ -1399,6 +1399,7 @@ function App() {
                 entries={leaderboard.entries}
                 error={leaderboard.error}
                 isLoading={leaderboard.isLoading}
+                currentUserId={user?.uid || ''}
                 onOpenProfile={openPublicProfile}
               />
             ) : currentPage === 'public-profile' ? (
