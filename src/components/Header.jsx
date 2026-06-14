@@ -68,6 +68,7 @@ function Header({
         <motion.button
           aria-label="Typing test"
           className={currentPage === 'test' ? 'nav-icon active' : 'nav-icon'}
+          data-tooltip="Typing test"
           onClick={() => onNavigate('test')}
           type="button"
           whileHover={{ y: -1, scale: 1.04 }}
@@ -78,6 +79,7 @@ function Header({
         <motion.button
           aria-label="Dashboard"
           className={currentPage === 'dashboard' ? 'nav-icon active' : 'nav-icon'}
+          data-tooltip="Dashboard"
           onClick={() => onNavigate('dashboard')}
           type="button"
           whileHover={{ y: -1, scale: 1.04 }}
@@ -88,6 +90,7 @@ function Header({
         <motion.button
           aria-label="Leaderboard"
           className={currentPage === 'leaderboard' ? 'nav-icon active' : 'nav-icon'}
+          data-tooltip="Leaderboard"
           onClick={() => onNavigate('leaderboard')}
           type="button"
           whileHover={{ y: -1, scale: 1.04 }}
@@ -100,6 +103,7 @@ function Header({
             aria-expanded={isThemeOpen}
             aria-label="Choose theme"
             className="nav-icon"
+            data-tooltip="Theme"
             onClick={() => {
               setIsAuthOpen(false);
               setIsThemeOpen((current) => !current);
@@ -152,6 +156,7 @@ function Header({
             <motion.button
               aria-label="Profile"
               className={currentPage === 'profile' ? 'nav-icon active' : 'nav-icon'}
+              data-tooltip="Profile"
               onClick={() => onNavigate('profile')}
               type="button"
               whileHover={{ y: -1, scale: 1.04 }}
@@ -169,6 +174,7 @@ function Header({
               aria-expanded={isAuthOpen}
               aria-label="Open account menu"
               className="profile-button"
+              data-tooltip="Account"
               onClick={() => {
                 setIsThemeOpen(false);
                 setIsAuthOpen((current) => !current);

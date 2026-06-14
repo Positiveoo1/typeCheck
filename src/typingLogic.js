@@ -54,6 +54,7 @@ export function calculateStats(targetText, typedText, elapsedSeconds) {
 
 export function buildWordTokens(text) {
   let charIndex = 0;
+  if (!text) return [];
 
   return text.split(' ').map((word, wordIndex, wordArray) => {
     const letters = word.split('').map((char) => {

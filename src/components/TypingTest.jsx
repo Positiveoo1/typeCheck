@@ -141,9 +141,7 @@ function TypingTest({
   onActiveChange,
   targetTextOverride
 }) {
-  const [targetText, setTargetText] = useState(() =>
-    targetTextOverride || shuffleWords(getTargetWordCount(testType, testValue))
-  );
+  const [targetText, setTargetText] = useState('');
   const [typedText, setTypedText] = useState('');
   const [timeLeft, setTimeLeft] = useState(testType === 'time' ? testValue : 0);
   const [elapsedTime, setElapsedTime] = useState(0);
