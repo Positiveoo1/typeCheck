@@ -17,8 +17,10 @@ import {
 } from 'firebase/firestore';
 import AuthPanel from './components/AuthPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import Leaderboard from './components/Leaderboard.jsx';
+import LegalPage from './components/LegalPage.jsx';
 import Profile from './components/Profile.jsx';
 import PublicProfile from './components/PublicProfile.jsx';
 import Results from './components/Results.jsx';
@@ -62,6 +64,8 @@ function loadPage() {
   if (window.location.hash === '#dashboard') return 'dashboard';
   if (window.location.hash === '#leaderboard') return 'leaderboard';
   if (window.location.hash === '#profile') return 'profile';
+  if (window.location.hash === '#privacy') return 'privacy';
+  if (window.location.hash === '#terms') return 'terms';
   if (window.location.hash.startsWith('#player=')) return 'public-profile';
 
   return 'test';
@@ -1192,7 +1196,9 @@ function App() {
       nextPage === 'dashboard' ||
       nextPage === 'profile' ||
       nextPage === 'leaderboard' ||
-      nextPage === 'public-profile'
+      nextPage === 'public-profile' ||
+      nextPage === 'privacy' ||
+      nextPage === 'terms'
     ) {
       markIncompleteAttempt();
       setReplayTargetText(null);
@@ -1420,6 +1426,12 @@ function App() {
                 profile={userProfile}
                 user={user}
               />
+            ) : currentPage === 'privacy' || currentPage === 'terms' ? (
+              <LegalPage
+                key={currentPage}
+                onBack={() => navigate('test')}
+                type={currentPage}
+              />
             ) : (
               <motion.div
                 key="test-page"
@@ -1467,6 +1479,8 @@ function App() {
             )}
           </AnimatePresence>
         </div>
+
+        <Footer onNavigate={navigate} />
 
         <AnimatePresence>
           {isAuthGateOpen && (

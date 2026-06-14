@@ -6,7 +6,10 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword
 } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '../services/firebase.js';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth, db, isFirebaseConfigured } from '../services/firebase.js';
+
+const LEGAL_VERSION = '2026-06-14';
 
 function getFriendlyError(error) {
   if (!error?.code) return 'Something went wrong. Try again.';
@@ -34,19 +37,49 @@ function AuthPanel({
   const [mode, setMode] = useState('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [hasAcceptedLegal, setHasAcceptedLegal] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const saveLegalConsent = async (signedInUser) => {
+    if (!db || !signedInUser) return;
+
+    await setDoc(
+      doc(db, 'users', signedInUser.uid),
+      {
+        email: signedInUser.email || null,
+        legalAcceptedAt: serverTimestamp(),
+        privacyAcceptedAt: serverTimestamp(),
+        privacyVersion: LEGAL_VERSION,
+        termsAcceptedAt: serverTimestamp(),
+        termsVersion: LEGAL_VERSION
+      },
+      { merge: true }
+    );
+  };
+
+  const requireLegalConsent = () => {
+    if (hasAcceptedLegal) return false;
+
+    setError('Please accept the Terms and Privacy Policy before continuing.');
+    return true;
+  };
 
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+
+    if (requireLegalConsent()) return;
+
     setIsLoading(true);
 
     try {
       if (mode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        await saveLegalConsent(credential.user);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        await saveLegalConsent(credential.user);
       }
       onSuccess();
     } catch (authError) {
@@ -59,10 +92,14 @@ function AuthPanel({
 
   const signInWithGoogle = async () => {
     setError('');
+
+    if (requireLegalConsent()) return;
+
     setIsLoading(true);
 
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+      await saveLegalConsent(credential.user);
       onSuccess();
     } catch (authError) {
       console.error('Google authentication failed:', authError);
@@ -92,14 +129,20 @@ function AuthPanel({
             <div className="auth-tabs" role="tablist" aria-label="Account mode">
               <button
                 className={mode === 'sign-in' ? 'auth-tab active' : 'auth-tab'}
-                onClick={() => setMode('sign-in')}
+                onClick={() => {
+                  setError('');
+                  setMode('sign-in');
+                }}
                 type="button"
               >
                 Sign in
               </button>
               <button
                 className={mode === 'register' ? 'auth-tab active' : 'auth-tab'}
-                onClick={() => setMode('register')}
+                onClick={() => {
+                  setError('');
+                  setMode('register');
+                }}
                 type="button"
               >
                 Register
@@ -129,12 +172,27 @@ function AuthPanel({
             type="password"
             value={password}
           />
+          <label className="auth-consent">
+            <input
+              checked={hasAcceptedLegal}
+              onChange={(event) => setHasAcceptedLegal(event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              I agree to the <a href="#terms" onClick={onClose}>Terms</a> and{' '}
+              <a href="#privacy" onClick={onClose}>Privacy Policy</a>.
+            </span>
+          </label>
           <motion.button
             className="auth-submit"
-            disabled={isLoading}
+            disabled={isLoading || !hasAcceptedLegal}
             type="submit"
-            whileHover={isLoading ? undefined : { y: -1, scale: 1.02 }}
-            whileTap={isLoading ? undefined : { scale: 0.95 }}
+            whileHover={
+              isLoading || !hasAcceptedLegal ? undefined : { y: -1, scale: 1.02 }
+            }
+            whileTap={
+              isLoading || !hasAcceptedLegal ? undefined : { scale: 0.95 }
+            }
           >
             {isLoading ? 'Working...' : mode === 'register' ? 'Create' : 'Enter'}
           </motion.button>
@@ -145,11 +203,13 @@ function AuthPanel({
 
           <motion.button
             className="google-submit"
-            disabled={isLoading}
+            disabled={isLoading || !hasAcceptedLegal}
             onClick={signInWithGoogle}
             type="button"
-            whileHover={isLoading ? undefined : { y: -1, scale: 1.02 }}
-            whileTap={isLoading ? undefined : { scale: 0.95 }}
+            whileHover={
+              isLoading || !hasAcceptedLegal ? undefined : { y: -1, scale: 1.02 }
+            }
+            whileTap={isLoading || !hasAcceptedLegal ? undefined : { scale: 0.95 }}
           >
             Continue with Google
           </motion.button>
