@@ -185,6 +185,23 @@ function TypingTest({
   const isIdle = typedText.length === 0 && !isRunning;
   const isReplay = Boolean(targetTextOverride);
 
+  useEffect(() => {
+    const wordDisplay = wordDisplayRef.current;
+    if (!wordDisplay) return undefined;
+
+    const preventUserScroll = (event) => {
+      event.preventDefault();
+    };
+
+    wordDisplay.addEventListener('wheel', preventUserScroll, { passive: false });
+    wordDisplay.addEventListener('touchmove', preventUserScroll, { passive: false });
+
+    return () => {
+      wordDisplay.removeEventListener('wheel', preventUserScroll);
+      wordDisplay.removeEventListener('touchmove', preventUserScroll);
+    };
+  }, []);
+
   const recordSpeedSnapshot = (elapsedSeconds, nextTypedText) => {
     const normalizedElapsedSeconds = Math.max(0, elapsedSeconds);
     const snapshot = calculateStats(
@@ -563,6 +580,25 @@ function TypingTest({
     applyTypedValue(event.target.value);
   };
 
+  const handleWordDisplayKeyDown = (event) => {
+    if (
+      [
+        ' ',
+        'ArrowDown',
+        'ArrowUp',
+        'End',
+        'Home',
+        'PageDown',
+        'PageUp',
+        'Spacebar'
+      ].includes(event.key)
+    ) {
+      event.preventDefault();
+    }
+
+    focusInput();
+  };
+
   return (
     <motion.main
       className="test-shell"
@@ -594,7 +630,7 @@ function TypingTest({
           event.preventDefault();
           focusInput();
         }}
-        onKeyDown={focusInput}
+        onKeyDown={handleWordDisplayKeyDown}
         data-onboarding-target="typing"
         ref={wordDisplayRef}
         role="button"
