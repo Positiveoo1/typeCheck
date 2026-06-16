@@ -71,6 +71,10 @@ describe('getNextTypedText', () => {
     assert.equal(getNextTypedText('hello', 'hell', 'hel'), 'hel');
   });
 
+  it('can prevent deleting characters in strict mode', () => {
+    assert.equal(getNextTypedText('hello', 'hell', 'hel', false), 'hell');
+  });
+
   it('limits paste or autofill jumps to one new character', () => {
     assert.equal(getNextTypedText('hello world', 'he', 'hello world'), 'hel');
   });

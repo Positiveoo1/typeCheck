@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, motion, MotionConfig } from 'framer-motion';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import {
   addDoc,
@@ -13,7 +13,8 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc
+  setDoc,
+  where
 } from 'firebase/firestore';
 import AuthPanel from './components/AuthPanel.jsx';
 import Dashboard from './components/Dashboard.jsx';
@@ -24,6 +25,7 @@ import LegalPage from './components/LegalPage.jsx';
 import Profile from './components/Profile.jsx';
 import PublicProfile from './components/PublicProfile.jsx';
 import Results from './components/Results.jsx';
+import SettingsPage from './components/SettingsPage.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
 import { auth, db, isFirebaseConfigured } from './services/firebase.js';
@@ -38,8 +40,15 @@ const SHORTCUT_WORD_MODES = [10, 30, 60];
 const PROFILE_RESULTS_LIMIT = 400;
 const LEADERBOARD_RESULTS_LIMIT = 500;
 const LEADERBOARD_MODE_LABEL = '10 words';
+const MISTAKE_MODES = ['backspace', 'strict'];
+const SOUND_STYLES = ['click', 'soft', 'bright'];
 const DEFAULT_SETTINGS = {
+  mistakeMode: 'backspace',
+  reducedMotion: false,
+  showKeyboard: true,
   soundEnabled: true,
+  soundStyle: 'click',
+  soundVolume: 0.9,
   testType: 'time',
   timeMode: 30,
   wordMode: 10
@@ -64,6 +73,7 @@ function loadPage() {
   if (window.location.hash === '#dashboard') return 'dashboard';
   if (window.location.hash === '#leaderboard') return 'leaderboard';
   if (window.location.hash === '#profile') return 'profile';
+  if (window.location.hash === '#settings') return 'settings';
   if (window.location.hash === '#privacy') return 'privacy';
   if (window.location.hash === '#terms') return 'terms';
   if (window.location.hash.startsWith('#player=')) return 'public-profile';
@@ -128,6 +138,17 @@ function loadSettings() {
     const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
 
     return {
+      mistakeMode: MISTAKE_MODES.includes(savedSettings?.mistakeMode)
+        ? savedSettings.mistakeMode
+        : DEFAULT_SETTINGS.mistakeMode,
+      reducedMotion:
+        typeof savedSettings?.reducedMotion === 'boolean'
+          ? savedSettings.reducedMotion
+          : DEFAULT_SETTINGS.reducedMotion,
+      showKeyboard:
+        typeof savedSettings?.showKeyboard === 'boolean'
+          ? savedSettings.showKeyboard
+          : DEFAULT_SETTINGS.showKeyboard,
       testType:
         savedSettings?.testType === 'words' || savedSettings?.testType === 'time'
           ? savedSettings.testType
@@ -139,7 +160,14 @@ function loadSettings() {
       soundEnabled:
         typeof savedSettings?.soundEnabled === 'boolean'
           ? savedSettings.soundEnabled
-          : DEFAULT_SETTINGS.soundEnabled
+          : DEFAULT_SETTINGS.soundEnabled,
+      soundStyle: SOUND_STYLES.includes(savedSettings?.soundStyle)
+        ? savedSettings.soundStyle
+        : DEFAULT_SETTINGS.soundStyle,
+      soundVolume:
+        Number.isFinite(Number(savedSettings?.soundVolume))
+          ? Math.min(1, Math.max(0, Number(savedSettings.soundVolume)))
+          : DEFAULT_SETTINGS.soundVolume
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -374,6 +402,7 @@ async function loadGlobalLeaderboard() {
 
   const resultsSnapshot = await getDocs(query(
     getLeaderboardCollectionRef(),
+    where('modeLabel', '==', LEADERBOARD_MODE_LABEL),
     orderBy('wpm', 'desc'),
     limit(LEADERBOARD_RESULTS_LIMIT)
   ));
@@ -404,7 +433,6 @@ async function loadGlobalLeaderboard() {
         wpm: Number(data.wpm) || 0
       };
     })
-    .filter((result) => result.modeLabel === LEADERBOARD_MODE_LABEL)
     .sort((firstResult, secondResult) => (
       secondResult.wpm - firstResult.wpm ||
       secondResult.accuracy - firstResult.accuracy ||
@@ -434,6 +462,8 @@ async function loadPublicPlayerProfile(userId) {
     getDoc(getPublicPlayerDocRef(userId)),
     getDocs(query(
       getLeaderboardCollectionRef(),
+      where('modeLabel', '==', LEADERBOARD_MODE_LABEL),
+      where('userId', '==', userId),
       orderBy('wpm', 'desc'),
       limit(LEADERBOARD_RESULTS_LIMIT)
     ))
@@ -453,10 +483,6 @@ async function loadPublicPlayerProfile(userId) {
         wpm: Number(data.wpm) || 0
       };
     })
-    .filter((result) => (
-      result.userId === userId &&
-      result.modeLabel === LEADERBOARD_MODE_LABEL
-    ))
     .sort((firstResult, secondResult) => (
       secondResult.wpm - firstResult.wpm ||
       secondResult.accuracy - firstResult.accuracy ||
@@ -667,7 +693,17 @@ function App() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
-  const { soundEnabled, testType, timeMode, wordMode } = settings;
+  const {
+    mistakeMode,
+    reducedMotion,
+    showKeyboard,
+    soundEnabled,
+    soundStyle,
+    soundVolume,
+    testType,
+    timeMode,
+    wordMode
+  } = settings;
 
   const updateDashboard = useCallback((updater) => {
     if (!user || !db) return;
@@ -993,6 +1029,10 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    document.documentElement.dataset.reducedMotion = String(reducedMotion);
+  }, [reducedMotion]);
+
+  useEffect(() => {
     setCurrentPage(loadPage());
     setTheme(loadTheme());
     setSettings(loadSettings());
@@ -1126,6 +1166,34 @@ function App() {
     saveSettings(nextSettings);
   }, [settings]);
 
+  const handlePreferencesChange = useCallback((nextOptions) => {
+    const nextSettings = {
+      ...settings,
+      ...nextOptions,
+      mistakeMode: MISTAKE_MODES.includes(nextOptions.mistakeMode)
+        ? nextOptions.mistakeMode
+        : settings.mistakeMode,
+      reducedMotion:
+        typeof nextOptions.reducedMotion === 'boolean'
+          ? nextOptions.reducedMotion
+          : settings.reducedMotion,
+      showKeyboard:
+        typeof nextOptions.showKeyboard === 'boolean'
+          ? nextOptions.showKeyboard
+          : settings.showKeyboard,
+      soundStyle: SOUND_STYLES.includes(nextOptions.soundStyle)
+        ? nextOptions.soundStyle
+        : settings.soundStyle,
+      soundVolume:
+        Number.isFinite(Number(nextOptions.soundVolume))
+          ? Math.min(1, Math.max(0, Number(nextOptions.soundVolume)))
+          : settings.soundVolume
+    };
+
+    setSettings(nextSettings);
+    saveSettings(nextSettings);
+  }, [settings]);
+
   const handleSignOut = () => {
     setIsSignOutConfirmOpen(true);
   };
@@ -1197,6 +1265,7 @@ function App() {
       nextPage === 'profile' ||
       nextPage === 'leaderboard' ||
       nextPage === 'public-profile' ||
+      nextPage === 'settings' ||
       nextPage === 'privacy' ||
       nextPage === 'terms'
     ) {
@@ -1301,6 +1370,12 @@ function App() {
         return;
       }
 
+      if (normalizedKey === 's') {
+        event.preventDefault();
+        navigate('settings');
+        return;
+      }
+
       if (currentPage !== 'test' || isActive) return;
 
       const shortcutIndex = Number(event.key) - 1;
@@ -1337,8 +1412,9 @@ function App() {
   ]);
 
   return (
-    <LayoutGroup>
-      <motion.div className="app" data-theme={theme} layout>
+    <MotionConfig reducedMotion={reducedMotion ? 'always' : 'never'}>
+      <LayoutGroup>
+        <motion.div className="app" data-theme={theme} layout>
         <AnimatePresence>
           {(!isAuthReady || isPageLoading) && (
             <motion.div
@@ -1356,9 +1432,7 @@ function App() {
         <Header
           currentPage={currentPage}
           onNavigate={navigate}
-          onThemeChange={handleThemeChange}
           profile={userProfile}
-          theme={theme}
           user={user}
         />
 
@@ -1426,6 +1500,20 @@ function App() {
                 profile={userProfile}
                 user={user}
               />
+            ) : currentPage === 'settings' ? (
+              <SettingsPage
+                key="settings"
+                mistakeMode={mistakeMode}
+                onPreferencesChange={handlePreferencesChange}
+                onSoundToggle={handleSoundToggle}
+                onThemeChange={handleThemeChange}
+                reducedMotion={reducedMotion}
+                showKeyboard={showKeyboard}
+                soundEnabled={soundEnabled}
+                soundStyle={soundStyle}
+                soundVolume={soundVolume}
+                theme={theme}
+              />
             ) : currentPage === 'privacy' || currentPage === 'terms' ? (
               <LegalPage
                 key={currentPage}
@@ -1445,10 +1533,8 @@ function App() {
                   <TestSettings
                     disabled={isActive}
                     onSettingsChange={handleSettingsChange}
-                    onSoundToggle={handleSoundToggle}
                     selectedType={testType}
                     selectedValue={testType === 'time' ? timeMode : wordMode}
-                    soundEnabled={soundEnabled}
                   />
                 </div>
 
@@ -1467,8 +1553,12 @@ function App() {
                       onFinish={finishTest}
                       onRestart={restart}
                       onStart={handleTestStart}
+                      mistakeMode={mistakeMode}
                       restartKey={restartKey}
+                      showKeyboard={showKeyboard}
                       soundEnabled={soundEnabled}
+                      soundStyle={soundStyle}
+                      soundVolume={soundVolume}
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
                       targetTextOverride={replayTargetText}
@@ -1560,8 +1650,9 @@ function App() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
-    </LayoutGroup>
+        </motion.div>
+      </LayoutGroup>
+    </MotionConfig>
   );
 }
 

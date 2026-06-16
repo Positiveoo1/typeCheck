@@ -5,28 +5,17 @@ import {
   DashboardIcon,
   EmojiEventsIcon,
   KeyboardIcon,
-  PaletteIcon,
-  PersonIcon
+  PersonIcon,
+  SettingsIcon
 } from './MaterialIcons.jsx';
-
-const THEMES = [
-  { id: 'matrix', label: 'Matrix', colors: ['#10120f', '#b9dc6d', '#d6ca62'] },
-  { id: 'serika', label: 'Serika', colors: ['#e1dcc9', '#d0a542', '#2f3329'] },
-  { id: 'botanical', label: 'Botanical', colors: ['#102019', '#72d49a', '#e4d66c'] },
-  { id: 'midnight', label: 'Midnight', colors: ['#0c1020', '#76a9ff', '#f0c86a'] },
-  { id: 'rose', label: 'Rose', colors: ['#21151b', '#ff8fab', '#f6d365'] }
-];
 
 function Header({
   currentPage,
   profile,
-  theme,
   user,
-  onNavigate,
-  onThemeChange
+  onNavigate
 }) {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isThemeOpen, setIsThemeOpen] = useState(false);
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -40,7 +29,6 @@ function Header({
       if (!navRef.current || navRef.current.contains(event.target)) return;
 
       setIsAuthOpen(false);
-      setIsThemeOpen(false);
     };
 
     document.addEventListener('pointerdown', closeMenus);
@@ -105,59 +93,17 @@ function Header({
         >
           <EmojiEventsIcon />
         </motion.button>
-        <div className="theme-menu">
-          <motion.button
-            aria-expanded={isThemeOpen}
-            aria-label="Choose theme"
-            className="nav-icon"
-            data-tooltip="Theme"
-            onClick={() => {
-              setIsAuthOpen(false);
-              setIsThemeOpen((current) => !current);
-            }}
-            type="button"
-            whileHover={{ y: -1, scale: 1.04 }}
-            whileTap={{ scale: 0.94 }}
-          >
-            <PaletteIcon />
-          </motion.button>
-
-          <AnimatePresence>
-            {isThemeOpen && (
-              <motion.div
-                className="theme-panel"
-                initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-              >
-                {THEMES.map((themeOption) => (
-                  <button
-                    className={
-                      theme === themeOption.id
-                        ? 'theme-choice active'
-                        : 'theme-choice'
-                    }
-                    key={themeOption.id}
-                    onClick={() => {
-                      onThemeChange(themeOption.id);
-                      setIsThemeOpen(false);
-                    }}
-                    type="button"
-                  >
-                    <span className="theme-swatches" aria-hidden="true">
-                      {themeOption.colors.map((color) => (
-                        <i key={color} style={{ background: color }} />
-                      ))}
-                    </span>
-                    {themeOption.label}
-                  </button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
+        <motion.button
+          aria-label="Settings"
+          className={currentPage === 'settings' ? 'nav-icon active' : 'nav-icon'}
+          data-tooltip="Settings"
+          onClick={() => onNavigate('settings')}
+          type="button"
+          whileHover={{ y: -1, scale: 1.04 }}
+          whileTap={{ scale: 0.94 }}
+        >
+          <SettingsIcon className="material-icon" />
+        </motion.button>
         {user ? (
           <>
             <motion.button
@@ -183,7 +129,6 @@ function Header({
               className="profile-button"
               data-tooltip="Account"
               onClick={() => {
-                setIsThemeOpen(false);
                 setIsAuthOpen((current) => !current);
               }}
               type="button"

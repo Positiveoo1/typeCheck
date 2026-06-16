@@ -95,7 +95,16 @@ export function getTimeLeft(testValue, elapsedSeconds) {
   return Math.max(0, testValue - Math.floor(normalizedElapsedSeconds));
 }
 
-export function getNextTypedText(targetText, currentTypedText, inputValue) {
+export function getNextTypedText(
+  targetText,
+  currentTypedText,
+  inputValue,
+  allowBackspace = true
+) {
+  if (!allowBackspace && inputValue.length < currentTypedText.length) {
+    return currentTypedText;
+  }
+
   const hasJumpedForward = inputValue.length > currentTypedText.length + 1;
   const maxLength = hasJumpedForward
     ? currentTypedText.length + 1
