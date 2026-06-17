@@ -397,10 +397,33 @@ function serializePublicPlayer(profile, user) {
   };
 }
 
+function isMissingFirestoreIndexError(error) {
+  return (
+    error?.code === 'failed-precondition' &&
+    String(error?.message || '').includes('requires an index')
+  );
+}
+
+async function loadLeaderboardResultsSnapshot(indexedQuery) {
+  try {
+    return await getDocs(indexedQuery);
+  } catch (error) {
+    if (!isMissingFirestoreIndexError(error)) {
+      throw error;
+    }
+
+    return getDocs(query(
+      getLeaderboardCollectionRef(),
+      orderBy('wpm', 'desc'),
+      limit(LEADERBOARD_RESULTS_LIMIT)
+    ));
+  }
+}
+
 async function loadGlobalLeaderboard() {
   if (!db) return [];
 
-  const resultsSnapshot = await getDocs(query(
+  const resultsSnapshot = await loadLeaderboardResultsSnapshot(query(
     getLeaderboardCollectionRef(),
     where('modeLabel', '==', LEADERBOARD_MODE_LABEL),
     orderBy('wpm', 'desc'),
@@ -433,6 +456,7 @@ async function loadGlobalLeaderboard() {
         wpm: Number(data.wpm) || 0
       };
     })
+    .filter((result) => result.modeLabel === LEADERBOARD_MODE_LABEL)
     .sort((firstResult, secondResult) => (
       secondResult.wpm - firstResult.wpm ||
       secondResult.accuracy - firstResult.accuracy ||
@@ -460,7 +484,7 @@ async function loadPublicPlayerProfile(userId) {
 
   const [playerSnapshot, resultsSnapshot] = await Promise.all([
     getDoc(getPublicPlayerDocRef(userId)),
-    getDocs(query(
+    loadLeaderboardResultsSnapshot(query(
       getLeaderboardCollectionRef(),
       where('modeLabel', '==', LEADERBOARD_MODE_LABEL),
       where('userId', '==', userId),
@@ -483,6 +507,10 @@ async function loadPublicPlayerProfile(userId) {
         wpm: Number(data.wpm) || 0
       };
     })
+    .filter((result) => (
+      result.userId === userId &&
+      result.modeLabel === LEADERBOARD_MODE_LABEL
+    ))
     .sort((firstResult, secondResult) => (
       secondResult.wpm - firstResult.wpm ||
       secondResult.accuracy - firstResult.accuracy ||
