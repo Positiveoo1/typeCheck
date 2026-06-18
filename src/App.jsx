@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, LayoutGroup, motion, MotionConfig } from 'framer-motion';
-import { signOut, onAuthStateChanged } from 'firebase/auth';
+import {
+  EmailAuthProvider,
+  linkWithCredential,
+  onAuthStateChanged,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail,
+  signOut,
+  updatePassword
+} from 'firebase/auth';
 import {
   addDoc,
   collection,
@@ -40,6 +48,9 @@ const SHORTCUT_WORD_MODES = [10, 30, 60];
 const PROFILE_RESULTS_LIMIT = 400;
 const LEADERBOARD_RESULTS_LIMIT = 500;
 const LEADERBOARD_MODE_LABEL = '10 words';
+const ACCOUNT_SECURITY_WINDOW_DAYS = 30;
+const PASSWORD_CHANGE_LIMIT = 2;
+const PASSWORD_RESET_EMAIL_LIMIT = 4;
 const MISTAKE_MODES = ['backspace', 'strict'];
 const SOUND_STYLES = ['click', 'soft', 'bright'];
 const DEFAULT_SETTINGS = {
@@ -107,6 +118,15 @@ function saveTheme(theme) {
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
+}
+
+function getPasswordResetActionSettings() {
+  if (typeof window === 'undefined') return undefined;
+
+  return {
+    handleCodeInApp: false,
+    url: `${window.location.origin}/#test`
+  };
 }
 
 function createModeStats() {
@@ -290,6 +310,33 @@ function serializeDashboard(dashboard) {
   };
 }
 
+function toDate(value) {
+  const date = value?.toDate?.() || value;
+  if (!date) return null;
+
+  const normalizedDate = date instanceof Date ? date : new Date(date);
+  return Number.isNaN(normalizedDate.getTime()) ? null : normalizedDate;
+}
+
+function normalizeDateArray(values) {
+  if (!Array.isArray(values)) return [];
+
+  return values
+    .map(toDate)
+    .filter(Boolean)
+    .sort((firstDate, secondDate) => secondDate - firstDate);
+}
+
+function getAccountSecurityWindowStart() {
+  return new Date(Date.now() - ACCOUNT_SECURITY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function getRecentAccountEvents(events) {
+  const windowStart = getAccountSecurityWindowStart();
+
+  return normalizeDateArray(events).filter((eventDate) => eventDate >= windowStart);
+}
+
 function normalizeProfile(savedProfile, user) {
   const joinedAt =
     savedProfile?.createdAt?.toDate?.() ||
@@ -298,6 +345,14 @@ function normalizeProfile(savedProfile, user) {
     null;
 
   return {
+    accountSecurity: {
+      passwordChangedAt: normalizeDateArray(
+        savedProfile?.accountSecurity?.passwordChangedAt
+      ),
+      resetEmailSentAt: normalizeDateArray(
+        savedProfile?.accountSecurity?.resetEmailSentAt
+      )
+    },
     city: savedProfile?.city || '',
     github: savedProfile?.github || '',
     joinedAt,
@@ -395,6 +450,21 @@ function serializePublicPlayer(profile, user) {
     username: profile?.username || '',
     updatedAt: serverTimestamp()
   };
+}
+
+function getAuthActionErrorMessage(error) {
+  const messages = {
+    'auth/invalid-credential': 'Current password is incorrect.',
+    'auth/invalid-email': 'This account does not have a valid email address.',
+    'auth/missing-password': 'Enter your current password.',
+    'auth/provider-already-linked': 'This account already has password sign-in enabled.',
+    'auth/requires-recent-login': 'Sign in again before changing your password.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.',
+    'auth/user-mismatch': 'This password does not match the signed-in account.',
+    'auth/weak-password': 'New password should be at least 6 characters.'
+  };
+
+  return messages[error?.code] || 'Could not complete this account action.';
 }
 
 function isMissingFirestoreIndexError(error) {
@@ -751,6 +821,77 @@ function App() {
 
   useEffect(() => {
     setIsOnboardingOpen(!loadOnboardingComplete());
+  }, []);
+
+  useEffect(() => {
+    const isTextInput = (element) => {
+      const tagName = element?.tagName?.toLowerCase();
+
+      return (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        element?.isContentEditable
+      );
+    };
+
+    const clearCapsLockIndicators = () => {
+      document
+        .querySelectorAll('[data-caps-lock="true"]')
+        .forEach((element) => {
+          element.dataset.capsLock = 'false';
+        });
+    };
+
+    const getInputWrapper = (element) => (
+      element?.closest?.('.field-with-caps, .password-field')
+    );
+
+    const updateCapsLock = (event) => {
+      if (!isTextInput(document.activeElement)) {
+        clearCapsLockIndicators();
+        return;
+      }
+
+      if (typeof event.getModifierState === 'function') {
+        clearCapsLockIndicators();
+        const wrapper = getInputWrapper(document.activeElement);
+
+        if (wrapper) {
+          wrapper.dataset.capsLock = String(event.getModifierState('CapsLock'));
+        }
+      }
+    };
+
+    const handleFocusIn = (event) => {
+      clearCapsLockIndicators();
+
+      if (!isTextInput(event.target)) return;
+
+      const wrapper = getInputWrapper(event.target);
+      if (wrapper) {
+        wrapper.dataset.capsLock = 'false';
+      }
+    };
+
+    const handleFocusOut = () => {
+      window.requestAnimationFrame(() => {
+        if (isTextInput(document.activeElement)) return;
+
+        clearCapsLockIndicators();
+      });
+    };
+
+    window.addEventListener('keydown', updateCapsLock);
+    window.addEventListener('keyup', updateCapsLock);
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      window.removeEventListener('keydown', updateCapsLock);
+      window.removeEventListener('keyup', updateCapsLock);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
   }, []);
 
   const dismissOnboarding = useCallback(() => {
@@ -1269,6 +1410,134 @@ function App() {
     }));
   }, [user]);
 
+  const requestPasswordReset = useCallback(async () => {
+    if (!user?.email || !auth || !db) {
+      throw new Error('Password reset is only available for email accounts.');
+    }
+
+    const recentResetEmails = getRecentAccountEvents(
+      userProfile.accountSecurity?.resetEmailSentAt
+    );
+
+    if (recentResetEmails.length >= PASSWORD_RESET_EMAIL_LIMIT) {
+      throw new Error(
+        `You can send ${PASSWORD_RESET_EMAIL_LIMIT} reset emails every ${ACCOUNT_SECURITY_WINDOW_DAYS} days.`
+      );
+    }
+
+    try {
+      await sendPasswordResetEmail(
+        auth,
+        user.email,
+        getPasswordResetActionSettings()
+      );
+
+      const nextResetEmailDates = [new Date(), ...recentResetEmails];
+      await setDoc(
+        getUserDocRef(user.uid),
+        {
+          accountSecurity: {
+            resetEmailSentAt: nextResetEmailDates
+          },
+          email: user.email || null,
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+
+      setUserProfile((currentProfile) => ({
+        ...currentProfile,
+        accountSecurity: {
+          ...(currentProfile.accountSecurity || {}),
+          resetEmailSentAt: nextResetEmailDates
+        }
+      }));
+    } catch (error) {
+      if (error?.message?.startsWith('You can send')) {
+        throw error;
+      }
+
+      throw new Error(getAuthActionErrorMessage(error));
+    }
+  }, [user, userProfile.accountSecurity]);
+
+  const changePassword = useCallback(async ({ currentPassword, nextPassword }) => {
+    if (!user?.email || !auth || !db) {
+      throw new Error('Password changes are only available for accounts with an email.');
+    }
+
+    const hasPasswordProvider = user.providerData?.some(
+      (provider) => provider.providerId === 'password'
+    );
+
+    if (hasPasswordProvider && !currentPassword) {
+      throw new Error('Enter your current password.');
+    }
+
+    if (!nextPassword || nextPassword.length < 6) {
+      throw new Error('New password should be at least 6 characters.');
+    }
+
+    const recentPasswordChanges = getRecentAccountEvents(
+      userProfile.accountSecurity?.passwordChangedAt
+    );
+
+    if (recentPasswordChanges.length >= PASSWORD_CHANGE_LIMIT) {
+      throw new Error(
+        `You can change your password ${PASSWORD_CHANGE_LIMIT} times every ${ACCOUNT_SECURITY_WINDOW_DAYS} days.`
+      );
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(user.email, nextPassword);
+
+      if (hasPasswordProvider) {
+        const currentCredential = EmailAuthProvider.credential(
+          user.email,
+          currentPassword
+        );
+
+        await reauthenticateWithCredential(user, currentCredential);
+        await updatePassword(user, nextPassword);
+      } else {
+        await linkWithCredential(user, credential);
+      }
+
+      await user.reload?.();
+
+      const nextPasswordChangeDates = [new Date(), ...recentPasswordChanges];
+      await setDoc(
+        getUserDocRef(user.uid),
+        {
+          accountSecurity: {
+            passwordChangedAt: nextPasswordChangeDates
+          },
+          email: user.email || null,
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+
+      setUserProfile((currentProfile) => ({
+        ...currentProfile,
+        accountSecurity: {
+          ...(currentProfile.accountSecurity || {}),
+          passwordChangedAt: nextPasswordChangeDates
+        }
+      }));
+    } catch (error) {
+      if (
+        error?.message?.startsWith('You can change') ||
+        error?.message?.startsWith('Enter your') ||
+        error?.message?.startsWith('New password')
+      ) {
+        throw error;
+      }
+
+      throw new Error(getAuthActionErrorMessage(error));
+    }
+  }, [user, userProfile.accountSecurity]);
+
   const dismissMobileTip = () => {
     setShowMobileTip(false);
   };
@@ -1522,6 +1791,8 @@ function App() {
             ) : currentPage === 'profile' && user ? (
               <Profile
                 key="profile"
+                onChangePassword={changePassword}
+                onRequestPasswordReset={requestPasswordReset}
                 dashboard={dashboard}
                 onSaveProfile={saveUserProfile}
                 onSignOut={handleSignOut}

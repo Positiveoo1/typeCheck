@@ -695,7 +695,8 @@ h2 {
   background: var(--accent);
 }
 
-.auth-form input {
+.auth-form input,
+.password-field input {
   width: 100%;
   min-height: 40px;
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -706,9 +707,88 @@ h2 {
   outline: 0;
 }
 
-.auth-form input:focus {
+.auth-form input:focus,
+.password-field input:focus {
   border-color: rgba(var(--caret-rgb), 0.38);
   box-shadow: 0 0 0 3px rgba(var(--caret-rgb), 0.08);
+}
+
+.field-with-caps,
+.password-field {
+  position: relative;
+  width: 100%;
+}
+
+.field-with-caps::after,
+.password-field::after {
+  content: 'Caps Lock is on';
+  display: none;
+  margin-top: 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.field-with-caps[data-caps-lock='true']::after,
+.password-field[data-caps-lock='true']::after {
+  display: block;
+}
+
+.password-field input {
+  padding-right: 44px;
+}
+
+.password-visibility-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.password-visibility-toggle:hover,
+.password-visibility-toggle:focus-visible {
+  color: var(--accent-2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.password-visibility-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.password-visibility-toggle .material-icon {
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
+}
+
+.auth-link-button {
+  justify-self: start;
+  padding: 0;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.auth-link-button:hover,
+.auth-link-button:focus-visible {
+  color: var(--accent-2);
+}
+
+.auth-link-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .auth-consent {
@@ -1345,7 +1425,8 @@ h2 {
   gap: 6px;
 }
 
-.profile-form label span {
+.profile-form label span,
+.password-change-form label span {
   color: var(--muted);
   font-size: 0.76rem;
   text-transform: uppercase;
@@ -1365,6 +1446,16 @@ h2 {
 .profile-form input:focus {
   border-color: rgba(var(--caret-rgb), 0.38);
   box-shadow: 0 0 0 3px rgba(var(--caret-rgb), 0.08);
+}
+
+.password-change-form .password-field input {
+  min-height: 42px;
+}
+
+.password-change-form input:disabled,
+.password-change-form .password-visibility-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .profile-form button {
@@ -1407,6 +1498,72 @@ h2 {
   color: var(--accent-3);
   font-size: clamp(1.55rem, 4vw, 2.3rem);
   line-height: 1;
+}
+
+.account-security-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.account-security-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-security-grid div {
+  min-height: 104px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 8px;
+  display: grid;
+  align-content: space-between;
+  background: rgba(255, 255, 255, 0.026);
+}
+
+.account-security-grid span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.account-security-grid strong {
+  color: var(--accent-3);
+  font-size: clamp(1.55rem, 4vw, 2.3rem);
+  line-height: 1;
+}
+
+.account-security-grid small {
+  color: var(--subtle);
+  font-size: 0.78rem;
+}
+
+.account-security-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.password-change-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.password-change-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.password-change-form button,
+.password-change-form .profile-status {
+  justify-self: start;
+}
+
+.password-change-form button,
+.password-change-form .profile-status {
+  grid-column: 1 / -1;
 }
 
 .profile-contrib {
@@ -2804,6 +2961,7 @@ h2 {
   }
 
   .dashboard-totals,
+  .account-security-grid,
   .public-profile-stats,
   .profile-stats-grid,
   .theme-choice-grid,
@@ -2959,6 +3117,11 @@ h2 {
 
   .theme-choice-grid,
   .sound-style-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .account-security-grid,
+  .password-change-form {
     grid-template-columns: 1fr;
   }
 

@@ -51,6 +51,22 @@ export function PersonIcon() {
   );
 }
 
+export function VisibilityIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5Zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+    </MaterialIcon>
+  );
+}
+
+export function VisibilityOffIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M2.1 3.16 3.37 1.9 22.1 20.63l-1.27 1.27-3.1-3.1A12.13 12.13 0 0 1 12 20C7 20 2.73 16.89 1 12a13.36 13.36 0 0 1 4.12-5.22L2.1 3.16ZM7.53 9.2A5 5 0 0 0 12 17a5 5 0 0 0 2.8-.86l-2.04-2.04A3 3 0 0 1 9.9 11.24L7.53 9.2ZM12 4c5 0 9.27 3.11 11 8a13.4 13.4 0 0 1-3.33 4.53l-2.84-2.84A5 5 0 0 0 10.31 7.17L8.15 5.01A12.07 12.07 0 0 1 12 4Zm0 3a5 5 0 0 1 5 5c0 .43-.05.84-.16 1.23l-1.7-1.7A3 3 0 0 0 12.47 8.86l-1.7-1.7C11.16 7.05 11.57 7 12 7Z" />
+    </MaterialIcon>
+  );
+}
+
 export function SettingsIcon({ className = 'material-icon settings-material-icon' } = {}) {
   return (
     <MaterialIcon className={className}>

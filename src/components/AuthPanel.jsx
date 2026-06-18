@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  sendPasswordResetEmail,
   signInWithPopup,
   signInWithEmailAndPassword
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db, isFirebaseConfigured } from '../services/firebase.js';
+import { VisibilityIcon, VisibilityOffIcon } from './MaterialIcons.jsx';
 
 const LEGAL_VERSION = '2026-06-14';
 
@@ -19,13 +21,53 @@ function getFriendlyError(error) {
     'auth/configuration-not-found': 'Firebase Auth is not fully configured.',
     'auth/invalid-credential': 'Email or password is incorrect.',
     'auth/invalid-email': 'Enter a valid email address.',
+    'auth/missing-email': 'Enter your email address first.',
     'auth/missing-password': 'Enter a password.',
     'auth/operation-not-allowed': 'Enable Email/Password sign-in in Firebase.',
     'auth/popup-closed-by-user': 'Sign in was closed before finishing.',
+    'auth/user-not-found': 'No account exists for that email.',
     'auth/weak-password': 'Password should be at least 6 characters.'
   };
 
   return messages[error.code] || `${error.code}: ${error.message}`;
+}
+
+function getPasswordResetActionSettings() {
+  if (typeof window === 'undefined') return undefined;
+
+  return {
+    handleCodeInApp: false,
+    url: `${window.location.origin}/#test`
+  };
+}
+
+function PasswordField({
+  ariaLabel,
+  isVisible,
+  onToggleVisibility,
+  onChange,
+  placeholder,
+  value
+}) {
+  return (
+    <div className="password-field">
+      <input
+        aria-label={ariaLabel}
+        onChange={onChange}
+        placeholder={placeholder}
+        type={isVisible ? 'text' : 'password'}
+        value={value}
+      />
+      <button
+        aria-label={isVisible ? 'Hide password' : 'Show password'}
+        className="password-visibility-toggle"
+        onClick={onToggleVisibility}
+        type="button"
+      >
+        {isVisible ? <VisibilityOffIcon /> : <VisibilityIcon />}
+      </button>
+    </div>
+  );
 }
 
 function AuthPanel({
@@ -39,7 +81,9 @@ function AuthPanel({
   const [password, setPassword] = useState('');
   const [hasAcceptedLegal, setHasAcceptedLegal] = useState(false);
   const [error, setError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const isRegisterMode = mode === 'register';
 
   const saveLegalConsent = async (signedInUser) => {
@@ -69,6 +113,7 @@ function AuthPanel({
   const submit = async (event) => {
     event.preventDefault();
     setError('');
+    setResetMessage('');
 
     if (isRegisterMode && requireLegalConsent()) return;
 
@@ -92,6 +137,7 @@ function AuthPanel({
 
   const signInWithGoogle = async () => {
     setError('');
+    setResetMessage('');
 
     if (isRegisterMode && requireLegalConsent()) return;
 
@@ -113,6 +159,32 @@ function AuthPanel({
     }
   };
 
+  const resetPassword = async () => {
+    setError('');
+    setResetMessage('');
+
+    if (!email.trim()) {
+      setError('Enter your email address first.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await sendPasswordResetEmail(
+        auth,
+        email.trim(),
+        getPasswordResetActionSettings()
+      );
+      setResetMessage('Password reset email sent. Check your inbox.');
+    } catch (authError) {
+      console.error('Password reset failed:', authError);
+      setError(getFriendlyError(authError));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <motion.section
       className={className}
@@ -128,6 +200,7 @@ function AuthPanel({
       ) : (
         <form className="auth-form" onSubmit={submit}>
           {message && <p className="auth-note">{message}</p>}
+          {resetMessage && <p className="auth-note">{resetMessage}</p>}
 
           <div className="auth-panel-top">
             <div className="auth-tabs" role="tablist" aria-label="Account mode">
@@ -162,20 +235,33 @@ function AuthPanel({
             </button>
           </div>
 
-          <input
-            aria-label="Email"
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="email"
-            type="email"
-            value={email}
-          />
-          <input
+          <div className="field-with-caps">
+            <input
+              aria-label="Email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="email"
+              type="email"
+              value={email}
+            />
+          </div>
+          <PasswordField
             aria-label="Password"
+            isVisible={isPasswordVisible}
             onChange={(event) => setPassword(event.target.value)}
+            onToggleVisibility={() => setIsPasswordVisible((current) => !current)}
             placeholder="password"
-            type="password"
             value={password}
           />
+          {!isRegisterMode && (
+            <button
+              className="auth-link-button"
+              disabled={isLoading}
+              onClick={resetPassword}
+              type="button"
+            >
+              Forgot password?
+            </button>
+          )}
           {isRegisterMode && (
             <label className="auth-consent">
               <input

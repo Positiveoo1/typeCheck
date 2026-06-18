@@ -445,7 +445,14 @@ function TypingTest({
       return event.key === expectedChar ? 'correct' : 'wrong';
     };
 
+    const isTypingInputEvent = (event) => (
+      isTypingFocusedRef.current &&
+      event.target === inputRef.current
+    );
+
     const handleKeyDown = (event) => {
+      if (!isTypingInputEvent(event)) return;
+
       if (soundEnabled && !event.repeat) {
         playKeySound(keySoundPoolRef, audioContextRef, soundVolume, soundStyle);
       }
@@ -469,6 +476,8 @@ function TypingTest({
     };
 
     const handleKeyUp = (event) => {
+      if (!isTypingInputEvent(event)) return;
+
       setPressedKeys((currentKeys) => {
         if (!currentKeys.has(event.code)) return currentKeys;
 
