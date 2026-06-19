@@ -843,7 +843,8 @@ function App() {
     };
 
     const getInputWrapper = (element) => (
-      element?.closest?.('.field-with-caps, .password-field')
+      element?.closest?.('.field-with-caps, .password-field') ||
+      document.querySelector('.word-display.typing-focused')
     );
 
     const updateCapsLock = (event) => {

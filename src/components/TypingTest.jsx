@@ -688,6 +688,10 @@ function TypingTest({
         role="button"
         tabIndex="0"
       >
+        <span className="typing-caps-lock" aria-live="polite">
+          Caps Lock is on
+        </span>
+
         {!isTypingFocused && (
           <div className="focus-prompt" aria-hidden="true">
             <span className="focus-pointer" />
