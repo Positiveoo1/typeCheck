@@ -291,6 +291,7 @@ function TypingTest({
       speedHistory,
       targetText,
       testType,
+      typedText: nextTypedText,
       trainingMode
     };
   };

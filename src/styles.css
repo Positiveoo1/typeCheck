@@ -3106,6 +3106,119 @@ h2 {
   transform: translateX(-1px);
 }
 
+.slowdown-marker {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--wrong);
+  box-shadow: 0 0 16px rgba(255, 95, 87, 0.44);
+  transform: translateX(-1px);
+}
+
+.slowdown-marker::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 8px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: var(--wrong);
+  transform: translateX(-50%);
+}
+
+.speed-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.result-insights {
+  width: min(640px, 100%);
+  margin: -4px auto 24px;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.result-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.result-insight-grid div,
+.mistake-heatmap {
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.026);
+}
+
+.result-insight-grid div {
+  min-height: 96px;
+  padding: 12px;
+  display: grid;
+  align-content: space-between;
+}
+
+.result-insight-grid span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.result-insight-grid strong {
+  color: var(--accent-3);
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.result-insight-grid small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.mistake-heatmap {
+  padding: 14px 16px 16px;
+}
+
+.heatmap-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.heatmap-words span {
+  min-height: 26px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--heading);
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 0.78rem;
+}
+
+.heatmap-words span[data-heat='warm'] {
+  border-color: rgba(var(--accent-rgb), 0.24);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.heatmap-words span[data-heat='hot'] {
+  border-color: rgba(255, 95, 87, 0.26);
+  background: rgba(255, 95, 87, 0.12);
+}
+
+.heatmap-words span[data-heat='burn'] {
+  border-color: rgba(255, 95, 87, 0.44);
+  color: var(--wrong);
+  background: rgba(255, 95, 87, 0.2);
+}
+
 .result-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3247,6 +3360,10 @@ h2 {
   }
 
   .result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .result-insight-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -3494,6 +3611,10 @@ h2 {
   .result-grid div {
     min-height: 66px;
     padding: 12px;
+  }
+
+  .result-insight-grid {
+    grid-template-columns: 1fr;
   }
 
   .record-celebration {

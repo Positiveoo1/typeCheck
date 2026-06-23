@@ -36,6 +36,7 @@ function SpeedReplay({ history = [] }) {
           { elapsedSeconds: 1, wpm: 0 }
         ];
   const peakWpm = Math.max(...speedHistory.map((point) => point.wpm), 1);
+  const slowdown = getSlowdownMarker(speedHistory);
 
   return (
     <motion.div
@@ -71,13 +72,195 @@ function SpeedReplay({ history = [] }) {
           animate={{ left: '100%' }}
           transition={{ delay: 0.2, duration: 1.5, ease: 'easeInOut' }}
         />
+        {slowdown && (
+          <span
+            className="slowdown-marker"
+            style={{ left: `${slowdown.position}%` }}
+            title={`You slowed down near ${formatSeconds(slowdown.elapsedSeconds)}s`}
+          />
+        )}
       </div>
+      {slowdown && (
+        <p className="speed-note">
+          You slowed down near {formatSeconds(slowdown.elapsedSeconds)}s
+        </p>
+      )}
     </motion.div>
   );
 }
 
 function statsLabel(value) {
   return Math.round(value);
+}
+
+function getSlowdownMarker(history = []) {
+  if (!Array.isArray(history) || history.length < 3) return null;
+
+  const usableHistory = history.filter((point) => Number(point.elapsedSeconds) > 0);
+  if (usableHistory.length < 2) return null;
+
+  let slowdown = null;
+
+  for (let index = 1; index < usableHistory.length; index += 1) {
+    const previousPoint = usableHistory[index - 1];
+    const point = usableHistory[index];
+    const drop = Number(previousPoint.wpm) - Number(point.wpm);
+
+    if (drop <= 0) continue;
+    if (!slowdown || drop > slowdown.drop) {
+      slowdown = {
+        drop,
+        elapsedSeconds: point.elapsedSeconds
+      };
+    }
+  }
+
+  if (!slowdown) return null;
+
+  const totalSeconds = Math.max(usableHistory.at(-1)?.elapsedSeconds || 1, 1);
+
+  return {
+    ...slowdown,
+    position: Math.min(100, Math.max(0, (slowdown.elapsedSeconds / totalSeconds) * 100))
+  };
+}
+
+function getWordHeatmap(targetText = '', typedText = '') {
+  let startIndex = 0;
+
+  return targetText.split(' ').map((word, wordIndex, words) => {
+    const endIndex = startIndex + word.length;
+    let mistakes = 0;
+    let typedCount = 0;
+
+    for (let index = startIndex; index < endIndex; index += 1) {
+      if (typedText[index] === undefined) continue;
+
+      typedCount += 1;
+      if (typedText[index] !== targetText[index]) mistakes += 1;
+    }
+
+    const heat =
+      mistakes === 0
+        ? 'clean'
+        : mistakes === 1
+          ? 'warm'
+          : mistakes <= 3
+            ? 'hot'
+            : 'burn';
+
+    startIndex = endIndex + (wordIndex < words.length - 1 ? 1 : 0);
+
+    return {
+      heat,
+      id: `${word}-${wordIndex}`,
+      mistakes,
+      typedCount,
+      word
+    };
+  }).filter((item) => item.typedCount > 0 || item.mistakes > 0);
+}
+
+function getSegmentInsights(history = []) {
+  const usableHistory = history.filter((point) => Number(point.elapsedSeconds) > 0);
+  if (usableHistory.length < 3) return null;
+
+  const labels = ['start', 'middle', 'finish'];
+  const segments = labels.map((label, index) => {
+    const start = Math.floor((usableHistory.length / labels.length) * index);
+    const end = Math.max(start + 1, Math.floor((usableHistory.length / labels.length) * (index + 1)));
+    const points = usableHistory.slice(start, end);
+    const averageWpm = Math.round(
+      points.reduce((total, point) => total + (Number(point.wpm) || 0), 0) / points.length
+    );
+
+    return {
+      averageWpm,
+      label
+    };
+  });
+  const sortedSegments = [...segments].sort((first, second) => second.averageWpm - first.averageWpm);
+
+  return {
+    best: sortedSegments[0],
+    worst: sortedSegments.at(-1)
+  };
+}
+
+function getNextGoal(stats) {
+  const averageWpm = Number(stats.personalAverageWpm) || 0;
+  const wpmTarget = Math.max(
+    Math.ceil((Number(stats.wpm) + 4) / 5) * 5,
+    averageWpm ? Math.ceil((averageWpm + 4) / 5) * 5 : 0
+  );
+  const accuracyTarget = Number(stats.accuracy) >= 95
+    ? Math.min(100, Number(stats.accuracy) + 1)
+    : 95;
+
+  return `Reach ${wpmTarget} WPM with ${accuracyTarget}% accuracy`;
+}
+
+function ResultInsights({ stats }) {
+  const heatmap = getWordHeatmap(stats.targetText, stats.typedText);
+  const segments = getSegmentInsights(stats.speedHistory || []);
+  const averageWpm = Number(stats.personalAverageWpm) || 0;
+  const averageAccuracy = Number(stats.personalAverageAccuracy) || 0;
+  const wpmDelta = averageWpm ? Number(stats.wpm) - averageWpm : 0;
+  const accuracyDelta = averageAccuracy ? Number(stats.accuracy) - averageAccuracy : 0;
+
+  return (
+    <motion.div
+      className="result-insights"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.18, duration: 0.28, ease: 'easeOut' }}
+    >
+      <div className="result-insight-grid">
+        <div>
+          <span>best segment</span>
+          <strong>{segments ? `${segments.best.averageWpm} WPM` : 'Pending'}</strong>
+          <small>{segments ? segments.best.label : 'Need more speed data'}</small>
+        </div>
+        <div>
+          <span>worst segment</span>
+          <strong>{segments ? `${segments.worst.averageWpm} WPM` : 'Pending'}</strong>
+          <small>{segments ? segments.worst.label : 'Need more speed data'}</small>
+        </div>
+        <div>
+          <span>vs average</span>
+          <strong>{averageWpm ? `${wpmDelta >= 0 ? '+' : ''}${wpmDelta} WPM` : 'New baseline'}</strong>
+          <small>
+            {averageAccuracy
+              ? `${accuracyDelta >= 0 ? '+' : ''}${accuracyDelta}% accuracy`
+              : 'Sign in to build comparison'}
+          </small>
+        </div>
+        <div>
+          <span>next goal</span>
+          <strong>{getNextGoal(stats)}</strong>
+          <small>Based on this run</small>
+        </div>
+      </div>
+
+      <div className="mistake-heatmap">
+        <div className="speed-replay-top">
+          <span>mistake heatmap</span>
+          <strong>{stats.wrongChars} wrong</strong>
+        </div>
+        <div className="heatmap-words" aria-label="Mistake heatmap by word">
+          {heatmap.length > 0 ? (
+            heatmap.slice(0, 44).map((item) => (
+              <span data-heat={item.heat} key={item.id} title={`${item.mistakes} mistakes`}>
+                {item.word}
+              </span>
+            ))
+          ) : (
+            <small>No typed words to analyze.</small>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 function RecordCelebration() {
@@ -209,6 +392,8 @@ function Results({ stats, onNextGame, onTryAgain }) {
       </motion.div>
 
       <SpeedReplay history={stats.speedHistory} />
+
+      <ResultInsights stats={stats} />
 
       <div className="result-actions">
         <motion.button

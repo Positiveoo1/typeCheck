@@ -1255,13 +1255,34 @@ function App() {
     const previousBest = Number(
       dashboard.modes[nextResult.modeLabel]?.bestWpm
     ) || 0;
+    const comparableResults = (dashboard.results || []).filter(
+      (result) => result.modeLabel === nextResult.modeLabel
+    );
+    const personalAverageWpm = comparableResults.length
+      ? Math.round(
+          comparableResults.reduce(
+            (total, result) => total + (Number(result.wpm) || 0),
+            0
+          ) / comparableResults.length
+        )
+      : 0;
+    const personalAverageAccuracy = comparableResults.length
+      ? Math.round(
+          comparableResults.reduce(
+            (total, result) => total + (Number(result.accuracy) || 0),
+            0
+          ) / comparableResults.length
+        )
+      : 0;
 
     const isPersonalBest = Boolean(user) && nextResult.wpm > previousBest;
 
     const completedResult = {
       ...nextResult,
       bestWpm: user ? Math.max(previousBest, nextResult.wpm) : 0,
-      isPersonalBest
+      isPersonalBest,
+      personalAverageAccuracy,
+      personalAverageWpm
     };
 
     setResult(completedResult);
@@ -1278,7 +1299,7 @@ function App() {
     } else {
       console.error('Typing performance was not saved because Firebase is not configured.');
     }
-  }, [dashboard.modes, saveCompletedResult, user]);
+  }, [dashboard.modes, dashboard.results, saveCompletedResult, user]);
 
   const handleTestStart = useCallback((startedTest) => {
     if (!user) return;
