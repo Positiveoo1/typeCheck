@@ -1,5 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
+import {
+  getAchievementBadges,
+  getAverageWpm,
+  getConsistencyScore,
+  getRankTier,
+  getTypingStyle
+} from '../typingIdentity.js';
 import { VisibilityIcon, VisibilityOffIcon } from './MaterialIcons.jsx';
 
 const PROFILE_FIELDS = [
@@ -86,6 +93,23 @@ function StatCard({ label, value }) {
     <div className="profile-stat">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function BadgeShelf({ badges }) {
+  return (
+    <div className="achievement-grid" aria-label="Achievement badges">
+      {badges.map((badge) => (
+        <div
+          className={badge.isUnlocked ? 'achievement-badge unlocked' : 'achievement-badge'}
+          key={badge.id}
+        >
+          <span>{badge.label.slice(0, 2)}</span>
+          <strong>{badge.label}</strong>
+          <small>{badge.detail}</small>
+        </div>
+      ))}
     </div>
   );
 }
@@ -242,18 +266,41 @@ function Profile({
   }, [isEditOpen]);
 
   const stats = useMemo(() => {
+    const modes = Object.values(dashboard.modes || {});
     const bestWpm = Math.max(
-      ...Object.values(dashboard.modes || {}).map((mode) => Number(mode.bestWpm) || 0),
+      ...modes.map((mode) => Number(mode.bestWpm) || 0),
       0
     );
+    const bestAccuracy = Math.max(
+      ...modes.map((mode) => Number(mode.bestAccuracy) || 0),
+      0
+    );
+    const results = dashboard.results || [];
+    const consistency = getConsistencyScore(results);
 
     return {
       bestWpm,
+      bestAccuracy,
       completed: dashboard.completed || 0,
+      consistency,
       estimatedWords: Math.round(Number(dashboard.estimatedWordsTyped) || 0),
+      rank: getRankTier(bestWpm),
+      style: getTypingStyle(results[0] || { accuracy: bestAccuracy, wpm: bestWpm }, {
+        consistency,
+        previousAverageWpm: getAverageWpm(results.slice(1))
+      }),
       totalTypingSeconds: Number(dashboard.totalTypingSeconds) || 0
     };
   }, [dashboard]);
+  const achievementBadges = getAchievementBadges({
+    bestAccuracy: stats.bestAccuracy,
+    bestWpm: stats.bestWpm,
+    completed: stats.completed,
+    consistency: stats.consistency,
+    estimatedWords: stats.estimatedWords,
+    results: dashboard.results || [],
+    totalTypingSeconds: stats.totalTypingSeconds
+  });
 
   const profileName = profile.username ? `@${profile.username}` : user.displayName || user.email;
   const avatarInitial = (profile.username || user.displayName || user.email || 'U').slice(0, 1);
@@ -410,6 +457,24 @@ function Profile({
             <StatCard label="typing time" value={formatDuration(stats.totalTypingSeconds)} />
             <StatCard label="estimated words" value={stats.estimatedWords} />
           </div>
+          <div className="profile-identity-strip">
+            <div>
+              <span>rank tier</span>
+              <strong>{stats.rank.label}</strong>
+              <small>Level {stats.rank.level} - {stats.rank.progress}% to next tier</small>
+            </div>
+            <div>
+              <span>typing style</span>
+              <strong>{stats.style.label}</strong>
+              <small>{stats.style.description}</small>
+            </div>
+            <div>
+              <span>consistency</span>
+              <strong>{stats.consistency}%</strong>
+              <small>Based on recent saved tests</small>
+            </div>
+          </div>
+          <BadgeShelf badges={achievementBadges} />
           <ActivityGrid results={dashboard.results || []} />
           <div className="profile-links">
             {profile.github && (

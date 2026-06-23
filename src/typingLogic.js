@@ -83,8 +83,13 @@ export function getTargetWordCount(testType, testValue) {
   return testType === 'words' ? testValue : DEFAULT_WORD_COUNT;
 }
 
-export function getModeLabel(testType, testValue) {
-  return testType === 'words' ? `${testValue} words` : `${testValue}s`;
+export function getModeLabel(testType, testValue, trainingMode = 'standard') {
+  const baseLabel = testType === 'words' ? `${testValue} words` : `${testValue}s`;
+  const trainingLabel = trainingMode.replace(/-/g, ' ');
+
+  return trainingMode === 'standard'
+    ? baseLabel
+    : `${trainingLabel} ${baseLabel}`;
 }
 
 export function getTimeLeft(testValue, elapsedSeconds) {

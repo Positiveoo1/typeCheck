@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { TRAINING_MODES } from '../trainingModes.js';
 import { SettingsIcon } from './MaterialIcons.jsx';
 
 const TIME_MODES = [15, 30, 60];
@@ -14,8 +15,10 @@ const buttonMotion = {
 
 function TestSettings({
   selectedType,
+  selectedTrainingMode = 'standard',
   selectedValue,
   onSettingsChange,
+  onTrainingModeChange,
   disabled
 }) {
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
@@ -63,120 +66,154 @@ function TestSettings({
       layout
       transition={{ duration: 0.22, ease: 'easeOut' }}
     >
-      <div className="settings-row">
-        <span className="settings-label">time</span>
-        <div className="mode-group" role="group" aria-label="Choose time mode">
-          {TIME_MODES.map((mode) => (
-            <motion.button
-              className={
-                selectedType === 'time' && mode === selectedValue
-                  ? 'mode active'
-                  : 'mode'
-              }
-              disabled={disabled}
-              key={mode}
-              onClick={() => onSettingsChange('time', mode)}
-              type="button"
-              whileHover={disabled ? undefined : buttonMotion.hover}
-              whileTap={disabled ? undefined : buttonMotion.tap}
-            >
-              {selectedType === 'time' && mode === selectedValue && (
-                <motion.span
-                  className="mode-active-bg"
-                  layoutId="active-mode"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                />
-              )}
-              <span className="mode-text">{mode}s</span>
-            </motion.button>
-          ))}
-
-          <div className="custom-time" ref={customTimeRef}>
-            <motion.button
-              aria-expanded={isCustomTimeOpen}
-              aria-label="Custom time"
-              className={
-                isCustomTimeSelected
-                  ? 'mode custom-time-toggle active'
-                  : 'mode custom-time-toggle'
-              }
-              disabled={disabled}
-              onClick={() => setIsCustomTimeOpen((current) => !current)}
-              type="button"
-              whileHover={disabled ? undefined : buttonMotion.hover}
-              whileTap={disabled ? undefined : buttonMotion.tap}
-            >
-              {isCustomTimeSelected && (
-                <motion.span
-                  className="mode-active-bg"
-                  layoutId="active-mode"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                />
-              )}
-              <SettingsIcon />
-              {isCustomTimeSelected && (
-                <span className="mode-text custom-time-value">{selectedValue}s</span>
-              )}
-            </motion.button>
-
-            <AnimatePresence>
-              {isCustomTimeOpen && !disabled && (
-                <motion.form
-                  className="custom-time-panel"
-                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    applyCustomTime();
-                  }}
-                  transition={{ duration: 0.16, ease: 'easeOut' }}
-                >
-                  <label htmlFor="custom-time-input">seconds</label>
-                  <input
-                    id="custom-time-input"
-                    inputMode="numeric"
-                    max={MAX_CUSTOM_TIME}
-                    min={MIN_CUSTOM_TIME}
-                    onChange={(event) => setCustomTime(event.target.value)}
-                    type="number"
-                    value={customTime}
+      <div className="settings-primary">
+        <div className="settings-row">
+          <span className="settings-label">time</span>
+          <div className="mode-group" role="group" aria-label="Choose time mode">
+            {TIME_MODES.map((mode) => (
+              <motion.button
+                className={
+                  selectedType === 'time' && mode === selectedValue
+                    ? 'mode active'
+                    : 'mode'
+                }
+                disabled={disabled}
+                key={mode}
+                onClick={() => onSettingsChange('time', mode)}
+                type="button"
+                whileHover={disabled ? undefined : buttonMotion.hover}
+                whileTap={disabled ? undefined : buttonMotion.tap}
+              >
+                {selectedType === 'time' && mode === selectedValue && (
+                  <motion.span
+                    className="mode-active-bg"
+                    layoutId="active-mode"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                   />
-                  <button type="submit">Set</button>
-                </motion.form>
-              )}
-            </AnimatePresence>
+                )}
+                <span className="mode-text">{mode}s</span>
+              </motion.button>
+            ))}
+
+            <div className="custom-time" ref={customTimeRef}>
+              <motion.button
+                aria-expanded={isCustomTimeOpen}
+                aria-label="Custom time"
+                className={
+                  isCustomTimeSelected
+                    ? 'mode custom-time-toggle active'
+                    : 'mode custom-time-toggle'
+                }
+                disabled={disabled}
+                onClick={() => setIsCustomTimeOpen((current) => !current)}
+                type="button"
+                whileHover={disabled ? undefined : buttonMotion.hover}
+                whileTap={disabled ? undefined : buttonMotion.tap}
+              >
+                {isCustomTimeSelected && (
+                  <motion.span
+                    className="mode-active-bg"
+                    layoutId="active-mode"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  />
+                )}
+                <SettingsIcon />
+                {isCustomTimeSelected && (
+                  <span className="mode-text custom-time-value">{selectedValue}s</span>
+                )}
+              </motion.button>
+
+              <AnimatePresence>
+                {isCustomTimeOpen && !disabled && (
+                  <motion.form
+                    className="custom-time-panel"
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      applyCustomTime();
+                    }}
+                    transition={{ duration: 0.16, ease: 'easeOut' }}
+                  >
+                    <label htmlFor="custom-time-input">seconds</label>
+                    <input
+                      id="custom-time-input"
+                      inputMode="numeric"
+                      max={MAX_CUSTOM_TIME}
+                      min={MIN_CUSTOM_TIME}
+                      onChange={(event) => setCustomTime(event.target.value)}
+                      type="number"
+                      value={customTime}
+                    />
+                    <button type="submit">Set</button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-divider" aria-hidden="true" />
+
+        <div className="settings-row">
+          <span className="settings-label">words</span>
+          <div className="mode-group" role="group" aria-label="Choose word count">
+            {WORD_MODES.map((mode) => (
+              <motion.button
+                className={
+                  selectedType === 'words' && mode === selectedValue
+                    ? 'mode active'
+                    : 'mode'
+                }
+                disabled={disabled}
+                key={mode}
+                onClick={() => onSettingsChange('words', mode)}
+                type="button"
+                whileHover={disabled ? undefined : buttonMotion.hover}
+                whileTap={disabled ? undefined : buttonMotion.tap}
+              >
+                {selectedType === 'words' && mode === selectedValue && (
+                  <motion.span
+                    className="mode-active-bg"
+                    layoutId="active-mode"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  />
+                )}
+                <span className="mode-text">{mode}</span>
+              </motion.button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="settings-divider" aria-hidden="true" />
-
-      <div className="settings-row">
-        <span className="settings-label">words</span>
-        <div className="mode-group" role="group" aria-label="Choose word count">
-          {WORD_MODES.map((mode) => (
+      <div className="training-rail">
+        <span className="training-rail-label">training</span>
+        <div className="mode-group training-mode-group" role="group" aria-label="Choose training mode">
+          {TRAINING_MODES.map((mode) => (
             <motion.button
+              aria-label={`${mode.label}: ${mode.description}`}
               className={
-                selectedType === 'words' && mode === selectedValue
-                  ? 'mode active'
-                  : 'mode'
+                selectedTrainingMode === mode.id
+                  ? 'mode training-mode active'
+                  : 'mode training-mode'
               }
               disabled={disabled}
-              key={mode}
-              onClick={() => onSettingsChange('words', mode)}
+              key={mode.id}
+              onClick={() => onTrainingModeChange(mode.id)}
+              title={mode.description}
               type="button"
               whileHover={disabled ? undefined : buttonMotion.hover}
               whileTap={disabled ? undefined : buttonMotion.tap}
             >
-              {selectedType === 'words' && mode === selectedValue && (
+              {selectedTrainingMode === mode.id && (
                 <motion.span
                   className="mode-active-bg"
-                  layoutId="active-mode"
+                  layoutId="active-training-mode"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}
-              <span className="mode-text">{mode}</span>
+              <span className="mode-text">{mode.shortLabel}</span>
             </motion.button>
           ))}
         </div>

@@ -5,10 +5,9 @@ import {
   calculateStats,
   getModeLabel,
   getNextTypedText,
-  getTargetWordCount,
   getTimeLeft,
-  shuffleWords
 } from '../typingLogic.js';
+import { buildTrainingTarget, getTrainingMode } from '../trainingModes.js';
 
 const KEYBOARD_ROWS = [
   [
@@ -47,6 +46,7 @@ const KEYBOARD_ROWS = [
 ];
 const KEY_SOUND_SRC = '/audio/kSound.mp3';
 const KEY_SOUND_POOL_SIZE = 8;
+const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
 
 function createKeyAudio(volume) {
   const audio = new Audio(KEY_SOUND_SRC);
@@ -180,7 +180,8 @@ function TypingTest({
   soundEnabled,
   soundStyle,
   soundVolume,
-  targetTextOverride
+  targetTextOverride,
+  trainingMode = 'standard'
 }) {
   const [targetText, setTargetText] = useState('');
   const [typedText, setTypedText] = useState('');
@@ -220,6 +221,9 @@ function TypingTest({
   const wordTokens = useMemo(() => buildWordTokens(targetText), [targetText]);
   const isIdle = typedText.length === 0 && !isRunning;
   const isReplay = Boolean(targetTextOverride);
+  const activeTrainingMode = getTrainingMode(trainingMode);
+  const isAccuracyLock = trainingMode === 'accuracy-lock';
+  const currentMistakes = calculateStats(targetText, typedText, Math.max(elapsedTime, 0.1)).wrongChars;
 
   useEffect(() => {
     const wordDisplay = wordDisplayRef.current;
@@ -264,7 +268,7 @@ function TypingTest({
     ].slice(-90);
   };
 
-  const createResult = (nextTypedText, elapsedSeconds) => {
+  const createResult = (nextTypedText, elapsedSeconds, options = {}) => {
     const finalStats = calculateStats(targetText, nextTypedText, elapsedSeconds);
     const speedHistory = [...speedHistoryRef.current];
     const lastSnapshot = speedHistory.at(-1);
@@ -282,10 +286,12 @@ function TypingTest({
 
     return {
       ...finalStats,
-      modeLabel: getModeLabel(testType, testValue),
+      endedByAccuracyLock: Boolean(options.endedByAccuracyLock),
+      modeLabel: getModeLabel(testType, testValue, trainingMode),
       speedHistory,
       targetText,
-      testType
+      testType,
+      trainingMode
     };
   };
 
@@ -303,7 +309,12 @@ function TypingTest({
 
   useEffect(() => {
     setTargetText(
-      targetTextOverride || shuffleWords(getTargetWordCount(testType, testValue))
+      targetTextOverride ||
+        buildTrainingTarget({
+          testType,
+          testValue,
+          trainingMode
+        })
     );
     setTypedText('');
     setPressedKeyStates({});
@@ -323,7 +334,15 @@ function TypingTest({
     window.requestAnimationFrame(() => {
       focusInput();
     });
-  }, [testType, testValue, restartKey, focusInput, onActiveChange, targetTextOverride]);
+  }, [
+    testType,
+    testValue,
+    restartKey,
+    focusInput,
+    onActiveChange,
+    targetTextOverride,
+    trainingMode
+  ]);
 
   useEffect(() => {
     typedTextRef.current = typedText;
@@ -355,7 +374,7 @@ function TypingTest({
     }, 250);
 
     return () => clearInterval(interval);
-  }, [isRunning, onActiveChange, onFinish, targetText, testType, testValue]);
+  }, [isRunning, onActiveChange, onFinish, targetText, testType, testValue, trainingMode]);
 
   useLayoutEffect(() => {
     const currentElement = currentLetterRef.current;
@@ -558,7 +577,7 @@ function TypingTest({
       speedHistoryRef.current = [{ elapsedSeconds: 0, wpm: 0 }];
       setIsRunning(true);
       onActiveChange(true);
-      onStart({ testType, testValue });
+      onStart({ testType, testValue, trainingMode });
     } else if (
       testType === 'words' &&
       hasStartedRef.current &&
@@ -578,6 +597,27 @@ function TypingTest({
     );
     typedTextRef.current = nextTypedText;
     setTypedText(nextTypedText);
+
+    const nextStats = calculateStats(targetText, nextTypedText, Math.max(elapsedTime, 0.1));
+
+    if (isAccuracyLock && nextStats.wrongChars >= ACCURACY_LOCK_MISTAKE_LIMIT) {
+      const currentRunElapsed = startedAtRef.current
+        ? (performance.now() - startedAtRef.current) / 1000
+        : 0;
+      const elapsed =
+        testType === 'words'
+          ? accumulatedElapsedRef.current + currentRunElapsed
+          : currentRunElapsed;
+
+      hasFinishedRef.current = true;
+      accumulatedElapsedRef.current = elapsed;
+      setElapsedTime(elapsed);
+      setIsRunning(false);
+      onActiveChange(false);
+      recordSpeedSnapshot(elapsed, nextTypedText);
+      onFinish(createResult(nextTypedText, elapsed, { endedByAccuracyLock: true }));
+      return;
+    }
 
     if (
       testType === 'words' &&
@@ -684,6 +724,7 @@ function TypingTest({
         }}
         onKeyDown={handleWordDisplayKeyDown}
         data-onboarding-target="typing"
+        data-training-mode={trainingMode}
         ref={wordDisplayRef}
         role="button"
         tabIndex="0"
@@ -691,6 +732,15 @@ function TypingTest({
         <span className="typing-caps-lock" aria-live="polite">
           Caps Lock is on
         </span>
+
+        {trainingMode !== 'standard' && !isReplay && (
+          <div className="training-badge" aria-label={`${activeTrainingMode.label} training mode`}>
+            <span>{activeTrainingMode.shortLabel}</span>
+            {isAccuracyLock && (
+              <strong>{Math.max(0, ACCURACY_LOCK_MISTAKE_LIMIT - currentMistakes)} left</strong>
+            )}
+          </div>
+        )}
 
         {!isTypingFocused && (
           <div className="focus-prompt" aria-hidden="true">

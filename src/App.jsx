@@ -37,6 +37,8 @@ import SettingsPage from './components/SettingsPage.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
 import { auth, db, isFirebaseConfigured } from './services/firebase.js';
+import { getTrainingModeIds } from './trainingModes.js';
+import { getModeLabel } from './typingLogic.js';
 
 const SETTINGS_KEY = 'typecheck-settings';
 const THEME_KEY = 'typecheck-theme';
@@ -53,6 +55,7 @@ const PASSWORD_CHANGE_LIMIT = 2;
 const PASSWORD_RESET_EMAIL_LIMIT = 4;
 const MISTAKE_MODES = ['backspace', 'strict'];
 const SOUND_STYLES = ['click', 'soft', 'bright'];
+const TRAINING_MODE_IDS = getTrainingModeIds();
 const DEFAULT_SETTINGS = {
   mistakeMode: 'backspace',
   reducedMotion: false,
@@ -62,6 +65,7 @@ const DEFAULT_SETTINGS = {
   soundVolume: 0.9,
   testType: 'time',
   timeMode: 30,
+  trainingMode: 'standard',
   wordMode: 10
 };
 const MIN_CUSTOM_TIME = 5;
@@ -174,6 +178,9 @@ function loadSettings() {
           ? savedSettings.testType
           : DEFAULT_SETTINGS.testType,
       timeMode: normalizeTimeMode(savedSettings?.timeMode),
+      trainingMode: TRAINING_MODE_IDS.includes(savedSettings?.trainingMode)
+        ? savedSettings.trainingMode
+        : DEFAULT_SETTINGS.trainingMode,
       wordMode: [10, 30, 60].includes(savedSettings?.wordMode)
         ? savedSettings.wordMode
         : DEFAULT_SETTINGS.wordMode,
@@ -253,23 +260,30 @@ function normalizeDashboard(savedDashboard, results = savedDashboard?.results) {
     estimatedWordsTyped:
       Number(savedDashboard.estimatedWordsTyped) || fallbackEstimatedWords,
     incomplete: Number(savedDashboard.incomplete) || 0,
-    modes: Object.fromEntries(
-      MODE_LABELS.map((label) => [
-        label,
-        {
-          ...createModeStats(),
-          ...(savedDashboard.modes?.[label] || {})
-        }
-      ])
-    ),
+    modes: {
+      ...Object.fromEntries(
+        MODE_LABELS.map((label) => [
+          label,
+          {
+            ...createModeStats(),
+            ...(savedDashboard.modes?.[label] || {})
+          }
+        ])
+      ),
+      ...Object.fromEntries(
+        Object.entries(savedDashboard.modes || {}).map(([label, mode]) => [
+          label,
+          {
+            ...createModeStats(),
+            ...mode
+          }
+        ])
+      )
+    },
     results: normalizedResults,
     totalTypingSeconds:
       Number(savedDashboard.totalTypingSeconds) || fallbackTypingSeconds
   };
-}
-
-function getModeLabel(testType, testValue) {
-  return testType === 'words' ? `${testValue} words` : `${testValue}s`;
 }
 
 function createId() {
@@ -410,8 +424,10 @@ async function loadFirebaseDashboard(userId) {
       correctChars: Number(data.correctChars) || 0,
       createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
       elapsedSeconds: Number(data.elapsedSeconds) || 0,
+      endedByAccuracyLock: Boolean(data.endedByAccuracyLock),
       modeLabel: data.modeLabel || '',
       testType: data.testType || 'time',
+      trainingMode: data.trainingMode || 'standard',
       wpm: Number(data.wpm) || 0,
       wrongChars: Number(data.wrongChars) || 0
     };
@@ -522,6 +538,7 @@ async function loadGlobalLeaderboard() {
         modeLabel: data.modeLabel || '',
         playerName: getLeaderboardPlayerName(profile),
         testType: data.testType || 'time',
+        trainingMode: data.trainingMode || 'standard',
         userId,
         wpm: Number(data.wpm) || 0
       };
@@ -573,6 +590,7 @@ async function loadPublicPlayerProfile(userId) {
         createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
         modeLabel: data.modeLabel || '',
         testType: data.testType || 'time',
+        trainingMode: data.trainingMode || 'standard',
         userId: data.userId || '',
         wpm: Number(data.wpm) || 0
       };
@@ -800,6 +818,7 @@ function App() {
     soundVolume,
     testType,
     timeMode,
+    trainingMode,
     wordMode
   } = settings;
 
@@ -944,8 +963,10 @@ function App() {
             correctChars: completedResult.correctChars,
             createdAt: new Date(),
             elapsedSeconds: completedResult.elapsedSeconds,
+            endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
             modeLabel: completedResult.modeLabel,
             testType: completedResult.testType,
+            trainingMode: completedResult.trainingMode || 'standard',
             wpm: completedResult.wpm,
             wrongChars: completedResult.wrongChars
           },
@@ -964,8 +985,10 @@ function App() {
       accuracy: completedResult.accuracy,
       correctChars: completedResult.correctChars,
       elapsedSeconds: completedResult.elapsedSeconds,
+      endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
       modeLabel: completedResult.modeLabel,
       testType: completedResult.testType,
+      trainingMode: completedResult.trainingMode || 'standard',
       wpm: completedResult.wpm,
       wrongChars: completedResult.wrongChars,
       createdAt: serverTimestamp()
@@ -987,6 +1010,7 @@ function App() {
         createdAt: serverTimestamp(),
         modeLabel: completedResult.modeLabel,
         testType: completedResult.testType,
+        trainingMode: completedResult.trainingMode || 'standard',
         userId: user.uid,
         wpm: completedResult.wpm
       }).catch((error) => {
@@ -1260,12 +1284,17 @@ function App() {
     if (!user) return;
     if (activeAttemptRef.current) return;
 
-    const modeLabel = getModeLabel(startedTest.testType, startedTest.testValue);
+    const modeLabel = getModeLabel(
+      startedTest.testType,
+      startedTest.testValue,
+      startedTest.trainingMode
+    );
     const attempt = {
       id: createId(),
       modeLabel,
       testType: startedTest.testType,
-      testValue: startedTest.testValue
+      testValue: startedTest.testValue,
+      trainingMode: startedTest.trainingMode || 'standard'
     };
 
     activeAttemptRef.current = attempt;
@@ -1318,6 +1347,23 @@ function App() {
       ...(nextType === 'time'
         ? { timeMode: normalizeTimeMode(nextValue) }
         : { wordMode: nextValue })
+    };
+
+    setSettings(nextSettings);
+    saveSettings(nextSettings);
+    setResult(null);
+    setRestartKey((key) => key + 1);
+  }, [markIncompleteAttempt, settings]);
+
+  const handleTrainingModeChange = useCallback((nextTrainingMode) => {
+    if (!TRAINING_MODE_IDS.includes(nextTrainingMode)) return;
+
+    markIncompleteAttempt();
+    setReplayTargetText(null);
+
+    const nextSettings = {
+      ...settings,
+      trainingMode: nextTrainingMode
     };
 
     setSettings(nextSettings);
@@ -1833,7 +1879,9 @@ function App() {
                   <TestSettings
                     disabled={isActive}
                     onSettingsChange={handleSettingsChange}
+                    onTrainingModeChange={handleTrainingModeChange}
                     selectedType={testType}
+                    selectedTrainingMode={trainingMode}
                     selectedValue={testType === 'time' ? timeMode : wordMode}
                   />
                 </div>
@@ -1862,6 +1910,7 @@ function App() {
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
                       targetTextOverride={replayTargetText}
+                      trainingMode={trainingMode}
                     />
                   )}
                 </AnimatePresence>

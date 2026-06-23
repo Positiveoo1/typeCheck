@@ -1,5 +1,6 @@
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useEffect } from 'react';
+import { getTypingStyle } from '../typingIdentity.js';
 
 function AnimatedNumber({ value }) {
   const count = useMotionValue(0);
@@ -121,6 +122,8 @@ function RecordCelebration() {
 }
 
 function Results({ stats, onNextGame, onTryAgain }) {
+  const typingStyle = getTypingStyle(stats);
+
   return (
     <motion.section
       className="results"
@@ -153,6 +156,29 @@ function Results({ stats, onNextGame, onTryAgain }) {
       >
         <AnimatedNumber value={stats.wpm} /> WPM
       </motion.h2>
+
+      {stats.endedByAccuracyLock && (
+        <motion.div
+          className="accuracy-lock-result"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
+          Accuracy lock ended this run
+        </motion.div>
+      )}
+
+      <motion.div
+        className="typing-style-card"
+        data-tone={typingStyle.tone}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08, duration: 0.24, ease: 'easeOut' }}
+      >
+        <span>typing style</span>
+        <strong>{typingStyle.label}</strong>
+        <small>{typingStyle.description}</small>
+      </motion.div>
 
       <motion.div
         className="result-grid"

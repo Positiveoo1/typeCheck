@@ -9,6 +9,7 @@ import {
   getTimeLeft,
   shuffleWords
 } from './typingLogic.js';
+import { buildTrainingTarget } from './trainingModes.js';
 
 describe('calculateStats', () => {
   it('returns neutral stats before the user types', () => {
@@ -96,11 +97,35 @@ describe('time and mode helpers', () => {
   it('labels test modes clearly', () => {
     assert.equal(getModeLabel('time', 30), '30s');
     assert.equal(getModeLabel('words', 10), '10 words');
+    assert.equal(getModeLabel('time', 30, 'accuracy-lock'), 'accuracy lock 30s');
+    assert.equal(getModeLabel('words', 10, 'code'), 'code 10 words');
   });
 
   it('uses fixed generated words for time mode and chosen length for word mode', () => {
     assert.equal(getTargetWordCount('time', 30), 90);
     assert.equal(getTargetWordCount('words', 10), 10);
+  });
+});
+
+describe('training modes', () => {
+  it('builds target text for custom training modes', () => {
+    const codeTarget = buildTrainingTarget({
+      random: () => 0,
+      testType: 'words',
+      testValue: 8,
+      trainingMode: 'code'
+    });
+    const numberTarget = buildTrainingTarget({
+      random: () => 0,
+      testType: 'words',
+      testValue: 6,
+      trainingMode: 'numbers'
+    });
+
+    assert.equal(codeTarget.split(/\s+/).length, 8);
+    assert.match(codeTarget, /const|function|event|export|users/);
+    assert.equal(numberTarget.split(/\s+/).length, 6);
+    assert.match(numberTarget, /\d/);
   });
 });
 
