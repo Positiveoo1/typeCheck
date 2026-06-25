@@ -37,13 +37,20 @@ import SettingsPage from './components/SettingsPage.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
 import { auth, db, isFirebaseConfigured } from './services/firebase.js';
+import {
+  getThemeIds,
+  getThemePersonality,
+  getUnlockedThemeIds,
+  hexToRgbParts,
+  normalizeAccentColor
+} from './themePersonalities.js';
 import { getTrainingModeIds } from './trainingModes.js';
 import { getModeLabel } from './typingLogic.js';
 
 const SETTINGS_KEY = 'typecheck-settings';
 const THEME_KEY = 'typecheck-theme';
 const ONBOARDING_KEY = 'typecheck-onboarding-complete';
-const THEMES = ['matrix', 'serika', 'botanical', 'midnight', 'rose'];
+const THEMES = getThemeIds();
 const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
 const SHORTCUT_TIME_MODES = [15, 30, 60];
 const SHORTCUT_WORD_MODES = [10, 30, 60];
@@ -56,16 +63,18 @@ const PASSWORD_RESET_EMAIL_LIMIT = 4;
 const MISTAKE_MODES = ['backspace', 'strict'];
 const SOUND_STYLES = ['click', 'soft', 'bright'];
 const TRAINING_MODE_IDS = getTrainingModeIds();
+const TOAST_LIFETIME_MS = 4200;
 const DEFAULT_SETTINGS = {
   mistakeMode: 'backspace',
   reducedMotion: false,
   showKeyboard: true,
   soundEnabled: true,
-  soundStyle: 'click',
+  soundStyle: 'theme',
   soundVolume: 0.9,
   testType: 'time',
   timeMode: 30,
   trainingMode: 'standard',
+  accentColor: '',
   wordMode: 10
 };
 const MIN_CUSTOM_TIME = 5;
@@ -133,6 +142,38 @@ function getPasswordResetActionSettings() {
   };
 }
 
+function ToastStack({ onDismiss, toasts }) {
+  return (
+    <div className="toast-region" aria-live="polite" aria-label="Notifications">
+      <AnimatePresence initial={false}>
+        {toasts.map((toast) => (
+          <motion.div
+            className={`toast toast-${toast.type}`}
+            key={toast.id}
+            layout
+            initial={{ opacity: 0, x: 28, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 28, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            <div>
+              <strong>{toast.title}</strong>
+              {toast.message && <span>{toast.message}</span>}
+            </div>
+            <button
+              aria-label={`Dismiss ${toast.title}`}
+              onClick={() => onDismiss(toast.id)}
+              type="button"
+            >
+              x
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function createModeStats() {
   return {
     started: 0,
@@ -169,6 +210,10 @@ function loadSettings() {
         typeof savedSettings?.reducedMotion === 'boolean'
           ? savedSettings.reducedMotion
           : DEFAULT_SETTINGS.reducedMotion,
+      accentColor: normalizeAccentColor(
+        savedSettings?.accentColor,
+        DEFAULT_SETTINGS.accentColor
+      ),
       showKeyboard:
         typeof savedSettings?.showKeyboard === 'boolean'
           ? savedSettings.showKeyboard
@@ -188,7 +233,7 @@ function loadSettings() {
         typeof savedSettings?.soundEnabled === 'boolean'
           ? savedSettings.soundEnabled
           : DEFAULT_SETTINGS.soundEnabled,
-      soundStyle: SOUND_STYLES.includes(savedSettings?.soundStyle)
+      soundStyle: [...SOUND_STYLES, 'theme'].includes(savedSettings?.soundStyle)
         ? savedSettings.soundStyle
         : DEFAULT_SETTINGS.soundStyle,
       soundVolume:
@@ -808,8 +853,10 @@ function App() {
   const [replayTargetText, setReplayTargetText] = useState(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
   const {
+    accentColor,
     mistakeMode,
     reducedMotion,
     showKeyboard,
@@ -821,6 +868,33 @@ function App() {
     trainingMode,
     wordMode
   } = settings;
+  const themePersonality = getThemePersonality(theme);
+  const effectiveSoundStyle =
+    soundStyle === 'theme' ? themePersonality.soundStyle : soundStyle;
+
+  const dismissToast = useCallback((toastId) => {
+    setToasts((currentToasts) => (
+      currentToasts.filter((toast) => toast.id !== toastId)
+    ));
+  }, []);
+
+  const notify = useCallback(({ message = '', title, type = 'info' }) => {
+    const toastId = createId();
+
+    setToasts((currentToasts) => [
+      ...currentToasts,
+      {
+        id: toastId,
+        message,
+        title,
+        type
+      }
+    ].slice(-4));
+
+    window.setTimeout(() => {
+      dismissToast(toastId);
+    }, TOAST_LIFETIME_MS);
+  }, [dismissToast]);
 
   const updateDashboard = useCallback((updater) => {
     if (!user || !db) return;
@@ -832,11 +906,16 @@ function App() {
         merge: true
       }).catch((error) => {
         console.error('Failed to save dashboard:', error);
+        notify({
+          title: 'Dashboard not saved',
+          message: 'Your latest progress could not be synced.',
+          type: 'error'
+        });
       });
 
       return nextDashboard;
     });
-  }, [user]);
+  }, [notify, user]);
 
   useEffect(() => {
     setIsOnboardingOpen(!loadOnboardingComplete());
@@ -994,6 +1073,11 @@ function App() {
       createdAt: serverTimestamp()
     }).catch((error) => {
       console.error('Failed to save result:', error);
+      notify({
+        title: 'Result not saved',
+        message: 'Your local result is visible, but syncing failed.',
+        type: 'error'
+      });
     });
 
     setDoc(
@@ -1015,9 +1099,14 @@ function App() {
         wpm: completedResult.wpm
       }).catch((error) => {
         console.error('Failed to save public leaderboard result:', error);
+        notify({
+          title: 'Leaderboard not updated',
+          message: 'Your result saved, but the public ranking did not update.',
+          type: 'warning'
+        });
       });
     }
-  }, [updateDashboard, user, userProfile]);
+  }, [notify, updateDashboard, user, userProfile]);
 
   const markIncompleteAttempt = useCallback(() => {
     const currentAttempt = activeAttemptRef.current;
@@ -1075,6 +1164,11 @@ function App() {
         } catch (error) {
           if (isSubscribed) {
             console.error('Failed to load dashboard:', error);
+            notify({
+              title: 'Account data issue',
+              message: 'Signed in, but some saved data could not be loaded.',
+              type: 'warning'
+            });
           }
         }
 
@@ -1110,7 +1204,7 @@ function App() {
       isSubscribed = false;
       unsubscribe();
     };
-  }, [pendingPage]);
+  }, [notify, pendingPage]);
 
   useEffect(() => {
     if (currentPage !== 'leaderboard') return undefined;
@@ -1136,6 +1230,11 @@ function App() {
         if (!isSubscribed) return;
 
         console.error('Failed to load leaderboard:', error);
+        notify({
+          title: 'Leaderboard unavailable',
+          message: 'Could not load the latest public scores.',
+          type: 'error'
+        });
         setLeaderboard({
           entries: [],
           error: 'Could not load the leaderboard.',
@@ -1146,7 +1245,7 @@ function App() {
     return () => {
       isSubscribed = false;
     };
-  }, [currentPage]);
+  }, [currentPage, notify]);
 
   useEffect(() => {
     if (currentPage !== 'public-profile') return undefined;
@@ -1186,6 +1285,11 @@ function App() {
         if (!isSubscribed) return;
 
         console.error('Failed to load public player profile:', error);
+        notify({
+          title: 'Profile unavailable',
+          message: 'Could not load this public player profile.',
+          type: 'error'
+        });
         setPublicProfile({
           error: 'Could not load this player profile.',
           isLoading: false,
@@ -1198,7 +1302,7 @@ function App() {
     return () => {
       isSubscribed = false;
     };
-  }, [currentPage]);
+  }, [currentPage, notify]);
 
   useEffect(() => {
     if (!isAuthReady || user || !['dashboard', 'profile'].includes(currentPage)) return;
@@ -1216,11 +1320,38 @@ function App() {
       countStarted: pendingResultSave.countStarted
     });
     setPendingResultSave(null);
-  }, [isAuthReady, pendingResultSave, saveCompletedResult, user]);
+    notify({
+      title: 'Result saved',
+      message: 'Your completed test was added to your account.',
+      type: 'success'
+    });
+  }, [isAuthReady, notify, pendingResultSave, saveCompletedResult, user]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    document.documentElement.dataset.resultMotion = themePersonality.resultMotion;
+  }, [theme, themePersonality.resultMotion]);
+
+  useEffect(() => {
+    const rootStyle = document.documentElement.style;
+    const normalizedAccent = normalizeAccentColor(accentColor);
+    const accentRgb = hexToRgbParts(normalizedAccent);
+
+    if (!normalizedAccent || !accentRgb) {
+      rootStyle.removeProperty('--accent-2');
+      rootStyle.removeProperty('--accent-2-rgb');
+      rootStyle.removeProperty('--accent-3');
+      rootStyle.removeProperty('--caret');
+      rootStyle.removeProperty('--caret-rgb');
+      return;
+    }
+
+    rootStyle.setProperty('--accent-2', normalizedAccent);
+    rootStyle.setProperty('--accent-2-rgb', accentRgb.join(', '));
+    rootStyle.setProperty('--accent-3', normalizedAccent);
+    rootStyle.setProperty('--caret', normalizedAccent);
+    rootStyle.setProperty('--caret-rgb', accentRgb.join(', '));
+  }, [accentColor]);
 
   useEffect(() => {
     document.documentElement.dataset.reducedMotion = String(reducedMotion);
@@ -1401,7 +1532,11 @@ function App() {
 
     setSettings(nextSettings);
     saveSettings(nextSettings);
-  }, [settings]);
+    notify({
+      title: nextSoundEnabled ? 'Sound on' : 'Sound off',
+      type: 'info'
+    });
+  }, [notify, settings]);
 
   const handlePreferencesChange = useCallback((nextOptions) => {
     const nextSettings = {
@@ -1414,11 +1549,15 @@ function App() {
         typeof nextOptions.reducedMotion === 'boolean'
           ? nextOptions.reducedMotion
           : settings.reducedMotion,
+      accentColor:
+        typeof nextOptions.accentColor === 'string'
+          ? normalizeAccentColor(nextOptions.accentColor, settings.accentColor)
+          : settings.accentColor,
       showKeyboard:
         typeof nextOptions.showKeyboard === 'boolean'
           ? nextOptions.showKeyboard
           : settings.showKeyboard,
-      soundStyle: SOUND_STYLES.includes(nextOptions.soundStyle)
+      soundStyle: [...SOUND_STYLES, 'theme'].includes(nextOptions.soundStyle)
         ? nextOptions.soundStyle
         : settings.soundStyle,
       soundVolume:
@@ -1435,20 +1574,40 @@ function App() {
     setIsSignOutConfirmOpen(true);
   };
 
-  const confirmSignOut = () => {
+  const confirmSignOut = async () => {
     if (!auth) return;
     setPendingPage(null);
     setIsAuthGateOpen(false);
     window.location.hash = 'test';
     setCurrentPage('test');
-    signOut(auth);
-    setIsSignOutConfirmOpen(false);
+
+    try {
+      await signOut(auth);
+      notify({
+        title: 'Signed out',
+        message: 'Your account session ended.',
+        type: 'success'
+      });
+      setIsSignOutConfirmOpen(false);
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      notify({
+        title: 'Sign out failed',
+        message: 'Try again in a moment.',
+        type: 'error'
+      });
+    }
   };
 
   const handleThemeChange = (nextTheme) => {
     if (!THEMES.includes(nextTheme)) return;
+    if (!getUnlockedThemeIds(dashboard).includes(nextTheme) && nextTheme !== theme) return;
     setTheme(nextTheme);
     saveTheme(nextTheme);
+    notify({
+      title: 'Theme changed',
+      type: 'success'
+    });
   };
 
   const saveUserProfile = useCallback(async (nextProfile) => {
@@ -1797,6 +1956,7 @@ function App() {
         <Header
           currentPage={currentPage}
           onNavigate={navigate}
+          onNotify={notify}
           profile={userProfile}
           user={user}
         />
@@ -1860,6 +2020,7 @@ function App() {
               <Profile
                 key="profile"
                 onChangePassword={changePassword}
+                onNotify={notify}
                 onRequestPasswordReset={requestPasswordReset}
                 dashboard={dashboard}
                 onSaveProfile={saveUserProfile}
@@ -1870,6 +2031,8 @@ function App() {
             ) : currentPage === 'settings' ? (
               <SettingsPage
                 key="settings"
+                accentColor={accentColor}
+                dashboard={dashboard}
                 mistakeMode={mistakeMode}
                 onPreferencesChange={handlePreferencesChange}
                 onSoundToggle={handleSoundToggle}
@@ -1896,16 +2059,26 @@ function App() {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.22, ease: 'easeOut' }}
               >
-                <div data-onboarding-target="settings">
-                  <TestSettings
-                    disabled={isActive}
-                    onSettingsChange={handleSettingsChange}
-                    onTrainingModeChange={handleTrainingModeChange}
-                    selectedType={testType}
-                    selectedTrainingMode={trainingMode}
-                    selectedValue={testType === 'time' ? timeMode : wordMode}
-                  />
-                </div>
+                <AnimatePresence initial={false}>
+                  {!result && (
+                    <motion.div
+                      data-onboarding-target="settings"
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                    >
+                      <TestSettings
+                        disabled={isActive}
+                        onSettingsChange={handleSettingsChange}
+                        onTrainingModeChange={handleTrainingModeChange}
+                        selectedType={testType}
+                        selectedTrainingMode={trainingMode}
+                        selectedValue={testType === 'time' ? timeMode : wordMode}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <AnimatePresence mode="wait">
                   {result ? (
@@ -1926,7 +2099,7 @@ function App() {
                       restartKey={restartKey}
                       showKeyboard={showKeyboard}
                       soundEnabled={soundEnabled}
-                      soundStyle={soundStyle}
+                      soundStyle={effectiveSoundStyle}
                       soundVolume={soundVolume}
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
@@ -1963,6 +2136,7 @@ function App() {
               <AuthPanel
                 className="auth-panel auth-panel-modal"
                 message="Sign in to save results and view your typing performance."
+                onNotify={notify}
                 onClose={() => {
                   setPendingPage(null);
                   setIsAuthGateOpen(false);
@@ -2020,6 +2194,7 @@ function App() {
             </motion.div>
           )}
         </AnimatePresence>
+        <ToastStack onDismiss={dismissToast} toasts={toasts} />
         </motion.div>
       </LayoutGroup>
     </MotionConfig>

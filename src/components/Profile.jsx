@@ -212,6 +212,7 @@ function ActivityGrid({ results }) {
 function Profile({
   dashboard,
   onChangePassword,
+  onNotify,
   onRequestPasswordReset,
   onSaveProfile,
   onSignOut,
@@ -348,8 +349,18 @@ function Profile({
       });
       setSaveStatus('saved');
       setIsEditOpen(false);
+      onNotify?.({
+        title: 'Profile saved',
+        message: 'Your public details were updated.',
+        type: 'success'
+      });
     } catch {
       setSaveStatus('error');
+      onNotify?.({
+        title: 'Profile not saved',
+        message: 'Could not update your public details.',
+        type: 'error'
+      });
     }
   };
 
@@ -361,9 +372,19 @@ function Profile({
       await onRequestPasswordReset();
       setResetStatus('sent');
       setResetMessage(`Reset email sent to ${user.email}.`);
+      onNotify?.({
+        title: 'Reset email sent',
+        message: `Check ${user.email} for the reset link.`,
+        type: 'success'
+      });
     } catch (error) {
       setResetStatus('error');
       setResetMessage(error.message || 'Could not send reset email.');
+      onNotify?.({
+        title: 'Reset email failed',
+        message: error.message || 'Could not send reset email.',
+        type: 'error'
+      });
     }
   };
 
@@ -373,8 +394,15 @@ function Profile({
     setPasswordMessage('');
 
     if (passwordValues.nextPassword !== passwordValues.confirmPassword) {
+      const passwordError = 'New password confirmation does not match.';
+
       setPasswordStatus('error');
-      setPasswordMessage('New password confirmation does not match.');
+      setPasswordMessage(passwordError);
+      onNotify?.({
+        title: 'Password mismatch',
+        message: passwordError,
+        type: 'warning'
+      });
       return;
     }
 
@@ -392,9 +420,19 @@ function Profile({
       setPasswordMessage(
         isPasswordProvider ? 'Password changed.' : 'Password created.'
       );
+      onNotify?.({
+        title: isPasswordProvider ? 'Password changed' : 'Password created',
+        message: 'Your account security settings were updated.',
+        type: 'success'
+      });
     } catch (error) {
       setPasswordStatus('error');
       setPasswordMessage(error.message || 'Could not change password.');
+      onNotify?.({
+        title: 'Password update failed',
+        message: error.message || 'Could not change password.',
+        type: 'error'
+      });
     }
   };
 

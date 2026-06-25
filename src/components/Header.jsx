@@ -11,6 +11,7 @@ import {
 
 function Header({
   currentPage,
+  onNotify,
   profile,
   user,
   onNavigate
@@ -141,6 +142,7 @@ function Header({
             <AnimatePresence>
               {isAuthOpen && (
                 <AuthPanel
+                  onNotify={onNotify}
                   onClose={() => setIsAuthOpen(false)}
                   onSuccess={() => setIsAuthOpen(false)}
                 />

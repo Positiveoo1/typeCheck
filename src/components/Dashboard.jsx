@@ -1,7 +1,65 @@
 import { motion } from 'framer-motion';
+import { TRAINING_MODES } from '../trainingModes.js';
 
 const TIME_MODES = ['15s', '30s', '60s'];
 const WORD_MODES = ['10 words', '30 words', '60 words'];
+const TRAINING_DASHBOARD_MODES = TRAINING_MODES.filter((mode) => mode.id !== 'standard');
+
+function createEmptyTrainingStats() {
+  return {
+    bestAccuracy: 0,
+    bestWpm: 0,
+    completed: 0
+  };
+}
+
+function getTrainingModeStats(dashboard) {
+  const trainingStats = Object.fromEntries(
+    TRAINING_DASHBOARD_MODES.map((mode) => [mode.id, createEmptyTrainingStats()])
+  );
+
+  (dashboard.results || []).forEach((result) => {
+    const trainingMode = result.trainingMode || 'standard';
+    if (!trainingStats[trainingMode]) return;
+
+    trainingStats[trainingMode] = {
+      bestAccuracy: Math.max(
+        trainingStats[trainingMode].bestAccuracy,
+        Number(result.accuracy) || 0
+      ),
+      bestWpm: Math.max(
+        trainingStats[trainingMode].bestWpm,
+        Number(result.wpm) || 0
+      ),
+      completed: trainingStats[trainingMode].completed + 1
+    };
+  });
+
+  Object.entries(dashboard.modes || {}).forEach(([modeLabel, modeStats]) => {
+    const matchingMode = TRAINING_DASHBOARD_MODES.find((mode) => (
+      modeLabel.startsWith(`${mode.id.replace(/-/g, ' ')} `)
+    ));
+
+    if (!matchingMode) return;
+
+    trainingStats[matchingMode.id] = {
+      bestAccuracy: Math.max(
+        trainingStats[matchingMode.id].bestAccuracy,
+        Number(modeStats.bestAccuracy) || 0
+      ),
+      bestWpm: Math.max(
+        trainingStats[matchingMode.id].bestWpm,
+        Number(modeStats.bestWpm) || 0
+      ),
+      completed: Math.max(
+        trainingStats[matchingMode.id].completed,
+        Number(modeStats.completed) || 0
+      )
+    };
+  });
+
+  return trainingStats;
+}
 
 function BestModeCard({ label, mode }) {
   return (
@@ -18,6 +76,7 @@ function BestModeCard({ label, mode }) {
 
 function Dashboard({ dashboard }) {
   const recentResults = dashboard.results.slice(0, 6);
+  const trainingModeStats = getTrainingModeStats(dashboard);
   const completionRate =
     dashboard.started === 0
       ? 0
@@ -85,6 +144,22 @@ function Dashboard({ dashboard }) {
               key={modeLabel}
               label={modeLabel}
               mode={dashboard.modes[modeLabel]}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="best-section">
+        <div className="section-heading">
+          <span>training modes</span>
+          <strong>Best speed by practice focus</strong>
+        </div>
+        <div className="best-grid training-best-grid">
+          {TRAINING_DASHBOARD_MODES.map((mode) => (
+            <BestModeCard
+              key={mode.id}
+              label={mode.label}
+              mode={trainingModeStats[mode.id]}
             />
           ))}
         </div>

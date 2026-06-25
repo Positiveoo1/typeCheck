@@ -1,6 +1,17 @@
 import { motion } from 'framer-motion';
+import {
+  ACCENT_COLORS,
+  THEME_PERSONALITIES,
+  getDashboardThemeStats,
+  getUnlockedThemeIds
+} from '../themePersonalities.js';
 
 const SOUND_STYLES = [
+  {
+    id: 'theme',
+    label: 'Theme',
+    description: 'Use the sound personality from the active theme.'
+  },
   {
     id: 'click',
     label: 'Click',
@@ -16,13 +27,6 @@ const SOUND_STYLES = [
     label: 'Bright',
     description: 'Sharper tone with faster feedback.'
   }
-];
-const THEMES = [
-  { id: 'matrix', label: 'Matrix', colors: ['#10120f', '#b9dc6d', '#d6ca62'] },
-  { id: 'serika', label: 'Serika', colors: ['#e1dcc9', '#d0a542', '#2f3329'] },
-  { id: 'botanical', label: 'Botanical', colors: ['#102019', '#72d49a', '#e4d66c'] },
-  { id: 'midnight', label: 'Midnight', colors: ['#0c1020', '#76a9ff', '#f0c86a'] },
-  { id: 'rose', label: 'Rose', colors: ['#21151b', '#ff8fab', '#f6d365'] }
 ];
 const MISTAKE_MODES = [
   {
@@ -60,6 +64,8 @@ function ToggleSetting({ checked, description, label, onChange }) {
 }
 
 function SettingsPage({
+  accentColor,
+  dashboard,
   mistakeMode,
   reducedMotion,
   showKeyboard,
@@ -71,6 +77,9 @@ function SettingsPage({
   onThemeChange,
   theme
 }) {
+  const unlockedThemeIds = getUnlockedThemeIds(dashboard);
+  const themeStats = getDashboardThemeStats(dashboard);
+
   return (
     <motion.main
       className="settings-page"
@@ -96,27 +105,79 @@ function SettingsPage({
         </div>
 
         <div className="theme-choice-grid" role="radiogroup" aria-label="Theme">
-          {THEMES.map((themeOption) => (
+          {THEME_PERSONALITIES.map((themeOption) => {
+            const isActive = theme === themeOption.id;
+            const isUnlocked = unlockedThemeIds.includes(themeOption.id) || isActive;
+
+            return (
             <button
               aria-checked={theme === themeOption.id}
+              aria-disabled={!isUnlocked}
               className={
-                theme === themeOption.id
-                  ? 'settings-theme-choice active'
-                  : 'settings-theme-choice'
+                [
+                  'settings-theme-choice',
+                  isActive ? 'active' : '',
+                  !isUnlocked ? 'locked' : ''
+                ].filter(Boolean).join(' ')
               }
               key={themeOption.id}
               onClick={() => onThemeChange(themeOption.id)}
               role="radio"
               type="button"
             >
+              <span className="theme-preview-window" aria-hidden="true">
+                <span className="theme-preview-text">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                <span className="theme-preview-caret" />
+              </span>
               <span className="theme-swatches" aria-hidden="true">
                 {themeOption.colors.map((color) => (
                   <i key={color} style={{ background: color }} />
                 ))}
               </span>
               <strong>{themeOption.label}</strong>
+              <small>{themeOption.description}</small>
+              <em>{isUnlocked ? themeOption.soundStyle : themeOption.unlock.label}</em>
             </button>
-          ))}
+            );
+          })}
+        </div>
+
+        <div className="theme-unlock-summary">
+          <span>{themeStats.completed} tests</span>
+          <span>{themeStats.bestWpm} best WPM</span>
+          <span>{themeStats.bestAccuracy}% best accuracy</span>
+        </div>
+
+        <div className="accent-customizer" aria-label="Accent color">
+          <div>
+            <span>accent</span>
+            <strong>User-selected accent color</strong>
+          </div>
+          <div className="accent-choice-row">
+            {ACCENT_COLORS.map((color) => (
+              <button
+                aria-label={`Use ${color} accent`}
+                className={accentColor === color ? 'accent-choice active' : 'accent-choice'}
+                key={color}
+                onClick={() => onPreferencesChange({ accentColor: color })}
+                style={{ background: color }}
+                type="button"
+              />
+            ))}
+            <label className="accent-picker">
+              <span>custom</span>
+              <input
+                aria-label="Custom accent color"
+                onChange={(event) => onPreferencesChange({ accentColor: event.target.value })}
+                type="color"
+                value={accentColor || '#b9dc6d'}
+              />
+            </label>
+          </div>
         </div>
       </section>
 

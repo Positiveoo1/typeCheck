@@ -74,6 +74,7 @@ function AuthPanel({
   className = 'auth-panel',
   message = '',
   onClose,
+  onNotify,
   onSuccess
 }) {
   const [mode, setMode] = useState('sign-in');
@@ -106,7 +107,14 @@ function AuthPanel({
   const requireLegalConsent = () => {
     if (hasAcceptedLegal) return false;
 
-    setError('Please accept the Terms and Privacy Policy before continuing.');
+    const consentError = 'Please accept the Terms and Privacy Policy before continuing.';
+
+    setError(consentError);
+    onNotify?.({
+      title: 'Consent required',
+      message: consentError,
+      type: 'warning'
+    });
     return true;
   };
 
@@ -126,10 +134,22 @@ function AuthPanel({
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
+      onNotify?.({
+        title: mode === 'register' ? 'Account created' : 'Signed in',
+        message: 'Your typing progress can now be saved.',
+        type: 'success'
+      });
       onSuccess();
     } catch (authError) {
+      const friendlyError = getFriendlyError(authError);
+
       console.error('Email authentication failed:', authError);
-      setError(getFriendlyError(authError));
+      setError(friendlyError);
+      onNotify?.({
+        title: 'Authentication failed',
+        message: friendlyError,
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -150,10 +170,22 @@ function AuthPanel({
         await saveLegalConsent(credential.user);
       }
 
+      onNotify?.({
+        title: mode === 'register' ? 'Account created' : 'Signed in',
+        message: 'Google sign-in completed.',
+        type: 'success'
+      });
       onSuccess();
     } catch (authError) {
+      const friendlyError = getFriendlyError(authError);
+
       console.error('Google authentication failed:', authError);
-      setError(getFriendlyError(authError));
+      setError(friendlyError);
+      onNotify?.({
+        title: 'Google sign-in failed',
+        message: friendlyError,
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -164,7 +196,14 @@ function AuthPanel({
     setResetMessage('');
 
     if (!email.trim()) {
-      setError('Enter your email address first.');
+      const emailError = 'Enter your email address first.';
+
+      setError(emailError);
+      onNotify?.({
+        title: 'Email needed',
+        message: emailError,
+        type: 'warning'
+      });
       return;
     }
 
@@ -177,9 +216,21 @@ function AuthPanel({
         getPasswordResetActionSettings()
       );
       setResetMessage('Password reset email sent. Check your inbox.');
+      onNotify?.({
+        title: 'Reset email sent',
+        message: 'Check your inbox for the password reset link.',
+        type: 'success'
+      });
     } catch (authError) {
+      const friendlyError = getFriendlyError(authError);
+
       console.error('Password reset failed:', authError);
-      setError(getFriendlyError(authError));
+      setError(friendlyError);
+      onNotify?.({
+        title: 'Reset failed',
+        message: friendlyError,
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
