@@ -4,7 +4,13 @@ export const metadata = {
   title: 'TypeCheck',
   description: 'A simple beginner-friendly typing speed test built with Next.js.',
   icons: {
-    icon: '/logo.png'
+    icon: [
+      {
+        url: '/favicon.png',
+        sizes: '64x64',
+        type: 'image/png'
+      }
+    ]
   }
 };
 

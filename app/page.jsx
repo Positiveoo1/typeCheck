@@ -32,9 +32,9 @@ export const metadata = {
     description,
     images: [
       {
-        url: '/logo.png',
+        url: '/social-preview.png',
         width: 512,
-        height: 512,
+        height: 341,
         alt: 'TypeCheck logo'
       }
     ],
@@ -46,7 +46,7 @@ export const metadata = {
     card: 'summary_large_image',
     title,
     description,
-    images: ['/logo.png']
+    images: ['/social-preview.png']
   }
 };
 

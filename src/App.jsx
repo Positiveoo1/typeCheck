@@ -1,42 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react';
 import { AnimatePresence, LayoutGroup, motion, MotionConfig } from 'framer-motion';
-import {
-  EmailAuthProvider,
-  linkWithCredential,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  sendPasswordResetEmail,
-  signOut,
-  updatePassword
-} from 'firebase/auth';
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  where
-} from 'firebase/firestore';
-import AuthPanel from './components/AuthPanel.jsx';
-import Dashboard from './components/Dashboard.jsx';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
-import Leaderboard from './components/Leaderboard.jsx';
-import LegalPage from './components/LegalPage.jsx';
-import Profile from './components/Profile.jsx';
-import PublicProfile from './components/PublicProfile.jsx';
-import Results from './components/Results.jsx';
-import SettingsPage from './components/SettingsPage.jsx';
 import TestSettings from './components/TestSettings.jsx';
 import TypingTest from './components/TypingTest.jsx';
-import { auth, db, isFirebaseConfigured } from './services/firebase.js';
+import { isFirebaseConfigured } from './services/firebaseConfig.js';
 import {
   getThemeIds,
   getThemePersonality,
@@ -50,6 +28,7 @@ import { getModeLabel } from './typingLogic.js';
 const SETTINGS_KEY = 'typecheck-settings';
 const THEME_KEY = 'typecheck-theme';
 const ONBOARDING_KEY = 'typecheck-onboarding-complete';
+const ONBOARDING_VERSION = '2026-06-training-leaderboard-profile';
 const THEMES = getThemeIds();
 const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
 const SHORTCUT_TIME_MODES = [15, 30, 60];
@@ -78,6 +57,24 @@ const DEFAULT_SETTINGS = {
 };
 const MIN_CUSTOM_TIME = 5;
 const MAX_CUSTOM_TIME = 300;
+
+const AuthPanel = lazy(() => import('./components/AuthPanel.jsx'));
+const Dashboard = lazy(() => import('./components/Dashboard.jsx'));
+const Leaderboard = lazy(() => import('./components/Leaderboard.jsx'));
+const LegalPage = lazy(() => import('./components/LegalPage.jsx'));
+const Profile = lazy(() => import('./components/Profile.jsx'));
+const PublicProfile = lazy(() => import('./components/PublicProfile.jsx'));
+const Results = lazy(() => import('./components/Results.jsx'));
+const SettingsPage = lazy(() => import('./components/SettingsPage.jsx'));
+let firebaseRuntimePromise = null;
+
+function getFirebaseRuntime() {
+  if (!firebaseRuntimePromise) {
+    firebaseRuntimePromise = import('./services/firebaseRuntime.js');
+  }
+
+  return firebaseRuntimePromise;
+}
 
 function normalizeTimeMode(value) {
   const numericValue = Number(value);
@@ -259,7 +256,7 @@ function loadOnboardingComplete() {
   try {
     if (typeof localStorage === 'undefined') return true;
 
-    return localStorage.getItem(ONBOARDING_KEY) === 'true';
+    return localStorage.getItem(ONBOARDING_KEY) === ONBOARDING_VERSION;
   } catch {
     return true;
   }
@@ -269,7 +266,7 @@ function saveOnboardingComplete() {
   try {
     if (typeof localStorage === 'undefined') return;
 
-    localStorage.setItem(ONBOARDING_KEY, 'true');
+    localStorage.setItem(ONBOARDING_KEY, ONBOARDING_VERSION);
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
@@ -336,27 +333,27 @@ function createId() {
     : `${Date.now()}-${Math.random()}`;
 }
 
-function getDashboardDocRef(userId) {
-  return doc(db, 'users', userId, 'stats', 'dashboard');
+function getDashboardDocRef(firebase, userId) {
+  return firebase.doc(firebase.db, 'users', userId, 'stats', 'dashboard');
 }
 
-function getUserDocRef(userId) {
-  return doc(db, 'users', userId);
+function getUserDocRef(firebase, userId) {
+  return firebase.doc(firebase.db, 'users', userId);
 }
 
-function getResultsCollectionRef(userId) {
-  return collection(db, 'users', userId, 'results');
+function getResultsCollectionRef(firebase, userId) {
+  return firebase.collection(firebase.db, 'users', userId, 'results');
 }
 
-function getLeaderboardCollectionRef() {
-  return collection(db, 'leaderboardResults');
+function getLeaderboardCollectionRef(firebase) {
+  return firebase.collection(firebase.db, 'leaderboardResults');
 }
 
-function getPublicPlayerDocRef(userId) {
-  return doc(db, 'publicPlayers', userId);
+function getPublicPlayerDocRef(firebase, userId) {
+  return firebase.doc(firebase.db, 'publicPlayers', userId);
 }
 
-function serializeDashboard(dashboard) {
+function serializeDashboard(firebase, dashboard) {
   return {
     completed: dashboard.completed,
     estimatedWordsTyped: dashboard.estimatedWordsTyped || 0,
@@ -364,7 +361,7 @@ function serializeDashboard(dashboard) {
     modes: dashboard.modes,
     started: dashboard.started,
     totalTypingSeconds: dashboard.totalTypingSeconds || 0,
-    updatedAt: serverTimestamp()
+    updatedAt: firebase.serverTimestamp()
   };
 }
 
@@ -420,20 +417,20 @@ function normalizeProfile(savedProfile, user) {
   };
 }
 
-async function loadFirebaseProfile(user) {
-  if (!db || !user) {
+async function loadFirebaseProfile(firebase, user) {
+  if (!firebase.db || !user) {
     return normalizeProfile(null, user);
   }
 
-  const userDocRef = getUserDocRef(user.uid);
-  const userSnapshot = await getDoc(userDocRef);
+  const userDocRef = getUserDocRef(firebase, user.uid);
+  const userSnapshot = await firebase.getDoc(userDocRef);
   const savedProfile = userSnapshot.data();
 
   if (!userSnapshot.exists() || !savedProfile?.createdAt) {
-    setDoc(
+    firebase.setDoc(
       userDocRef,
       {
-        createdAt: serverTimestamp(),
+        createdAt: firebase.serverTimestamp(),
         displayName: user.displayName || null,
         email: user.email || null,
         photoURL: user.photoURL || null
@@ -447,15 +444,15 @@ async function loadFirebaseProfile(user) {
   return normalizeProfile(savedProfile, user);
 }
 
-async function loadFirebaseDashboard(userId) {
-  if (!db) return createEmptyDashboard();
+async function loadFirebaseDashboard(firebase, userId) {
+  if (!firebase.db) return createEmptyDashboard();
 
   const [dashboardSnapshot, resultsSnapshot] = await Promise.all([
-    getDoc(getDashboardDocRef(userId)),
-    getDocs(query(
-      getResultsCollectionRef(userId),
-      orderBy('createdAt', 'desc'),
-      limit(PROFILE_RESULTS_LIMIT)
+    firebase.getDoc(getDashboardDocRef(firebase, userId)),
+    firebase.getDocs(firebase.query(
+      getResultsCollectionRef(firebase, userId),
+      firebase.orderBy('createdAt', 'desc'),
+      firebase.limit(PROFILE_RESULTS_LIMIT)
     ))
   ]);
 
@@ -503,12 +500,12 @@ function getLeaderboardPlayerName(profile) {
   return 'Anonymous typist';
 }
 
-function serializePublicPlayer(profile, user) {
+function serializePublicPlayer(firebase, profile, user) {
   return {
     displayName: user?.displayName || null,
     fallbackName: toDisplayNameFromEmail(user?.email),
     username: profile?.username || '',
-    updatedAt: serverTimestamp()
+    updatedAt: firebase.serverTimestamp()
   };
 }
 
@@ -534,29 +531,30 @@ function isMissingFirestoreIndexError(error) {
   );
 }
 
-async function loadLeaderboardResultsSnapshot(indexedQuery) {
+async function loadLeaderboardResultsSnapshot(firebase, indexedQuery) {
   try {
-    return await getDocs(indexedQuery);
+    return await firebase.getDocs(indexedQuery);
   } catch (error) {
     if (!isMissingFirestoreIndexError(error)) {
       throw error;
     }
 
-    return getDocs(query(
-      getLeaderboardCollectionRef(),
-      orderBy('wpm', 'desc'),
-      limit(LEADERBOARD_RESULTS_LIMIT)
+    return firebase.getDocs(firebase.query(
+      getLeaderboardCollectionRef(firebase),
+      firebase.orderBy('wpm', 'desc'),
+      firebase.limit(LEADERBOARD_RESULTS_LIMIT)
     ));
   }
 }
 
 async function loadGlobalLeaderboard() {
-  if (!db) return [];
+  const firebase = await getFirebaseRuntime();
+  if (!firebase.db) return [];
 
-  const resultsSnapshot = await loadLeaderboardResultsSnapshot(query(
-    getLeaderboardCollectionRef(),
-    orderBy('wpm', 'desc'),
-    limit(LEADERBOARD_RESULTS_LIMIT)
+  const resultsSnapshot = await loadLeaderboardResultsSnapshot(firebase, firebase.query(
+    getLeaderboardCollectionRef(firebase),
+    firebase.orderBy('wpm', 'desc'),
+    firebase.limit(LEADERBOARD_RESULTS_LIMIT)
   ));
   const userIds = [...new Set(resultsSnapshot.docs
     .map((resultDoc) => resultDoc.data().userId)
@@ -564,7 +562,7 @@ async function loadGlobalLeaderboard() {
   const userProfiles = new Map();
 
   await Promise.all(userIds.map(async (userId) => {
-    const userSnapshot = await getDoc(getPublicPlayerDocRef(userId));
+    const userSnapshot = await firebase.getDoc(getPublicPlayerDocRef(firebase, userId));
     userProfiles.set(userId, userSnapshot.data() || {});
   }));
 
@@ -607,7 +605,8 @@ async function loadGlobalLeaderboard() {
 }
 
 async function loadPublicPlayerProfile(userId) {
-  if (!db || !userId) {
+  const firebase = await getFirebaseRuntime();
+  if (!firebase.db || !userId) {
     return {
       error: 'Could not load this player profile.',
       playerName: 'Player',
@@ -616,12 +615,12 @@ async function loadPublicPlayerProfile(userId) {
   }
 
   const [playerSnapshot, resultsSnapshot] = await Promise.all([
-    getDoc(getPublicPlayerDocRef(userId)),
-    loadLeaderboardResultsSnapshot(query(
-      getLeaderboardCollectionRef(),
-      where('userId', '==', userId),
-      orderBy('wpm', 'desc'),
-      limit(LEADERBOARD_RESULTS_LIMIT)
+    firebase.getDoc(getPublicPlayerDocRef(firebase, userId)),
+    loadLeaderboardResultsSnapshot(firebase, firebase.query(
+      getLeaderboardCollectionRef(firebase),
+      firebase.where('userId', '==', userId),
+      firebase.orderBy('wpm', 'desc'),
+      firebase.limit(LEADERBOARD_RESULTS_LIMIT)
     ))
   ]);
   const profile = playerSnapshot.data() || {};
@@ -660,8 +659,13 @@ async function loadPublicPlayerProfile(userId) {
 const ONBOARDING_ITEMS = [
   {
     selector: '[data-onboarding-target="settings"]',
-    title: 'Pick a mode',
-    text: 'Choose a time limit or word count before you start.'
+    title: 'Choose your test',
+    text: 'Pick a time limit, word count, or custom time before you start.'
+  },
+  {
+    selector: '[data-onboarding-target="training"]',
+    title: 'Train a weak spot',
+    text: 'Turn on training modes for awkward keys, quotes, code, numbers, or accuracy practice.'
   },
   {
     selector: '[data-onboarding-target="typing"]',
@@ -674,9 +678,19 @@ const ONBOARDING_ITEMS = [
     text: 'Press Cmd or Ctrl plus Enter to restart without reaching for the mouse.'
   },
   {
+    selector: '[data-onboarding-target="leaderboard"]',
+    title: 'Compare rankings',
+    text: 'Open the leaderboard to filter scores by time, words, and specific modes.'
+  },
+  {
+    selector: '[data-onboarding-target="app-settings"]',
+    title: 'Tune the app',
+    text: 'Use settings for themes, keyboard display, sound, motion, and typing rules.'
+  },
+  {
     selector: '[data-onboarding-target="account-dashboard"]',
-    title: 'Track progress',
-    text: 'Sign in when you want your results and dashboard saved.'
+    title: 'Save your progress',
+    text: 'Sign in to keep your dashboard, profile, public stats, and eligible leaderboard results synced.'
   }
 ];
 
@@ -844,7 +858,7 @@ function App() {
   const [result, setResult] = useState(null);
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(() => normalizeProfile(null, null));
-  const [isAuthReady, setIsAuthReady] = useState(!auth);
+  const [isAuthReady, setIsAuthReady] = useState(!isFirebaseConfigured);
   const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
   const [showMobileTip, setShowMobileTip] = useState(true);
@@ -897,21 +911,29 @@ function App() {
   }, [dismissToast]);
 
   const updateDashboard = useCallback((updater) => {
-    if (!user || !db) return;
+    if (!user || !isFirebaseConfigured) return;
 
     setDashboard((currentDashboard) => {
       const nextDashboard = updater(currentDashboard);
 
-      setDoc(getDashboardDocRef(user.uid), serializeDashboard(nextDashboard), {
-        merge: true
-      }).catch((error) => {
-        console.error('Failed to save dashboard:', error);
-        notify({
-          title: 'Dashboard not saved',
-          message: 'Your latest progress could not be synced.',
-          type: 'error'
+      getFirebaseRuntime()
+        .then((firebase) => {
+          if (!firebase.db) return;
+
+          return firebase.setDoc(
+            getDashboardDocRef(firebase, user.uid),
+            serializeDashboard(firebase, nextDashboard),
+            { merge: true }
+          );
+        })
+        .catch((error) => {
+          console.error('Failed to save dashboard:', error);
+          notify({
+            title: 'Dashboard not saved',
+            message: 'Your latest progress could not be synced.',
+            type: 'error'
+          });
         });
-      });
 
       return nextDashboard;
     });
@@ -998,19 +1020,22 @@ function App() {
     setIsOnboardingOpen(false);
   }, []);
 
-  const saveCompletedResult = useCallback((completedResult, options = {}) => {
-    if (!user || !db) {
+  const saveCompletedResult = useCallback(async (completedResult, options = {}) => {
+    if (!user || !isFirebaseConfigured) {
       if (!isFirebaseConfigured) {
         console.error('Firebase is not configured. Add NEXT_PUBLIC_FIREBASE_* values before saving performance.');
       }
       return;
     }
 
-    setDoc(
-      getUserDocRef(user.uid),
+    const firebase = await getFirebaseRuntime();
+    if (!firebase.db) return;
+
+    firebase.setDoc(
+      getUserDocRef(firebase, user.uid),
       {
         email: user.email || null,
-        lastActiveAt: serverTimestamp()
+        lastActiveAt: firebase.serverTimestamp()
       },
       { merge: true }
     ).catch((error) => {
@@ -1060,7 +1085,7 @@ function App() {
       };
     });
 
-    addDoc(getResultsCollectionRef(user.uid), {
+    firebase.addDoc(getResultsCollectionRef(firebase, user.uid), {
       accuracy: completedResult.accuracy,
       correctChars: completedResult.correctChars,
       elapsedSeconds: completedResult.elapsedSeconds,
@@ -1070,7 +1095,7 @@ function App() {
       trainingMode: completedResult.trainingMode || 'standard',
       wpm: completedResult.wpm,
       wrongChars: completedResult.wrongChars,
-      createdAt: serverTimestamp()
+      createdAt: firebase.serverTimestamp()
     }).catch((error) => {
       console.error('Failed to save result:', error);
       notify({
@@ -1080,17 +1105,17 @@ function App() {
       });
     });
 
-    setDoc(
-      getPublicPlayerDocRef(user.uid),
-      serializePublicPlayer(userProfile, user),
+    firebase.setDoc(
+      getPublicPlayerDocRef(firebase, user.uid),
+      serializePublicPlayer(firebase, userProfile, user),
       { merge: true }
     ).catch((error) => {
       console.error('Failed to update public player profile:', error);
     });
 
-    addDoc(getLeaderboardCollectionRef(), {
+    firebase.addDoc(getLeaderboardCollectionRef(firebase), {
       accuracy: completedResult.accuracy,
-      createdAt: serverTimestamp(),
+      createdAt: firebase.serverTimestamp(),
       modeLabel: completedResult.modeLabel,
       testType: completedResult.testType,
       trainingMode: completedResult.trainingMode || 'standard',
@@ -1098,11 +1123,6 @@ function App() {
       wpm: completedResult.wpm
     }).catch((error) => {
       console.error('Failed to save public leaderboard result:', error);
-      notify({
-        title: 'Leaderboard not updated',
-        message: 'Your result saved, but the public ranking did not update.',
-        type: 'warning'
-      });
     });
   }, [notify, updateDashboard, user, userProfile]);
 
@@ -1130,80 +1150,112 @@ function App() {
   }, [updateDashboard]);
 
   useEffect(() => {
-    if (!auth) {
+    if (!isFirebaseConfigured) {
       setIsAuthReady(true);
       return undefined;
     }
 
     let isSubscribed = true;
+    let unsubscribe = null;
+    let idleCallbackId = null;
+    let timeoutId = null;
 
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      const syncAuthState = async () => {
-        setIsAuthReady(false);
+    const startAuthSync = () => {
+      getFirebaseRuntime().then((firebase) => {
+        if (!isSubscribed) return;
 
-        if (!nextUser) {
-          if (!isSubscribed) return;
-
-          setUser(null);
-          setUserProfile(normalizeProfile(null, null));
-          setDashboard(createEmptyDashboard());
+        if (!firebase.auth) {
           setIsAuthReady(true);
           return;
         }
 
-        let nextDashboard = createEmptyDashboard();
-        let nextProfile = normalizeProfile(null, nextUser);
+        unsubscribe = firebase.onAuthStateChanged(firebase.auth, (nextUser) => {
+          const syncAuthState = async () => {
+            setIsAuthReady(false);
 
-        try {
-          [nextDashboard, nextProfile] = await Promise.all([
-            loadFirebaseDashboard(nextUser.uid),
-            loadFirebaseProfile(nextUser)
-          ]);
-        } catch (error) {
-          if (isSubscribed) {
-            console.error('Failed to load dashboard:', error);
-            notify({
-              title: 'Account data issue',
-              message: 'Signed in, but some saved data could not be loaded.',
-              type: 'warning'
-            });
-          }
-        }
+            if (!nextUser) {
+              if (!isSubscribed) return;
 
-        if (!isSubscribed) return;
+              setUser(null);
+              setUserProfile(normalizeProfile(null, null));
+              setDashboard(createEmptyDashboard());
+              setIsAuthReady(true);
+              return;
+            }
 
-        setUser(nextUser);
-        setUserProfile(nextProfile);
-        setDashboard(nextDashboard);
-        setIsAuthReady(true);
-        setIsAuthGateOpen(false);
+            let nextDashboard = createEmptyDashboard();
+            let nextProfile = normalizeProfile(null, nextUser);
 
-        if (db) {
-          setDoc(
-            getPublicPlayerDocRef(nextUser.uid),
-            serializePublicPlayer(nextProfile, nextUser),
-            { merge: true }
-          ).catch((error) => {
-            console.error('Failed to update public player profile:', error);
-          });
-        }
+            try {
+              [nextDashboard, nextProfile] = await Promise.all([
+                loadFirebaseDashboard(firebase, nextUser.uid),
+                loadFirebaseProfile(firebase, nextUser)
+              ]);
+            } catch (error) {
+              if (isSubscribed) {
+                console.error('Failed to load dashboard:', error);
+                notify({
+                  title: 'Account data issue',
+                  message: 'Signed in, but some saved data could not be loaded.',
+                  type: 'warning'
+                });
+              }
+            }
 
-        if (pendingPage === 'dashboard' || pendingPage === 'profile') {
-          window.location.hash = `#${pendingPage}`;
-          setCurrentPage(pendingPage);
-          setPendingPage(null);
-        }
-      };
+            if (!isSubscribed) return;
 
-      syncAuthState();
-    });
+            setUser(nextUser);
+            setUserProfile(nextProfile);
+            setDashboard(nextDashboard);
+            setIsAuthReady(true);
+            setIsAuthGateOpen(false);
+
+            if (firebase.db) {
+              firebase.setDoc(
+                getPublicPlayerDocRef(firebase, nextUser.uid),
+                serializePublicPlayer(firebase, nextProfile, nextUser),
+                { merge: true }
+              ).catch((error) => {
+                console.error('Failed to update public player profile:', error);
+              });
+            }
+
+            if (pendingPage === 'dashboard' || pendingPage === 'profile') {
+              window.location.hash = `#${pendingPage}`;
+              setCurrentPage(pendingPage);
+              setPendingPage(null);
+            }
+          };
+
+          syncAuthState();
+        });
+      }).catch((error) => {
+        console.error('Failed to initialize Firebase:', error);
+        if (isSubscribed) setIsAuthReady(true);
+      });
+    };
+
+    if (['dashboard', 'profile'].includes(currentPage)) {
+      startAuthSync();
+    } else if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleCallbackId = window.requestIdleCallback(startAuthSync, { timeout: 2200 });
+    } else {
+      timeoutId = window.setTimeout(startAuthSync, 900);
+    }
 
     return () => {
       isSubscribed = false;
-      unsubscribe();
-    };
-  }, [notify, pendingPage]);
+      unsubscribe?.();
 
+      if (idleCallbackId !== null) {
+        window.cancelIdleCallback?.(idleCallbackId);
+      }
+
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [currentPage, notify, pendingPage]);
   useEffect(() => {
     if (currentPage !== 'leaderboard') return undefined;
 
@@ -1318,12 +1370,7 @@ function App() {
       countStarted: pendingResultSave.countStarted
     });
     setPendingResultSave(null);
-    notify({
-      title: 'Result saved',
-      message: 'Your completed test was added to your account.',
-      type: 'success'
-    });
-  }, [isAuthReady, notify, pendingResultSave, saveCompletedResult, user]);
+  }, [isAuthReady, pendingResultSave, saveCompletedResult, user]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1417,9 +1464,9 @@ function App() {
     setResult(completedResult);
     activeAttemptRef.current = null;
 
-    if (user && db) {
+    if (user && isFirebaseConfigured) {
       saveCompletedResult(completedResult);
-    } else if (auth && isFirebaseConfigured) {
+    } else if (isFirebaseConfigured) {
       setPendingResultSave({
         countStarted: true,
         result: completedResult
@@ -1530,11 +1577,7 @@ function App() {
 
     setSettings(nextSettings);
     saveSettings(nextSettings);
-    notify({
-      title: nextSoundEnabled ? 'Sound on' : 'Sound off',
-      type: 'info'
-    });
-  }, [notify, settings]);
+  }, [settings]);
 
   const handlePreferencesChange = useCallback((nextOptions) => {
     const nextSettings = {
@@ -1573,19 +1616,17 @@ function App() {
   };
 
   const confirmSignOut = async () => {
-    if (!auth) return;
+    if (!isFirebaseConfigured) return;
     setPendingPage(null);
     setIsAuthGateOpen(false);
     window.location.hash = 'test';
     setCurrentPage('test');
 
     try {
-      await signOut(auth);
-      notify({
-        title: 'Signed out',
-        message: 'Your account session ended.',
-        type: 'success'
-      });
+      const firebase = await getFirebaseRuntime();
+      if (!firebase.auth) return;
+
+      await firebase.signOut(firebase.auth);
       setIsSignOutConfirmOpen(false);
     } catch (error) {
       console.error('Sign out failed:', error);
@@ -1602,14 +1643,13 @@ function App() {
     if (!getUnlockedThemeIds(dashboard).includes(nextTheme) && nextTheme !== theme) return;
     setTheme(nextTheme);
     saveTheme(nextTheme);
-    notify({
-      title: 'Theme changed',
-      type: 'success'
-    });
   };
 
   const saveUserProfile = useCallback(async (nextProfile) => {
-    if (!user || !db) return;
+    if (!user || !isFirebaseConfigured) return;
+
+    const firebase = await getFirebaseRuntime();
+    if (!firebase.db) return;
 
     const profilePayload = {
       city: nextProfile.city || '',
@@ -1618,15 +1658,15 @@ function App() {
       github: nextProfile.github || '',
       occupation: nextProfile.occupation || '',
       photoURL: user.photoURL || null,
-      updatedAt: serverTimestamp(),
+      updatedAt: firebase.serverTimestamp(),
       username: nextProfile.username || '',
       website: nextProfile.website || ''
     };
 
-    await setDoc(getUserDocRef(user.uid), profilePayload, { merge: true });
-    await setDoc(
-      getPublicPlayerDocRef(user.uid),
-      serializePublicPlayer(nextProfile, user),
+    await firebase.setDoc(getUserDocRef(firebase, user.uid), profilePayload, { merge: true });
+    await firebase.setDoc(
+      getPublicPlayerDocRef(firebase, user.uid),
+      serializePublicPlayer(firebase, nextProfile, user),
       { merge: true }
     );
     setUserProfile((currentProfile) => ({
@@ -1636,7 +1676,12 @@ function App() {
   }, [user]);
 
   const requestPasswordReset = useCallback(async () => {
-    if (!user?.email || !auth || !db) {
+    if (!user?.email || !isFirebaseConfigured) {
+      throw new Error('Password reset is only available for email accounts.');
+    }
+
+    const firebase = await getFirebaseRuntime();
+    if (!firebase.auth || !firebase.db) {
       throw new Error('Password reset is only available for email accounts.');
     }
 
@@ -1651,21 +1696,21 @@ function App() {
     }
 
     try {
-      await sendPasswordResetEmail(
-        auth,
+      await firebase.sendPasswordResetEmail(
+        firebase.auth,
         user.email,
         getPasswordResetActionSettings()
       );
 
       const nextResetEmailDates = [new Date(), ...recentResetEmails];
-      await setDoc(
-        getUserDocRef(user.uid),
+      await firebase.setDoc(
+        getUserDocRef(firebase, user.uid),
         {
           accountSecurity: {
             resetEmailSentAt: nextResetEmailDates
           },
           email: user.email || null,
-          updatedAt: serverTimestamp()
+          updatedAt: firebase.serverTimestamp()
         },
         { merge: true }
       );
@@ -1687,7 +1732,12 @@ function App() {
   }, [user, userProfile.accountSecurity]);
 
   const changePassword = useCallback(async ({ currentPassword, nextPassword }) => {
-    if (!user?.email || !auth || !db) {
+    if (!user?.email || !isFirebaseConfigured) {
+      throw new Error('Password changes are only available for accounts with an email.');
+    }
+
+    const firebase = await getFirebaseRuntime();
+    if (!firebase.auth || !firebase.db) {
       throw new Error('Password changes are only available for accounts with an email.');
     }
 
@@ -1714,31 +1764,31 @@ function App() {
     }
 
     try {
-      const credential = EmailAuthProvider.credential(user.email, nextPassword);
+      const credential = firebase.EmailAuthProvider.credential(user.email, nextPassword);
 
       if (hasPasswordProvider) {
-        const currentCredential = EmailAuthProvider.credential(
+        const currentCredential = firebase.EmailAuthProvider.credential(
           user.email,
           currentPassword
         );
 
-        await reauthenticateWithCredential(user, currentCredential);
-        await updatePassword(user, nextPassword);
+        await firebase.reauthenticateWithCredential(user, currentCredential);
+        await firebase.updatePassword(user, nextPassword);
       } else {
-        await linkWithCredential(user, credential);
+        await firebase.linkWithCredential(user, credential);
       }
 
       await user.reload?.();
 
       const nextPasswordChangeDates = [new Date(), ...recentPasswordChanges];
-      await setDoc(
-        getUserDocRef(user.uid),
+      await firebase.setDoc(
+        getUserDocRef(firebase, user.uid),
         {
           accountSecurity: {
             passwordChangedAt: nextPasswordChangeDates
           },
           email: user.email || null,
-          updatedAt: serverTimestamp()
+          updatedAt: firebase.serverTimestamp()
         },
         { merge: true }
       );
@@ -1993,64 +2043,66 @@ function App() {
               : 'page-content'
           }
         >
-          <AnimatePresence mode="wait">
-            {currentPage === 'dashboard' && user ? (
-              <Dashboard key="dashboard" dashboard={dashboard} />
-            ) : currentPage === 'leaderboard' ? (
-              <Leaderboard
-                key="leaderboard"
-                entries={leaderboard.entries}
-                error={leaderboard.error}
-                isLoading={leaderboard.isLoading}
-                currentUserId={user?.uid || ''}
-                onOpenProfile={openPublicProfile}
-              />
-            ) : currentPage === 'public-profile' ? (
-              <PublicProfile
-                key={`public-profile-${publicProfile.userId}`}
-                error={publicProfile.error}
-                isLoading={publicProfile.isLoading}
-                onBack={() => navigate('leaderboard')}
-                playerName={publicProfile.playerName}
-                results={publicProfile.results}
-              />
-            ) : currentPage === 'profile' && user ? (
-              <Profile
-                key="profile"
-                onChangePassword={changePassword}
-                onNotify={notify}
-                onRequestPasswordReset={requestPasswordReset}
-                dashboard={dashboard}
-                onSaveProfile={saveUserProfile}
-                onSignOut={handleSignOut}
-                profile={userProfile}
-                user={user}
-              />
-            ) : currentPage === 'settings' ? (
-              <SettingsPage
-                key="settings"
-                accentColor={accentColor}
-                dashboard={dashboard}
-                mistakeMode={mistakeMode}
-                onPreferencesChange={handlePreferencesChange}
-                onSoundToggle={handleSoundToggle}
-                onThemeChange={handleThemeChange}
-                reducedMotion={reducedMotion}
-                showKeyboard={showKeyboard}
-                soundEnabled={soundEnabled}
-                soundStyle={soundStyle}
-                soundVolume={soundVolume}
-                theme={theme}
-              />
-            ) : currentPage === 'privacy' || currentPage === 'terms' ? (
-              <LegalPage
-                key={currentPage}
-                onBack={() => navigate('test')}
-                type={currentPage}
-              />
-            ) : (
+          <Suspense fallback={null}>
+            <AnimatePresence mode="wait">
+              {currentPage === 'dashboard' && user ? (
+                <Dashboard key="dashboard" dashboard={dashboard} />
+              ) : currentPage === 'leaderboard' ? (
+                <Leaderboard
+                  key="leaderboard"
+                  entries={leaderboard.entries}
+                  error={leaderboard.error}
+                  isLoading={leaderboard.isLoading}
+                  currentUserId={user?.uid || ''}
+                  onOpenProfile={openPublicProfile}
+                />
+              ) : currentPage === 'public-profile' ? (
+                <PublicProfile
+                  key={`public-profile-${publicProfile.userId}`}
+                  error={publicProfile.error}
+                  isLoading={publicProfile.isLoading}
+                  onBack={() => navigate('leaderboard')}
+                  playerName={publicProfile.playerName}
+                  results={publicProfile.results}
+                />
+              ) : currentPage === 'profile' && user ? (
+                <Profile
+                  key="profile"
+                  onChangePassword={changePassword}
+                  onNotify={notify}
+                  onRequestPasswordReset={requestPasswordReset}
+                  dashboard={dashboard}
+                  onSaveProfile={saveUserProfile}
+                  onSignOut={handleSignOut}
+                  profile={userProfile}
+                  user={user}
+                />
+              ) : currentPage === 'settings' ? (
+                <SettingsPage
+                  key="settings"
+                  accentColor={accentColor}
+                  dashboard={dashboard}
+                  mistakeMode={mistakeMode}
+                  onPreferencesChange={handlePreferencesChange}
+                  onSoundToggle={handleSoundToggle}
+                  onThemeChange={handleThemeChange}
+                  reducedMotion={reducedMotion}
+                  showKeyboard={showKeyboard}
+                  soundEnabled={soundEnabled}
+                  soundStyle={soundStyle}
+                  soundVolume={soundVolume}
+                  theme={theme}
+                />
+              ) : currentPage === 'privacy' || currentPage === 'terms' ? (
+                <LegalPage
+                  key={currentPage}
+                  onBack={() => navigate('test')}
+                  type={currentPage}
+                />
+              ) : (
               <motion.div
                 key="test-page"
+                className="home-page"
                 layout
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2107,8 +2159,9 @@ function App() {
                   )}
                 </AnimatePresence>
               </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </AnimatePresence>
+          </Suspense>
         </div>
 
         <Footer onNavigate={navigate} />
@@ -2131,16 +2184,18 @@ function App() {
                 }}
                 type="button"
               />
-              <AuthPanel
-                className="auth-panel auth-panel-modal"
-                message="Sign in to save results and view your typing performance."
-                onNotify={notify}
-                onClose={() => {
-                  setPendingPage(null);
-                  setIsAuthGateOpen(false);
-                }}
-                onSuccess={() => setIsAuthGateOpen(false)}
-              />
+              <Suspense fallback={null}>
+                <AuthPanel
+                  className="auth-panel auth-panel-modal"
+                  message="Sign in to save results and view your typing performance."
+                  onNotify={notify}
+                  onClose={() => {
+                    setPendingPage(null);
+                    setIsAuthGateOpen(false);
+                  }}
+                  onSuccess={() => setIsAuthGateOpen(false)}
+                />
+              </Suspense>
             </motion.div>
           )}
         </AnimatePresence>

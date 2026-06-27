@@ -349,11 +349,6 @@ function Profile({
       });
       setSaveStatus('saved');
       setIsEditOpen(false);
-      onNotify?.({
-        title: 'Profile saved',
-        message: 'Your public details were updated.',
-        type: 'success'
-      });
     } catch {
       setSaveStatus('error');
       onNotify?.({
@@ -372,11 +367,6 @@ function Profile({
       await onRequestPasswordReset();
       setResetStatus('sent');
       setResetMessage(`Reset email sent to ${user.email}.`);
-      onNotify?.({
-        title: 'Reset email sent',
-        message: `Check ${user.email} for the reset link.`,
-        type: 'success'
-      });
     } catch (error) {
       setResetStatus('error');
       setResetMessage(error.message || 'Could not send reset email.');
@@ -420,11 +410,6 @@ function Profile({
       setPasswordMessage(
         isPasswordProvider ? 'Password changed.' : 'Password created.'
       );
-      onNotify?.({
-        title: isPasswordProvider ? 'Password changed' : 'Password created',
-        message: 'Your account security settings were updated.',
-        type: 'success'
-      });
     } catch (error) {
       setPasswordStatus('error');
       setPasswordMessage(error.message || 'Could not change password.');

@@ -134,11 +134,6 @@ function AuthPanel({
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
-      onNotify?.({
-        title: mode === 'register' ? 'Account created' : 'Signed in',
-        message: 'Your typing progress can now be saved.',
-        type: 'success'
-      });
       onSuccess();
     } catch (authError) {
       const friendlyError = getFriendlyError(authError);
@@ -170,11 +165,6 @@ function AuthPanel({
         await saveLegalConsent(credential.user);
       }
 
-      onNotify?.({
-        title: mode === 'register' ? 'Account created' : 'Signed in',
-        message: 'Google sign-in completed.',
-        type: 'success'
-      });
       onSuccess();
     } catch (authError) {
       const friendlyError = getFriendlyError(authError);
@@ -216,11 +206,6 @@ function AuthPanel({
         getPasswordResetActionSettings()
       );
       setResetMessage('Password reset email sent. Check your inbox.');
-      onNotify?.({
-        title: 'Reset email sent',
-        message: 'Check your inbox for the password reset link.',
-        type: 'success'
-      });
     } catch (authError) {
       const friendlyError = getFriendlyError(authError);
 

@@ -238,7 +238,10 @@ function TestSettings({
         </div>
       </div>
 
-      <div className={isTrainingEnabled ? 'training-rail' : 'training-rail training-off'}>
+      <div
+        className={isTrainingEnabled ? 'training-rail' : 'training-rail training-off'}
+        data-onboarding-target="training"
+      >
         <div className="training-rail-top">
           <span className="training-rail-label">training</span>
           <button

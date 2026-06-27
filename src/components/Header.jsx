@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import AuthPanel from './AuthPanel.jsx';
 import {
   DashboardIcon,
   EmojiEventsIcon,
@@ -8,6 +7,8 @@ import {
   PersonIcon,
   SettingsIcon
 } from './MaterialIcons.jsx';
+
+const AuthPanel = lazy(() => import('./AuthPanel.jsx'));
 
 function Header({
   currentPage,
@@ -58,7 +59,6 @@ function Header({
       <nav
         className="nav-actions"
         aria-label="Primary"
-        data-onboarding-target="account-dashboard"
         ref={navRef}
       >
         <motion.button
@@ -75,6 +75,7 @@ function Header({
         <motion.button
           aria-label="Dashboard"
           className={currentPage === 'dashboard' ? 'nav-icon active' : 'nav-icon'}
+          data-onboarding-target="account-dashboard"
           data-tooltip="Dashboard"
           onClick={() => onNavigate('dashboard')}
           type="button"
@@ -86,6 +87,7 @@ function Header({
         <motion.button
           aria-label="Leaderboard"
           className={currentPage === 'leaderboard' ? 'nav-icon active' : 'nav-icon'}
+          data-onboarding-target="leaderboard"
           data-tooltip="Leaderboard"
           onClick={() => onNavigate('leaderboard')}
           type="button"
@@ -97,6 +99,7 @@ function Header({
         <motion.button
           aria-label="Settings"
           className={currentPage === 'settings' ? 'nav-icon active' : 'nav-icon'}
+          data-onboarding-target="app-settings"
           data-tooltip="Settings"
           onClick={() => onNavigate('settings')}
           type="button"
@@ -139,15 +142,17 @@ function Header({
               <PersonIcon />
             </motion.button>
 
-            <AnimatePresence>
-              {isAuthOpen && (
-                <AuthPanel
-                  onNotify={onNotify}
-                  onClose={() => setIsAuthOpen(false)}
-                  onSuccess={() => setIsAuthOpen(false)}
-                />
-              )}
-            </AnimatePresence>
+            <Suspense fallback={null}>
+              <AnimatePresence>
+                {isAuthOpen && (
+                  <AuthPanel
+                    onNotify={onNotify}
+                    onClose={() => setIsAuthOpen(false)}
+                    onSuccess={() => setIsAuthOpen(false)}
+                  />
+                )}
+              </AnimatePresence>
+            </Suspense>
           </div>
         )}
       </nav>
