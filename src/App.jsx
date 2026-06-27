@@ -1960,7 +1960,7 @@ function App() {
         />
 
         <AnimatePresence>
-          {showMobileTip && (
+          {showMobileTip && currentPage === 'test' && (
             <motion.div
               className="mobile-tip"
               initial={{ opacity: 0, y: -10, scale: 0.98 }}
@@ -1968,7 +1968,7 @@ function App() {
               exit={{ opacity: 0, y: -8, scale: 0.98 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
             >
-              <span>A laptop keyboard gives the most accurate typing results.</span>
+              <span>Best with a physical keyboard. Mobile testing still works.</span>
               <button
                 aria-label="Dismiss mobile typing tip"
                 onClick={dismissMobileTip}
