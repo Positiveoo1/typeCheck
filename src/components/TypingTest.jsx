@@ -167,6 +167,17 @@ function isLastWordFullyCorrect(targetText, typedText) {
   return typedText.slice(lastWordStart) === targetText.slice(lastWordStart);
 }
 
+function getWordStateClassName(word, typedLength) {
+  const firstLetterIndex = word.letters[0]?.index ?? word.space?.index ?? 0;
+  const lastLetterIndex = word.letters.at(-1)?.index ?? firstLetterIndex;
+  const wordEndIndex = word.space?.index ?? lastLetterIndex + 1;
+
+  if (typedLength < firstLetterIndex) return 'word word-future';
+  if (typedLength > wordEndIndex) return 'word word-past';
+
+  return 'word word-active';
+}
+
 function TypingTest({
   testType,
   testValue,
@@ -393,13 +404,13 @@ function TypingTest({
     const updateCaretPosition = () => {
       const currentRect = currentElement.getBoundingClientRect();
       const displayRect = wordDisplay.getBoundingClientRect();
-      const upperScrollEdge = displayRect.top + displayRect.height * 0.28;
-      const lowerScrollEdge = displayRect.top + displayRect.height * 0.68;
+      const currentCenter = currentRect.top + currentRect.height / 2;
+      const targetCenter = displayRect.top + displayRect.height * 0.5;
+      const centerTolerance = displayRect.height * 0.12;
+      const centerDelta = currentCenter - targetCenter;
 
-      if (currentRect.top < upperScrollEdge) {
-        wordDisplay.scrollTop -= upperScrollEdge - currentRect.top;
-      } else if (currentRect.bottom > lowerScrollEdge) {
-        wordDisplay.scrollTop += currentRect.bottom - lowerScrollEdge;
+      if (Math.abs(centerDelta) > centerTolerance) {
+        wordDisplay.scrollTop += centerDelta;
       }
 
       const nextCurrentRect = currentElement.getBoundingClientRect();
@@ -762,7 +773,10 @@ function TypingTest({
         />
 
         {wordTokens.map((word) => (
-          <span className="word" key={word.id}>
+          <span
+            className={getWordStateClassName(word, typedText.length)}
+            key={word.id}
+          >
             {word.letters.map(({ char, index }) => {
               const typedChar = typedText[index];
               const isCurrent = index === typedText.length;

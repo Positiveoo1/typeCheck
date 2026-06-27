@@ -56,7 +56,6 @@ const SHORTCUT_TIME_MODES = [15, 30, 60];
 const SHORTCUT_WORD_MODES = [10, 30, 60];
 const PROFILE_RESULTS_LIMIT = 400;
 const LEADERBOARD_RESULTS_LIMIT = 500;
-const LEADERBOARD_MODE_LABEL = '10 words';
 const ACCOUNT_SECURITY_WINDOW_DAYS = 30;
 const PASSWORD_CHANGE_LIMIT = 2;
 const PASSWORD_RESET_EMAIL_LIMIT = 4;
@@ -556,7 +555,6 @@ async function loadGlobalLeaderboard() {
 
   const resultsSnapshot = await loadLeaderboardResultsSnapshot(query(
     getLeaderboardCollectionRef(),
-    where('modeLabel', '==', LEADERBOARD_MODE_LABEL),
     orderBy('wpm', 'desc'),
     limit(LEADERBOARD_RESULTS_LIMIT)
   ));
@@ -588,21 +586,24 @@ async function loadGlobalLeaderboard() {
         wpm: Number(data.wpm) || 0
       };
     })
-    .filter((result) => result.modeLabel === LEADERBOARD_MODE_LABEL)
+    .filter((result) => result.modeLabel)
     .sort((firstResult, secondResult) => (
       secondResult.wpm - firstResult.wpm ||
       secondResult.accuracy - firstResult.accuracy ||
       (new Date(secondResult.createdAt || 0) - new Date(firstResult.createdAt || 0))
     ));
-  const bestByUser = new Map();
+  const bestByUserAndMode = new Map();
 
   rankedResults.forEach((result) => {
-    if (!result.userId || bestByUser.has(result.userId)) return;
+    if (!result.userId) return;
 
-    bestByUser.set(result.userId, result);
+    const key = `${result.userId}:${result.modeLabel}`;
+    if (bestByUserAndMode.has(key)) return;
+
+    bestByUserAndMode.set(key, result);
   });
 
-  return [...bestByUser.values()].slice(0, 50);
+  return [...bestByUserAndMode.values()];
 }
 
 async function loadPublicPlayerProfile(userId) {
@@ -618,7 +619,6 @@ async function loadPublicPlayerProfile(userId) {
     getDoc(getPublicPlayerDocRef(userId)),
     loadLeaderboardResultsSnapshot(query(
       getLeaderboardCollectionRef(),
-      where('modeLabel', '==', LEADERBOARD_MODE_LABEL),
       where('userId', '==', userId),
       orderBy('wpm', 'desc'),
       limit(LEADERBOARD_RESULTS_LIMIT)
@@ -642,7 +642,7 @@ async function loadPublicPlayerProfile(userId) {
     })
     .filter((result) => (
       result.userId === userId &&
-      result.modeLabel === LEADERBOARD_MODE_LABEL
+      result.modeLabel
     ))
     .sort((firstResult, secondResult) => (
       secondResult.wpm - firstResult.wpm ||
@@ -1088,24 +1088,22 @@ function App() {
       console.error('Failed to update public player profile:', error);
     });
 
-    if (completedResult.modeLabel === LEADERBOARD_MODE_LABEL) {
-      addDoc(getLeaderboardCollectionRef(), {
-        accuracy: completedResult.accuracy,
-        createdAt: serverTimestamp(),
-        modeLabel: completedResult.modeLabel,
-        testType: completedResult.testType,
-        trainingMode: completedResult.trainingMode || 'standard',
-        userId: user.uid,
-        wpm: completedResult.wpm
-      }).catch((error) => {
-        console.error('Failed to save public leaderboard result:', error);
-        notify({
-          title: 'Leaderboard not updated',
-          message: 'Your result saved, but the public ranking did not update.',
-          type: 'warning'
-        });
+    addDoc(getLeaderboardCollectionRef(), {
+      accuracy: completedResult.accuracy,
+      createdAt: serverTimestamp(),
+      modeLabel: completedResult.modeLabel,
+      testType: completedResult.testType,
+      trainingMode: completedResult.trainingMode || 'standard',
+      userId: user.uid,
+      wpm: completedResult.wpm
+    }).catch((error) => {
+      console.error('Failed to save public leaderboard result:', error);
+      notify({
+        title: 'Leaderboard not updated',
+        message: 'Your result saved, but the public ranking did not update.',
+        type: 'warning'
       });
-    }
+    });
   }, [notify, updateDashboard, user, userProfile]);
 
   const markIncompleteAttempt = useCallback(() => {

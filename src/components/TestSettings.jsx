@@ -13,6 +13,41 @@ const buttonMotion = {
   tap: { scale: 0.96 }
 };
 
+const TRAINING_MODE_META = {
+  standard: {
+    difficulty: 'easy',
+    focus: 'baseline',
+    icon: 'Aa'
+  },
+  weak: {
+    difficulty: 'hard',
+    focus: 'awkward keys',
+    icon: 'W'
+  },
+  quotes: {
+    difficulty: 'medium',
+    focus: 'rhythm',
+    icon: '"'
+  },
+  code: {
+    difficulty: 'hard',
+    focus: 'symbols',
+    icon: '{}'
+  },
+  numbers: {
+    difficulty: 'medium',
+    focus: 'digits',
+    icon: '#'
+  },
+  'accuracy-lock': {
+    difficulty: 'hard',
+    focus: 'precision',
+    icon: '!'
+  }
+};
+const TRAINING_CARD_MODES = TRAINING_MODES.filter((mode) => mode.id !== 'standard');
+const DEFAULT_ENABLED_TRAINING_MODE = TRAINING_CARD_MODES[0]?.id || 'weak';
+
 function TestSettings({
   selectedType,
   selectedTrainingMode = 'standard',
@@ -23,9 +58,11 @@ function TestSettings({
 }) {
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
   const [customTime, setCustomTime] = useState(String(selectedValue));
+  const [lastTrainingMode, setLastTrainingMode] = useState(DEFAULT_ENABLED_TRAINING_MODE);
   const customTimeRef = useRef(null);
   const isCustomTimeSelected =
     selectedType === 'time' && !TIME_MODES.includes(selectedValue);
+  const isTrainingEnabled = selectedTrainingMode !== 'standard';
 
   useEffect(() => {
     if (selectedType === 'time') {
@@ -46,6 +83,12 @@ function TestSettings({
     return () => document.removeEventListener('pointerdown', closeCustomTime);
   }, [isCustomTimeOpen]);
 
+  useEffect(() => {
+    if (selectedTrainingMode !== 'standard') {
+      setLastTrainingMode(selectedTrainingMode);
+    }
+  }, [selectedTrainingMode]);
+
   const applyCustomTime = () => {
     const normalizedTime = Math.min(
       MAX_CUSTOM_TIME,
@@ -57,6 +100,14 @@ function TestSettings({
     setCustomTime(String(normalizedTime));
     setIsCustomTimeOpen(false);
     onSettingsChange('time', normalizedTime);
+  };
+
+  const toggleTraining = () => {
+    if (disabled) return;
+
+    onTrainingModeChange(
+      isTrainingEnabled ? 'standard' : lastTrainingMode
+    );
   };
 
   return (
@@ -187,36 +238,77 @@ function TestSettings({
         </div>
       </div>
 
-      <div className="training-rail">
-        <span className="training-rail-label">training</span>
-        <div className="mode-group training-mode-group" role="group" aria-label="Choose training mode">
-          {TRAINING_MODES.map((mode) => (
-            <motion.button
-              aria-label={`${mode.label}: ${mode.description}`}
-              className={
-                selectedTrainingMode === mode.id
-                  ? 'mode training-mode active'
-                  : 'mode training-mode'
-              }
-              disabled={disabled}
-              key={mode.id}
-              onClick={() => onTrainingModeChange(mode.id)}
-              title={mode.description}
-              type="button"
-              whileHover={disabled ? undefined : buttonMotion.hover}
-              whileTap={disabled ? undefined : buttonMotion.tap}
-            >
-              {selectedTrainingMode === mode.id && (
-                <motion.span
-                  className="mode-active-bg"
-                  layoutId="active-training-mode"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                />
-              )}
-              <span className="mode-text">{mode.shortLabel}</span>
-            </motion.button>
-          ))}
+      <div className={isTrainingEnabled ? 'training-rail' : 'training-rail training-off'}>
+        <div className="training-rail-top">
+          <span className="training-rail-label">training</span>
+          <button
+            aria-label={isTrainingEnabled ? 'Turn training off' : 'Turn training on'}
+            aria-pressed={isTrainingEnabled}
+            className="training-toggle"
+            disabled={disabled}
+            onClick={toggleTraining}
+            type="button"
+          >
+            <span className="training-toggle-track" aria-hidden="true">
+              <span />
+            </span>
+            <strong>{isTrainingEnabled ? 'on' : 'off'}</strong>
+          </button>
         </div>
+        <AnimatePresence initial={false}>
+          {isTrainingEnabled && (
+            <motion.div
+              className="training-mode-grid"
+              role="group"
+              aria-label="Choose training mode"
+              initial={{ opacity: 0, height: 0, y: -4 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -4 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              {TRAINING_CARD_MODES.map((mode) => {
+                const meta = TRAINING_MODE_META[mode.id];
+                const isActive = selectedTrainingMode === mode.id;
+
+                return (
+                  <motion.button
+                    aria-label={`${mode.label}: ${mode.description}. ${meta.focus} focus, ${meta.difficulty} difficulty.`}
+                    className={
+                      isActive
+                        ? 'training-mode-card active'
+                        : 'training-mode-card'
+                    }
+                    disabled={disabled}
+                    key={mode.id}
+                    onClick={() => onTrainingModeChange(mode.id)}
+                    title={mode.description}
+                    type="button"
+                    whileHover={disabled ? undefined : buttonMotion.hover}
+                    whileTap={disabled ? undefined : buttonMotion.tap}
+                  >
+                    {isActive && (
+                      <motion.span
+                        className="training-mode-active-bg"
+                        layoutId="active-training-mode-card"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <span className="training-mode-icon" aria-hidden="true">
+                      {meta.icon}
+                    </span>
+                    <span className="training-mode-copy">
+                      <strong>{mode.shortLabel}</strong>
+                      <small>{meta.focus}</small>
+                    </span>
+                    <span className={`training-mode-difficulty difficulty-${meta.difficulty}`}>
+                      {meta.difficulty}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.section>
   );
