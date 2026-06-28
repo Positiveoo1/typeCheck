@@ -8,16 +8,33 @@ export function shuffleWords(
   random = Math.random
 ) {
   const uniqueWords = [...new Set(wordList)];
+  const generatedWords = [];
 
-  for (let index = uniqueWords.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(random() * (index + 1));
-    [uniqueWords[index], uniqueWords[randomIndex]] = [
-      uniqueWords[randomIndex],
-      uniqueWords[index]
-    ];
+  if (wordCount <= 0 || uniqueWords.length === 0) return '';
+
+  while (generatedWords.length < wordCount) {
+    const nextWords = [...uniqueWords];
+
+    for (let index = nextWords.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(random() * (index + 1));
+      [nextWords[index], nextWords[randomIndex]] = [
+        nextWords[randomIndex],
+        nextWords[index]
+      ];
+    }
+
+    if (
+      generatedWords.length > 0 &&
+      nextWords.length > 1 &&
+      generatedWords[generatedWords.length - 1] === nextWords[0]
+    ) {
+      [nextWords[0], nextWords[1]] = [nextWords[1], nextWords[0]];
+    }
+
+    generatedWords.push(...nextWords);
   }
 
-  return uniqueWords.slice(0, wordCount).join(' ');
+  return generatedWords.slice(0, wordCount).join(' ');
 }
 
 export function calculateStats(targetText, typedText, elapsedSeconds) {

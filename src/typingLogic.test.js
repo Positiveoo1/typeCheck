@@ -127,6 +127,24 @@ describe('training modes', () => {
     assert.equal(numberTarget.split(/\s+/).length, 6);
     assert.match(numberTarget, /\d/);
   });
+
+  it('fills longer training targets by reshuffling small pools', () => {
+    const weakTarget = buildTrainingTarget({
+      random: () => 0,
+      testType: 'words',
+      testValue: 60,
+      trainingMode: 'weak'
+    });
+    const numberTarget = buildTrainingTarget({
+      random: () => 0,
+      testType: 'words',
+      testValue: 60,
+      trainingMode: 'numbers'
+    });
+
+    assert.equal(weakTarget.split(/\s+/).length, 60);
+    assert.equal(numberTarget.split(/\s+/).length, 60);
+  });
 });
 
 describe('word generation and tokenizing', () => {
@@ -145,10 +163,11 @@ describe('word generation and tokenizing', () => {
     assert.equal(new Set(generatedWords).size, 4);
   });
 
-  it('does not invent words when the requested amount is larger than the unique list', () => {
+  it('reshuffles the available words when the requested amount is larger than the unique list', () => {
     const generatedWords = shuffleWords(10, ['one', 'two', 'two']).split(' ');
 
-    assert.deepEqual(generatedWords.sort(), ['one', 'two']);
+    assert.equal(generatedWords.length, 10);
+    assert.deepEqual([...new Set(generatedWords)].sort(), ['one', 'two']);
   });
 
   it('keeps character indexes stable across words and spaces', () => {

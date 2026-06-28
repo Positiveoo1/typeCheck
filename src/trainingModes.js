@@ -64,7 +64,21 @@ const WEAK_WORDS = [
   'keyboard',
   'public',
   'value',
-  'private'
+  'private',
+  'glyph',
+  'hyphen',
+  'jinx',
+  'jockey',
+  'luxury',
+  'matrix',
+  'opaque',
+  'proxy',
+  'rhythm',
+  'sphinx',
+  'squeeze',
+  'twelfth',
+  'wizard',
+  'zephyr'
 ];
 
 const QUOTES = [
@@ -72,7 +86,12 @@ const QUOTES = [
   'Focus is a quiet room you build one word at a time.',
   'Fast hands are useful; calm hands are dangerous.',
   'Practice does not need drama, only a return key.',
-  'Accuracy first, velocity follows.'
+  'Accuracy first, velocity follows.',
+  'The cleanest run begins before the first key moves.',
+  'Slow is smooth until smooth becomes fast.',
+  'Every missed letter is a useful little map.',
+  'Good rhythm is built from patient repeats.',
+  'Speed arrives when attention stops rushing.'
 ];
 
 const CODE_SNIPPETS = [
@@ -80,7 +99,12 @@ const CODE_SNIPPETS = [
   'function formatUser(name) { return name.trim().toLowerCase(); }',
   'if (event.key === "Enter") submitForm(event);',
   'export const config = { retries: 3, cache: false };',
-  'users.filter((user) => user.active).map((user) => user.email);'
+  'users.filter((user) => user.active).map((user) => user.email);',
+  'const isReady = status === "idle" && queue.length > 0;',
+  'try { await saveDraft(formData); } catch (error) { notify(error); }',
+  'return items.slice(0, limit).sort((a, b) => a.rank - b.rank);',
+  'const route = `/users/${user.id}/settings`;',
+  'button.addEventListener("click", () => setOpen(true));'
 ];
 
 const NUMBER_TOKENS = [
@@ -99,19 +123,23 @@ const NUMBER_TOKENS = [
   '8-bit',
   '120ms',
   '5-4',
-  '1,024'
+  '1,024',
+  '200',
+  '302',
+  '0.25',
+  '75%',
+  '$49',
+  '2/3',
+  '6:45',
+  '#108',
+  '16px',
+  '24/7',
+  '1.618',
+  '10x',
+  '60fps',
+  '256mb',
+  '9-0'
 ];
-
-function repeatToWordCount(text, wordCount) {
-  const sourceWords = text.split(/\s+/).filter(Boolean);
-  const nextWords = [];
-
-  while (nextWords.length < wordCount) {
-    nextWords.push(...sourceWords);
-  }
-
-  return nextWords.slice(0, wordCount).join(' ');
-}
 
 function shuffleList(list, random = Math.random) {
   const nextList = [...list];
@@ -122,6 +150,24 @@ function shuffleList(list, random = Math.random) {
   }
 
   return nextList;
+}
+
+function buildRepeatedShuffledText(textList, wordCount, random = Math.random) {
+  const sourceTexts = [...new Set(textList)].filter(Boolean);
+  const nextWords = [];
+
+  if (wordCount <= 0 || sourceTexts.length === 0) return '';
+
+  while (nextWords.length < wordCount) {
+    const shuffledTexts = shuffleList(sourceTexts, random);
+
+    shuffledTexts.forEach((text) => {
+      if (nextWords.length >= wordCount) return;
+      nextWords.push(...text.split(/\s+/).filter(Boolean));
+    });
+  }
+
+  return nextWords.slice(0, wordCount).join(' ');
 }
 
 export function getTrainingMode(modeId) {
@@ -152,17 +198,11 @@ export function buildTrainingTarget({
   }
 
   if (trainingMode === 'quotes') {
-    return repeatToWordCount(
-      shuffleList(QUOTES, random).join(' '),
-      wordCount
-    );
+    return buildRepeatedShuffledText(QUOTES, wordCount, random);
   }
 
   if (trainingMode === 'code') {
-    return repeatToWordCount(
-      shuffleList(CODE_SNIPPETS, random).join(' '),
-      wordCount
-    );
+    return buildRepeatedShuffledText(CODE_SNIPPETS, wordCount, random);
   }
 
   if (trainingMode === 'numbers') {
