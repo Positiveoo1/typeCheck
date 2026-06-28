@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
+import { LEGAL_VERSION } from '../legal.js';
 
 const LEGAL_CONTENT = {
   privacy: {
     eyebrow: 'privacy',
     title: 'Privacy Policy',
+    version: LEGAL_VERSION,
     updated: 'Last updated: June 14, 2026',
     intro:
       'TypeCheck is built to measure typing performance and save progress for signed-in users. This policy explains what information is used and why.',
@@ -43,6 +45,7 @@ const LEGAL_CONTENT = {
   terms: {
     eyebrow: 'terms',
     title: 'Terms',
+    version: LEGAL_VERSION,
     updated: 'Last updated: June 14, 2026',
     intro:
       'By using TypeCheck, you agree to use the app fairly and understand how typing results, profiles, and leaderboard features work.',
@@ -95,7 +98,12 @@ function LegalPage({ type, onBack }) {
     >
       <section className="legal-hero">
         <p className="eyebrow">{content.eyebrow}</p>
-        <h2>{content.title}</h2>
+        <h2>
+          {content.title}
+          {type === 'terms' && (
+            <span className="legal-version">v{content.version}</span>
+          )}
+        </h2>
         <span>{content.updated}</span>
       </section>
 

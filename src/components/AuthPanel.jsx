@@ -8,10 +8,9 @@ import {
   signInWithEmailAndPassword
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { LEGAL_VERSION } from '../legal.js';
 import { auth, db, isFirebaseConfigured } from '../services/firebase.js';
 import { VisibilityIcon, VisibilityOffIcon } from './MaterialIcons.jsx';
-
-const LEGAL_VERSION = '2026-06-14';
 
 function getFriendlyError(error) {
   if (!error?.code) return 'Something went wrong. Try again.';

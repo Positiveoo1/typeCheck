@@ -1,3 +1,5 @@
+import { LEGAL_VERSION } from '../legal.js';
+
 function Footer({ onNavigate }) {
   return (
     <footer className="site-footer">
@@ -8,6 +10,7 @@ function Footer({ onNavigate }) {
         </button>
         <button onClick={() => onNavigate('terms')} type="button">
           Terms
+          <span className="footer-legal-version">v{LEGAL_VERSION}</span>
         </button>
       </nav>
     </footer>
