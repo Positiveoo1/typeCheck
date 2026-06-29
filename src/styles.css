@@ -1770,6 +1770,72 @@ h2 {
   padding: 42px 0 34px;
 }
 
+.not-found-page {
+  width: min(720px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 34px 0;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+}
+
+.not-found-panel {
+  width: 100%;
+  padding: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-2-rgb), 0.045)),
+    rgba(255, 255, 255, 0.028);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.not-found-brand {
+  margin-bottom: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--heading);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.not-found-brand img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+.not-found-panel h1 {
+  margin: 8px 0 10px;
+  color: var(--heading);
+  font-size: clamp(2.3rem, 8vw, 4.8rem);
+  line-height: 0.95;
+}
+
+.not-found-panel p:not(.eyebrow) {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.not-found-action {
+  min-height: 42px;
+  margin-top: 24px;
+  padding: 0 16px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  background: var(--accent-2);
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .dashboard-hero {
   min-height: 190px;
   padding: 28px;
