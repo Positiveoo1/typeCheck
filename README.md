@@ -22,7 +22,7 @@ TypeCheck v1.6.0 is a beginner-friendly typing speed test built with Next.js, Re
 - SEO metadata, robots.txt, and sitemap support.
 
 ## Tech Stack
-
+m,
 - Next.js `15`
 - React `19`
 - Firebase Auth and Firestore

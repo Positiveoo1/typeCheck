@@ -3806,7 +3806,17 @@ h2 {
 
 .word-space {
   display: inline-block;
+  border-radius: 3px;
+  text-align: center;
   width: 0.55em;
+}
+
+.word-space.wrong {
+  color: var(--wrong);
+  background: color-mix(in srgb, var(--wrong) 11%, transparent);
+  min-width: 0.55em;
+  padding: 0 0.08em;
+  width: auto;
 }
 
 .letter {

@@ -80,8 +80,11 @@ describe('getNextTypedText', () => {
     assert.equal(getNextTypedText('hello world', 'he', 'hello world'), 'hel');
   });
 
-  it('requires a real space character before moving to the next word', () => {
-    assert.equal(getNextTypedText('hello world', 'hello', 'hellox'), 'hello');
+  it('shows wrong boundary characters but requires space before moving on', () => {
+    assert.equal(getNextTypedText('hello world', 'hello', 'hellox'), 'hellox');
+    assert.equal(getNextTypedText('hello world', 'hellox', 'helloxy'), 'helloxy');
+    assert.equal(getNextTypedText('hello world', 'helloxy', 'hellox'), 'hellox');
+    assert.equal(getNextTypedText('hello world', 'helloxy', 'helloxy '), 'hello ');
     assert.equal(getNextTypedText('hello world', 'hello', 'hello '), 'hello ');
   });
 

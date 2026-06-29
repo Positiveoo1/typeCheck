@@ -167,12 +167,39 @@ function isLastWordFullyCorrect(targetText, typedText) {
   return typedText.slice(lastWordStart) === targetText.slice(lastWordStart);
 }
 
-function getWordStateClassName(word, typedLength) {
+function getUnresolvedSpaceMistakeIndex(targetText, typedText) {
+  for (let index = 0; index < typedText.length; index += 1) {
+    if (targetText[index] === ' ' && typedText[index] !== ' ') {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function getWordStateClassName(
+  word,
+  typedLength,
+  typedText,
+  unresolvedSpaceMistakeIndex
+) {
   const firstLetterIndex = word.letters[0]?.index ?? word.space?.index ?? 0;
   const lastLetterIndex = word.letters.at(-1)?.index ?? firstLetterIndex;
   const wordEndIndex = word.space?.index ?? lastLetterIndex + 1;
+  const hasWrongSpace =
+    word.space &&
+    typedText[word.space.index] !== undefined &&
+    typedText[word.space.index] !== ' ';
+
+  if (
+    unresolvedSpaceMistakeIndex !== -1 &&
+    firstLetterIndex > unresolvedSpaceMistakeIndex
+  ) {
+    return 'word word-future';
+  }
 
   if (typedLength < firstLetterIndex) return 'word word-future';
+  if (hasWrongSpace) return 'word word-active';
   if (typedLength > wordEndIndex) return 'word word-past';
 
   return 'word word-active';
@@ -235,6 +262,10 @@ function TypingTest({
   const activeTrainingMode = getTrainingMode(trainingMode);
   const isAccuracyLock = trainingMode === 'accuracy-lock';
   const currentMistakes = calculateStats(targetText, typedText, Math.max(elapsedTime, 0.1)).wrongChars;
+  const unresolvedSpaceMistakeIndex = getUnresolvedSpaceMistakeIndex(
+    targetText,
+    typedText
+  );
 
   useEffect(() => {
     const wordDisplay = wordDisplayRef.current;
@@ -774,12 +805,23 @@ function TypingTest({
 
         {wordTokens.map((word) => (
           <span
-            className={getWordStateClassName(word, typedText.length)}
+            className={getWordStateClassName(
+              word,
+              typedText.length,
+              typedText,
+              unresolvedSpaceMistakeIndex
+            )}
             key={word.id}
           >
             {word.letters.map(({ char, index }) => {
-              const typedChar = typedText[index];
-              const isCurrent = index === typedText.length;
+              const isAfterUnresolvedSpaceMistake =
+                unresolvedSpaceMistakeIndex !== -1 &&
+                index > unresolvedSpaceMistakeIndex;
+              const typedChar = isAfterUnresolvedSpaceMistake
+                ? undefined
+                : typedText[index];
+              const isCurrent =
+                unresolvedSpaceMistakeIndex === -1 && index === typedText.length;
               let className = 'letter';
 
               if (typedChar !== undefined) {
@@ -802,16 +844,31 @@ function TypingTest({
             })}
 
             {word.space && (
-              <span
-                className={
-                  word.space.index === typedText.length
-                    ? 'word-space current'
-                    : 'word-space'
-                }
-                ref={word.space.index === typedText.length ? currentLetterRef : null}
-              >
-                {' '}
-              </span>
+              (() => {
+                const typedSpaceChar = typedText[word.space.index];
+                const isWrongSpace =
+                  typedSpaceChar !== undefined && typedSpaceChar !== ' ';
+                const isCurrent =
+                  word.space.index === typedText.length || isWrongSpace;
+                const wrongSpaceText = isWrongSpace
+                  ? typedText.slice(word.space.index)
+                  : '';
+
+                return (
+                  <span
+                    className={[
+                      'word-space',
+                      isWrongSpace ? 'wrong current' : '',
+                      !isWrongSpace && isCurrent ? 'current' : ''
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    ref={isCurrent ? currentLetterRef : null}
+                  >
+                    {isWrongSpace ? wrongSpaceText : ' '}
+                  </span>
+                );
+              })()
             )}
           </span>
         ))}

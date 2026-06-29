@@ -133,12 +133,32 @@ export function getNextTypedText(
     : targetText.length;
 
   const nextTypedText = inputValue.slice(0, maxLength);
+  const unresolvedSpaceMistakeIndex = [...currentTypedText].findIndex(
+    (typedChar, index) => targetText[index] === ' ' && typedChar !== ' '
+  );
+  const hasUnresolvedSpaceMistake =
+    unresolvedSpaceMistakeIndex !== -1;
+
+  if (hasUnresolvedSpaceMistake) {
+    const typedChar = nextTypedText[currentTypedText.length];
+
+    if (nextTypedText.length < currentTypedText.length) {
+      return nextTypedText;
+    }
+
+    if (nextTypedText.length === currentTypedText.length + 1 && typedChar === ' ') {
+      return `${currentTypedText.slice(0, unresolvedSpaceMistakeIndex)} `;
+    }
+
+    return nextTypedText;
+  }
+
   const isAddingSingleCharacter = nextTypedText.length === currentTypedText.length + 1;
   const expectedChar = targetText[currentTypedText.length];
   const typedChar = nextTypedText[currentTypedText.length];
 
   if (isAddingSingleCharacter && expectedChar === ' ' && typedChar !== ' ') {
-    return currentTypedText;
+    return nextTypedText;
   }
 
   return nextTypedText;
