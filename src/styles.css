@@ -2801,6 +2801,24 @@ h2 {
   color: var(--wrong);
 }
 
+.leaderboard-auth-prompt {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.2);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  color: var(--muted);
+  background: rgba(var(--accent-2-rgb), 0.07);
+  font-size: 0.88rem;
+}
+
+.leaderboard-auth-prompt strong {
+  color: var(--heading);
+}
+
 .leaderboard-filters {
   margin-top: 16px;
   display: grid;

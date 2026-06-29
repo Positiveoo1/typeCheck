@@ -200,6 +200,13 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
           </div>
         </div>
 
+        {!currentUserId && (
+          <div className="leaderboard-auth-prompt">
+            <strong>Want to see yourself here?</strong>
+            <span>Log in or create an account, finish a test, and claim your spot on the board.</span>
+          </div>
+        )}
+
         {isLoading ? (
           <p className="leaderboard-message">Loading leaderboard...</p>
         ) : error ? (
