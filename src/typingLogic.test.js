@@ -80,6 +80,11 @@ describe('getNextTypedText', () => {
     assert.equal(getNextTypedText('hello world', 'he', 'hello world'), 'hel');
   });
 
+  it('requires a real space character before moving to the next word', () => {
+    assert.equal(getNextTypedText('hello world', 'hello', 'hellox'), 'hello');
+    assert.equal(getNextTypedText('hello world', 'hello', 'hello '), 'hello ');
+  });
+
   it('never lets typed text grow beyond the target text', () => {
     assert.equal(getNextTypedText('hello', 'hell', 'hello!!!'), 'hello');
   });

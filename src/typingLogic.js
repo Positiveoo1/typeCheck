@@ -132,5 +132,14 @@ export function getNextTypedText(
     ? currentTypedText.length + 1
     : targetText.length;
 
-  return inputValue.slice(0, maxLength);
+  const nextTypedText = inputValue.slice(0, maxLength);
+  const isAddingSingleCharacter = nextTypedText.length === currentTypedText.length + 1;
+  const expectedChar = targetText[currentTypedText.length];
+  const typedChar = nextTypedText[currentTypedText.length];
+
+  if (isAddingSingleCharacter && expectedChar === ' ' && typedChar !== ' ') {
+    return currentTypedText;
+  }
+
+  return nextTypedText;
 }
