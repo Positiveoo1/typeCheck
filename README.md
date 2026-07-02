@@ -120,6 +120,19 @@ The app expects these Firestore areas when Firebase is configured:
 
 Auth is used for sign-in state, password reset email, password linking, password changes, sign-out, and recent-login checks.
 
+Firestore security rules are defined in `firestore.rules`. Deploy them after
+selecting the Firebase project:
+
+```bash
+firebase use typecheck-e1830
+firebase deploy --only firestore:rules
+```
+
+If saving a result logs `Missing or insufficient permissions`, the deployed
+Firestore rules do not allow the app's expected authenticated writes yet. A
+separate `net::ERR_BLOCKED_BY_CLIENT` line is usually caused by a browser
+extension or privacy blocker interrupting a Firestore network request.
+
 ## App Navigation
 
 The UI uses hash-based page state inside the main Next page:
@@ -201,7 +214,7 @@ Before deploying:
 1. Set all required Firebase environment variables in the hosting provider.
 2. Set `NEXT_PUBLIC_SITE_URL` to the production site origin.
 3. Run `npm run build`.
-4. Confirm Firebase Auth providers and Firestore rules match the app's expected collections.
+4. Deploy `firestore.rules` and confirm Firebase Auth providers match the app's expected collections.
 
 For a static typing-test-only version, Firebase variables can be omitted, but account, dashboard, profile, and leaderboard persistence will not be available.
 

@@ -64,7 +64,8 @@ const Leaderboard = lazy(() => import('./components/Leaderboard.jsx'));
 const LegalPage = lazy(() => import('./components/LegalPage.jsx'));
 const Profile = lazy(() => import('./components/Profile.jsx'));
 const PublicProfile = lazy(() => import('./components/PublicProfile.jsx'));
-const Results = lazy(() => import('./components/Results.jsx'));
+const preloadResults = () => import('./components/Results.jsx');
+const Results = lazy(preloadResults);
 const SettingsPage = lazy(() => import('./components/SettingsPage.jsx'));
 let firebaseRuntimePromise = null;
 
@@ -324,6 +325,49 @@ function normalizeDashboard(savedDashboard, results = savedDashboard?.results) {
     results: normalizedResults,
     totalTypingSeconds:
       Number(savedDashboard.totalTypingSeconds) || fallbackTypingSeconds
+  };
+}
+
+function addCompletedResultToDashboard(dashboard, completedResult, options = {}) {
+  const mode = dashboard.modes[completedResult.modeLabel] || createModeStats();
+  const nextMode = {
+    ...mode,
+    started: mode.started + (options.countStarted ? 1 : 0),
+    completed: mode.completed + 1,
+    bestWpm: Math.max(mode.bestWpm || 0, completedResult.wpm),
+    bestAccuracy: Math.max(mode.bestAccuracy || 0, completedResult.accuracy)
+  };
+
+  return {
+    ...dashboard,
+    started: dashboard.started + (options.countStarted ? 1 : 0),
+    completed: dashboard.completed + 1,
+    modes: {
+      ...dashboard.modes,
+      [completedResult.modeLabel]: nextMode
+    },
+    results: [
+      {
+        id: createId(),
+        accuracy: completedResult.accuracy,
+        correctChars: completedResult.correctChars,
+        createdAt: new Date(),
+        elapsedSeconds: completedResult.elapsedSeconds,
+        endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
+        modeLabel: completedResult.modeLabel,
+        testType: completedResult.testType,
+        trainingMode: completedResult.trainingMode || 'standard',
+        wpm: completedResult.wpm,
+        wrongChars: completedResult.wrongChars
+      },
+      ...dashboard.results
+    ].slice(0, PROFILE_RESULTS_LIMIT),
+    estimatedWordsTyped:
+      (Number(dashboard.estimatedWordsTyped) || 0) +
+      Math.round((Number(completedResult.correctChars) || 0) / 5),
+    totalTypingSeconds:
+      (Number(dashboard.totalTypingSeconds) || 0) +
+      (Number(completedResult.elapsedSeconds) || 0)
   };
 }
 
@@ -911,10 +955,10 @@ function App() {
   }, [dismissToast]);
 
   const updateDashboard = useCallback((updater) => {
-    if (!user || !isFirebaseConfigured) return;
-
     setDashboard((currentDashboard) => {
       const nextDashboard = updater(currentDashboard);
+
+      if (!user || !isFirebaseConfigured) return nextDashboard;
 
       getFirebaseRuntime()
         .then((firebase) => {
@@ -941,6 +985,7 @@ function App() {
 
   useEffect(() => {
     setIsOnboardingOpen(!loadOnboardingComplete());
+    preloadResults();
   }, []);
 
   useEffect(() => {
@@ -1042,48 +1087,13 @@ function App() {
       console.error('Failed to update user profile:', error);
     });
 
-    updateDashboard((currentDashboard) => {
-      const mode = currentDashboard.modes[completedResult.modeLabel] || createModeStats();
-      const nextMode = {
-        ...mode,
-        started: mode.started + (options.countStarted ? 1 : 0),
-        completed: mode.completed + 1,
-        bestWpm: Math.max(mode.bestWpm || 0, completedResult.wpm),
-        bestAccuracy: Math.max(mode.bestAccuracy || 0, completedResult.accuracy)
-      };
-
-      return {
-        ...currentDashboard,
-        started: currentDashboard.started + (options.countStarted ? 1 : 0),
-        completed: currentDashboard.completed + 1,
-        modes: {
-          ...currentDashboard.modes,
-          [completedResult.modeLabel]: nextMode
-        },
-        results: [
-          {
-            id: createId(),
-            accuracy: completedResult.accuracy,
-            correctChars: completedResult.correctChars,
-            createdAt: new Date(),
-            elapsedSeconds: completedResult.elapsedSeconds,
-            endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
-            modeLabel: completedResult.modeLabel,
-            testType: completedResult.testType,
-            trainingMode: completedResult.trainingMode || 'standard',
-            wpm: completedResult.wpm,
-            wrongChars: completedResult.wrongChars
-          },
-          ...currentDashboard.results
-        ].slice(0, PROFILE_RESULTS_LIMIT),
-        estimatedWordsTyped:
-          (Number(currentDashboard.estimatedWordsTyped) || 0) +
-          Math.round((Number(completedResult.correctChars) || 0) / 5),
-        totalTypingSeconds:
-          (Number(currentDashboard.totalTypingSeconds) || 0) +
-          (Number(completedResult.elapsedSeconds) || 0)
-      };
-    });
+    if (!options.skipDashboardUpdate) {
+      updateDashboard((currentDashboard) => (
+        addCompletedResultToDashboard(currentDashboard, completedResult, {
+          countStarted: options.countStarted
+        })
+      ));
+    }
 
     firebase.addDoc(getResultsCollectionRef(firebase, user.uid), {
       accuracy: completedResult.accuracy,
@@ -1178,7 +1188,6 @@ function App() {
 
               setUser(null);
               setUserProfile(normalizeProfile(null, null));
-              setDashboard(createEmptyDashboard());
               setIsAuthReady(true);
               return;
             }
@@ -1463,9 +1472,12 @@ function App() {
 
     setResult(completedResult);
     activeAttemptRef.current = null;
+    updateDashboard((currentDashboard) => (
+      addCompletedResultToDashboard(currentDashboard, completedResult)
+    ));
 
     if (user && isFirebaseConfigured) {
-      saveCompletedResult(completedResult);
+      saveCompletedResult(completedResult, { skipDashboardUpdate: true });
     } else if (isFirebaseConfigured) {
       setPendingResultSave({
         countStarted: true,
@@ -1475,10 +1487,9 @@ function App() {
     } else {
       console.error('Typing performance was not saved because Firebase is not configured.');
     }
-  }, [dashboard.modes, dashboard.results, saveCompletedResult, user]);
+  }, [dashboard.modes, dashboard.results, saveCompletedResult, updateDashboard, user]);
 
   const handleTestStart = useCallback((startedTest) => {
-    if (!user) return;
     if (activeAttemptRef.current) return;
 
     const modeLabel = getModeLabel(
