@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { EmojiEventsIcon } from './MaterialIcons.jsx';
 
 const DEFAULT_MODE_FILTER = '10 words';
 const CATEGORY_FILTERS = [
@@ -55,19 +56,39 @@ function getModeOptions(entries) {
     });
 }
 
-function getBestEntryByUser(entries) {
-  const bestByUser = new Map();
+function getPlayerInitials(name) {
+  const words = String(name || '')
+    .replace(/^@/, '')
+    .split(/[\s._-]+/)
+    .map((word) => word.trim())
+    .filter(Boolean);
 
-  entries.forEach((entry) => {
-    if (!entry.userId) return;
+  if (words.length === 0) return '?';
 
-    const currentBest = bestByUser.get(entry.userId);
-    if (!currentBest || sortLeaderboardEntries(entry, currentBest) < 0) {
-      bestByUser.set(entry.userId, entry);
-    }
-  });
+  return words
+    .slice(0, 2)
+    .map((word) => word.slice(0, 1).toUpperCase())
+    .join('');
+}
 
-  return [...bestByUser.values()];
+function getLeaderboardSummary(entries) {
+  if (entries.length === 0) {
+    return {
+      averageAccuracy: 0,
+      modeCount: 0,
+      topWpm: 0,
+      totalEntries: 0
+    };
+  }
+
+  const accuracyTotal = entries.reduce((total, entry) => total + Number(entry.accuracy || 0), 0);
+
+  return {
+    averageAccuracy: Math.round(accuracyTotal / entries.length),
+    modeCount: new Set(entries.map((entry) => entry.modeLabel).filter(Boolean)).size,
+    topWpm: Math.max(...entries.map((entry) => Number(entry.wpm) || 0)),
+    totalEntries: entries.length
+  };
 }
 
 function Podium({ entries, onOpenProfile, currentUserId }) {
@@ -95,9 +116,15 @@ function Podium({ entries, onOpenProfile, currentUserId }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.22, delay: index * 0.05, ease: 'easeOut' }}
           >
-            <span className="podium-rank">#{rank}</span>
+            <span className="podium-rank">
+              {rank === 1 && <EmojiEventsIcon />}
+              #{rank}
+            </span>
+            <span className="podium-avatar" aria-hidden="true">
+              {getPlayerInitials(entry.playerName)}
+            </span>
             <strong>{entry.playerName}</strong>
-            <span>{entry.wpm} WPM</span>
+            <span className="podium-score">{entry.wpm} WPM</span>
             <small>{entry.accuracy}% accuracy &middot; {entry.modeLabel}</small>
             {isCurrentUser && <em>you</em>}
           </motion.button>
@@ -123,11 +150,10 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
   const modeOptions = useMemo(() => getModeOptions(categoryEntries), [categoryEntries]);
   const effectiveModeFilter = modeOptions.includes(modeFilter) ? modeFilter : 'all';
   const filteredEntries = useMemo(
-    () => getBestEntryByUser(
-      categoryEntries.filter((entry) => (
+    () => categoryEntries
+      .filter((entry) => (
         effectiveModeFilter === 'all' || entry.modeLabel === effectiveModeFilter
       ))
-    )
       .sort(sortLeaderboardEntries)
       .slice(0, 50),
     [categoryEntries, effectiveModeFilter]
@@ -136,6 +162,10 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
     effectiveModeFilter === 'all'
       ? `${categoryFilter === 'all' ? 'all modes' : `${categoryFilter} modes`}`
       : effectiveModeFilter;
+  const summary = useMemo(
+    () => getLeaderboardSummary(filteredEntries),
+    [filteredEntries]
+  );
 
   return (
     <motion.main
@@ -147,13 +177,29 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
       transition={{ duration: 0.24, ease: 'easeOut' }}
     >
       <section className="leaderboard-hero">
-        <div>
+        <div className="leaderboard-hero-copy">
           <p className="eyebrow">leaderboard</p>
           <h2>{activeFilterLabel} rankings</h2>
+          <p>Fast scores, clean comparisons, and the best public runs from every mode.</p>
+          <div className="leaderboard-summary-grid" aria-label="Leaderboard summary">
+            <span>
+              <strong>{summary.topWpm}</strong>
+              <small>top wpm</small>
+            </span>
+            <span>
+              <strong>{summary.averageAccuracy}%</strong>
+              <small>avg accuracy</small>
+            </span>
+            <span>
+              <strong>{summary.modeCount}</strong>
+              <small>modes</small>
+            </span>
+          </div>
         </div>
         <div className="leaderboard-ring">
-          <strong>{filteredEntries.length}</strong>
-          <span>players</span>
+          <EmojiEventsIcon />
+          <strong>{summary.totalEntries}</strong>
+          <span>entries</span>
         </div>
       </section>
 
@@ -164,39 +210,45 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         </div>
 
         <div className="leaderboard-filters" aria-label="Leaderboard filters">
-          <div className="leaderboard-filter-group" role="group" aria-label="Filter by test type">
-            {CATEGORY_FILTERS.map((filter) => (
-              <button
-                className={categoryFilter === filter.id ? 'active' : ''}
-                key={filter.id}
-                onClick={() => {
-                  setCategoryFilter(filter.id);
-                  setModeFilter('all');
-                }}
-                type="button"
-              >
-                {filter.label}
-              </button>
-            ))}
+          <div className="leaderboard-filter-card">
+            <span>type</span>
+            <div className="leaderboard-filter-group" role="group" aria-label="Filter by test type">
+              {CATEGORY_FILTERS.map((filter) => (
+                <button
+                  className={categoryFilter === filter.id ? 'active' : ''}
+                  key={filter.id}
+                  onClick={() => {
+                    setCategoryFilter(filter.id);
+                    setModeFilter('all');
+                  }}
+                  type="button"
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="leaderboard-filter-group mode-filter-group" role="group" aria-label="Filter by mode">
-            <button
-              className={effectiveModeFilter === 'all' ? 'active' : ''}
-              onClick={() => setModeFilter('all')}
-              type="button"
-            >
-              all modes
-            </button>
-            {modeOptions.map((mode) => (
+          <div className="leaderboard-filter-card mode-filter-card">
+            <span>mode</span>
+            <div className="leaderboard-filter-group mode-filter-group" role="group" aria-label="Filter by mode">
               <button
-                className={effectiveModeFilter === mode ? 'active' : ''}
-                key={mode}
-                onClick={() => setModeFilter(mode)}
+                className={effectiveModeFilter === 'all' ? 'active' : ''}
+                onClick={() => setModeFilter('all')}
                 type="button"
               >
-                {mode}
+                all modes
               </button>
-            ))}
+              {modeOptions.map((mode) => (
+                <button
+                  className={effectiveModeFilter === mode ? 'active' : ''}
+                  key={mode}
+                  onClick={() => setModeFilter(mode)}
+                  type="button"
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -251,12 +303,17 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
                       #{index + 1}
                     </span>
                     <strong data-label="player" role="cell">
-                      {entry.playerName}
-                      {isCurrentUser && <span className="leaderboard-you">you</span>}
+                      <span className="leaderboard-avatar" aria-hidden="true">
+                        {getPlayerInitials(entry.playerName)}
+                      </span>
+                      <span className="leaderboard-player-name">
+                        {entry.playerName}
+                        {isCurrentUser && <span className="leaderboard-you">you</span>}
+                      </span>
                     </strong>
-                    <span data-label="wpm" role="cell">{entry.wpm}</span>
+                    <span className="leaderboard-wpm" data-label="wpm" role="cell">{entry.wpm}</span>
                     <span data-label="accuracy" role="cell">{entry.accuracy}%</span>
-                    <span data-label="mode" role="cell">{entry.modeLabel}</span>
+                    <span className="leaderboard-mode" data-label="mode" role="cell">{entry.modeLabel}</span>
                     <span data-label="date" role="cell">{formatDate(entry.createdAt)}</span>
                   </motion.button>
                 );
