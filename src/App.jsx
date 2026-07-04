@@ -43,6 +43,7 @@ const SOUND_STYLES = ['click', 'soft', 'bright'];
 const TRAINING_MODE_IDS = getTrainingModeIds();
 const TOAST_LIFETIME_MS = 4200;
 const DEFAULT_SETTINGS = {
+  customText: 'Small steady practice makes typing feel effortless.',
   mistakeMode: 'backspace',
   reducedMotion: false,
   showKeyboard: true,
@@ -57,6 +58,8 @@ const DEFAULT_SETTINGS = {
 };
 const MIN_CUSTOM_TIME = 5;
 const MAX_CUSTOM_TIME = 300;
+const MAX_CUSTOM_TEXT_LENGTH = 1200;
+const MIN_CUSTOM_TEST_CHARACTERS = 10;
 
 const AuthPanel = lazy(() => import('./components/AuthPanel.jsx'));
 const Dashboard = lazy(() => import('./components/Dashboard.jsx'));
@@ -85,6 +88,19 @@ function normalizeTimeMode(value) {
   return Math.min(
     MAX_CUSTOM_TIME,
     Math.max(MIN_CUSTOM_TIME, Math.round(numericValue))
+  );
+}
+
+function normalizeCustomTextSetting(value) {
+  const normalizedValue = String(value || '').replace(/\s+/g, ' ').trim();
+
+  return normalizedValue.slice(0, MAX_CUSTOM_TEXT_LENGTH) || DEFAULT_SETTINGS.customText;
+}
+
+function isTooShortCustomTest(test) {
+  return (
+    test?.trainingMode === 'custom' &&
+    String(test?.targetText || '').replace(/\s/g, '').length < MIN_CUSTOM_TEST_CHARACTERS
   );
 }
 
@@ -211,6 +227,7 @@ function loadSettings() {
         savedSettings?.accentColor,
         DEFAULT_SETTINGS.accentColor
       ),
+      customText: normalizeCustomTextSetting(savedSettings?.customText),
       showKeyboard:
         typeof savedSettings?.showKeyboard === 'boolean'
           ? savedSettings.showKeyboard
@@ -915,6 +932,7 @@ function App() {
 
   const {
     accentColor,
+    customText,
     mistakeMode,
     reducedMotion,
     showKeyboard,
@@ -1123,17 +1141,19 @@ function App() {
       console.error('Failed to update public player profile:', error);
     });
 
-    firebase.addDoc(getLeaderboardCollectionRef(firebase), {
-      accuracy: completedResult.accuracy,
-      createdAt: firebase.serverTimestamp(),
-      modeLabel: completedResult.modeLabel,
-      testType: completedResult.testType,
-      trainingMode: completedResult.trainingMode || 'standard',
-      userId: user.uid,
-      wpm: completedResult.wpm
-    }).catch((error) => {
-      console.error('Failed to save public leaderboard result:', error);
-    });
+    if (completedResult.trainingMode !== 'custom') {
+      firebase.addDoc(getLeaderboardCollectionRef(firebase), {
+        accuracy: completedResult.accuracy,
+        createdAt: firebase.serverTimestamp(),
+        modeLabel: completedResult.modeLabel,
+        testType: completedResult.testType,
+        trainingMode: completedResult.trainingMode || 'standard',
+        userId: user.uid,
+        wpm: completedResult.wpm
+      }).catch((error) => {
+        console.error('Failed to save public leaderboard result:', error);
+      });
+    }
   }, [notify, updateDashboard, user, userProfile]);
 
   const markIncompleteAttempt = useCallback(() => {
@@ -1460,11 +1480,18 @@ function App() {
         )
       : 0;
 
-    const isPersonalBest = Boolean(user) && nextResult.wpm > previousBest;
+    const isInvalidShortCustomTest = isTooShortCustomTest(nextResult);
+    const isPersonalBest =
+      !isInvalidShortCustomTest &&
+      Boolean(user) &&
+      nextResult.wpm > previousBest;
 
     const completedResult = {
       ...nextResult,
-      bestWpm: user ? Math.max(previousBest, nextResult.wpm) : 0,
+      bestWpm: user && !isInvalidShortCustomTest
+        ? Math.max(previousBest, nextResult.wpm)
+        : 0,
+      isInvalid: isInvalidShortCustomTest,
       isPersonalBest,
       personalAverageAccuracy,
       personalAverageWpm
@@ -1472,6 +1499,16 @@ function App() {
 
     setResult(completedResult);
     activeAttemptRef.current = null;
+
+    if (isInvalidShortCustomTest) {
+      notify({
+        title: 'test invalid - too short',
+        message: `Use at least ${MIN_CUSTOM_TEST_CHARACTERS} characters for custom tests.`,
+        type: 'warning'
+      });
+      return;
+    }
+
     updateDashboard((currentDashboard) => (
       addCompletedResultToDashboard(currentDashboard, completedResult)
     ));
@@ -1487,7 +1524,7 @@ function App() {
     } else {
       console.error('Typing performance was not saved because Firebase is not configured.');
     }
-  }, [dashboard.modes, dashboard.results, saveCompletedResult, updateDashboard, user]);
+  }, [dashboard.modes, dashboard.results, notify, saveCompletedResult, updateDashboard, user]);
 
   const handleTestStart = useCallback((startedTest) => {
     if (activeAttemptRef.current) return;
@@ -1500,10 +1537,13 @@ function App() {
     const attempt = {
       id: createId(),
       modeLabel,
+      targetText: startedTest.targetText || '',
       testType: startedTest.testType,
       testValue: startedTest.testValue,
       trainingMode: startedTest.trainingMode || 'standard'
     };
+
+    if (isTooShortCustomTest(attempt)) return;
 
     activeAttemptRef.current = attempt;
 
@@ -1576,6 +1616,24 @@ function App() {
 
     setSettings(nextSettings);
     saveSettings(nextSettings);
+    setResult(null);
+    setRestartKey((key) => key + 1);
+  }, [markIncompleteAttempt, settings]);
+
+  const handleCustomTextChange = useCallback((nextCustomText) => {
+    const trimmedCustomText = String(nextCustomText || '').slice(0, MAX_CUSTOM_TEXT_LENGTH);
+    const nextSettings = {
+      ...settings,
+      customText: trimmedCustomText
+    };
+
+    setSettings(nextSettings);
+    saveSettings(nextSettings);
+
+    if (settings.trainingMode !== 'custom') return;
+
+    markIncompleteAttempt();
+    setReplayTargetText(null);
     setResult(null);
     setRestartKey((key) => key + 1);
   }, [markIncompleteAttempt, settings]);
@@ -2130,7 +2188,9 @@ function App() {
                       transition={{ duration: 0.18, ease: 'easeOut' }}
                     >
                       <TestSettings
+                        customText={customText}
                         disabled={isActive}
+                        onCustomTextChange={handleCustomTextChange}
                         onSettingsChange={handleSettingsChange}
                         onTrainingModeChange={handleTrainingModeChange}
                         selectedType={testType}
@@ -2165,6 +2225,7 @@ function App() {
                       testType={testType}
                       testValue={testType === 'time' ? timeMode : wordMode}
                       targetTextOverride={replayTargetText}
+                      customText={customText}
                       trainingMode={trainingMode}
                     />
                   )}

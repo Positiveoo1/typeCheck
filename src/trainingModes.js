@@ -37,6 +37,12 @@ export const TRAINING_MODES = [
     label: 'Accuracy lock',
     shortLabel: 'lock',
     description: 'The run ends at five live mistakes.'
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    shortLabel: 'custom',
+    description: 'Practice with your own text.'
   }
 ];
 
@@ -170,6 +176,26 @@ function buildRepeatedShuffledText(textList, wordCount, random = Math.random) {
   return nextWords.slice(0, wordCount).join(' ');
 }
 
+export function normalizeCustomText(customText) {
+  return String(customText || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function buildCustomTarget({
+  customText = '',
+  testType = 'time',
+  testValue = 30
+} = {}) {
+  const normalizedText = normalizeCustomText(customText);
+
+  if (!normalizedText) {
+    return buildTrainingTarget({ testType, testValue, trainingMode: 'standard' });
+  }
+
+  return normalizedText;
+}
+
 export function getTrainingMode(modeId) {
   return (
     TRAINING_MODES.find((mode) => mode.id === modeId) ||
@@ -186,12 +212,17 @@ export function getTrainingModeLabel(modeId) {
 }
 
 export function buildTrainingTarget({
+  customText = '',
   random = Math.random,
   testType = 'time',
   testValue = 30,
   trainingMode = 'standard'
 } = {}) {
   const wordCount = testType === 'words' ? testValue : 90;
+
+  if (trainingMode === 'custom') {
+    return buildCustomTarget({ customText, testType, testValue });
+  }
 
   if (trainingMode === 'weak') {
     return shuffleWords(wordCount, WEAK_WORDS, random);

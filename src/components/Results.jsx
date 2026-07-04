@@ -306,6 +306,7 @@ function RecordCelebration() {
 
 function Results({ stats, onNextGame, onTryAgain }) {
   const typingStyle = getTypingStyle(stats);
+  const isInvalid = Boolean(stats.isInvalid);
 
   return (
     <motion.section
@@ -337,8 +338,23 @@ function Results({ stats, onNextGame, onTryAgain }) {
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
       >
-        <AnimatedNumber value={stats.wpm} /> WPM
+        {isInvalid ? 'Invalid test' : (
+          <>
+            <AnimatedNumber value={stats.wpm} /> WPM
+          </>
+        )}
       </motion.h2>
+
+      {isInvalid && (
+        <motion.div
+          className="accuracy-lock-result"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
+          This custom text is too short for a valid speed result.
+        </motion.div>
+      )}
 
       {stats.endedByAccuracyLock && (
         <motion.div
@@ -351,17 +367,19 @@ function Results({ stats, onNextGame, onTryAgain }) {
         </motion.div>
       )}
 
-      <motion.div
-        className="typing-style-card"
-        data-tone={typingStyle.tone}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08, duration: 0.24, ease: 'easeOut' }}
-      >
-        <span>typing style</span>
-        <strong>{typingStyle.label}</strong>
-        <small>{typingStyle.description}</small>
-      </motion.div>
+      {!isInvalid && (
+        <motion.div
+          className="typing-style-card"
+          data-tone={typingStyle.tone}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08, duration: 0.24, ease: 'easeOut' }}
+        >
+          <span>typing style</span>
+          <strong>{typingStyle.label}</strong>
+          <small>{typingStyle.description}</small>
+        </motion.div>
+      )}
 
       <motion.div
         className="result-grid"
@@ -391,9 +409,9 @@ function Results({ stats, onNextGame, onTryAgain }) {
         </motion.div>
       </motion.div>
 
-      <SpeedReplay history={stats.speedHistory} />
+      {!isInvalid && <SpeedReplay history={stats.speedHistory} />}
 
-      <ResultInsights stats={stats} />
+      {!isInvalid && <ResultInsights stats={stats} />}
 
       <div className="result-actions">
         <motion.button

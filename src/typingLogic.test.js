@@ -9,7 +9,7 @@ import {
   getTimeLeft,
   shuffleWords
 } from './typingLogic.js';
-import { buildTrainingTarget } from './trainingModes.js';
+import { buildCustomTarget, buildTrainingTarget } from './trainingModes.js';
 
 describe('calculateStats', () => {
   it('returns neutral stats before the user types', () => {
@@ -152,6 +152,27 @@ describe('training modes', () => {
 
     assert.equal(weakTarget.split(/\s+/).length, 60);
     assert.equal(numberTarget.split(/\s+/).length, 60);
+  });
+
+  it('builds custom targets from the exact user text', () => {
+    const customTarget = buildCustomTarget({
+      customText: 'alpha   beta',
+      testType: 'words',
+      testValue: 5
+    });
+
+    assert.equal(customTarget, 'alpha beta');
+  });
+
+  it('falls back to standard words when custom text is blank', () => {
+    const customTarget = buildTrainingTarget({
+      customText: '   ',
+      testType: 'words',
+      testValue: 4,
+      trainingMode: 'custom'
+    });
+
+    assert.equal(customTarget.split(/\s+/).length, 4);
   });
 });
 

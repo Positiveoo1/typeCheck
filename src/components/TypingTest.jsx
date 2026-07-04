@@ -206,6 +206,7 @@ function getWordStateClassName(
 }
 
 function TypingTest({
+  customText,
   testType,
   testValue,
   onFinish,
@@ -354,6 +355,7 @@ function TypingTest({
     setTargetText(
       targetTextOverride ||
         buildTrainingTarget({
+          customText,
           testType,
           testValue,
           trainingMode
@@ -383,6 +385,7 @@ function TypingTest({
     restartKey,
     focusInput,
     onActiveChange,
+    customText,
     targetTextOverride,
     trainingMode
   ]);
@@ -441,7 +444,10 @@ function TypingTest({
       const centerDelta = currentCenter - targetCenter;
 
       if (Math.abs(centerDelta) > centerTolerance) {
-        wordDisplay.scrollTop += centerDelta;
+        wordDisplay.scrollTo({
+          behavior: 'smooth',
+          top: wordDisplay.scrollTop + centerDelta
+        });
       }
 
       const nextCurrentRect = currentElement.getBoundingClientRect();
@@ -620,7 +626,7 @@ function TypingTest({
       speedHistoryRef.current = [{ elapsedSeconds: 0, wpm: 0 }];
       setIsRunning(true);
       onActiveChange(true);
-      onStart({ testType, testValue, trainingMode });
+      onStart({ targetText, testType, testValue, trainingMode });
     } else if (
       testType === 'words' &&
       hasStartedRef.current &&
@@ -662,11 +668,15 @@ function TypingTest({
       return;
     }
 
-    if (
+    const isCustomComplete =
+      trainingMode === 'custom' &&
+      nextTypedText === targetText;
+    const isWordTestComplete =
       testType === 'words' &&
       nextTypedText.length === targetText.length &&
-      isLastWordFullyCorrect(targetText, nextTypedText)
-    ) {
+      isLastWordFullyCorrect(targetText, nextTypedText);
+
+    if (isCustomComplete || isWordTestComplete) {
       const currentRunElapsed = startedAtRef.current
         ? (performance.now() - startedAtRef.current) / 1000
         : 0;

@@ -1,319 +1,184 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TRAINING_MODES } from '../trainingModes.js';
-import { SettingsIcon } from './MaterialIcons.jsx';
 
 const TIME_MODES = [15, 30, 60];
 const WORD_MODES = [10, 30, 60];
-const MIN_CUSTOM_TIME = 5;
-const MAX_CUSTOM_TIME = 300;
 
-const buttonMotion = {
-  hover: { y: -1, scale: 1.03 },
-  tap: { scale: 0.96 }
-};
-
-const TRAINING_MODE_META = {
-  standard: {
-    difficulty: 'easy',
-    focus: 'baseline',
-    icon: 'Aa'
-  },
-  weak: {
-    difficulty: 'hard',
-    focus: 'awkward keys',
-    icon: 'W'
-  },
-  quotes: {
-    difficulty: 'medium',
-    focus: 'rhythm',
-    icon: '"'
-  },
-  code: {
-    difficulty: 'hard',
-    focus: 'symbols',
-    icon: '{}'
-  },
-  numbers: {
-    difficulty: 'medium',
-    focus: 'digits',
-    icon: '#'
-  },
-  'accuracy-lock': {
-    difficulty: 'hard',
-    focus: 'precision',
-    icon: '!'
-  }
-};
 const TRAINING_CARD_MODES = TRAINING_MODES.filter((mode) => mode.id !== 'standard');
-const DEFAULT_ENABLED_TRAINING_MODE = TRAINING_CARD_MODES[0]?.id || 'weak';
+const TRAINING_LABELS = {
+  'accuracy-lock': 'lock',
+  code: 'code',
+  custom: 'custom',
+  numbers: 'numbers',
+  quotes: 'quote',
+  standard: 'standard',
+  weak: 'weak'
+};
 
 function TestSettings({
+  customText = '',
   selectedType,
   selectedTrainingMode = 'standard',
   selectedValue,
+  onCustomTextChange,
   onSettingsChange,
   onTrainingModeChange,
   disabled
 }) {
-  const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
-  const [customTime, setCustomTime] = useState(String(selectedValue));
-  const [lastTrainingMode, setLastTrainingMode] = useState(DEFAULT_ENABLED_TRAINING_MODE);
-  const customTimeRef = useRef(null);
+  const [isCustomTextOpen, setIsCustomTextOpen] = useState(false);
+  const [customTextDraft, setCustomTextDraft] = useState(customText);
   const isCustomTimeSelected =
     selectedType === 'time' && !TIME_MODES.includes(selectedValue);
-  const isTrainingEnabled = selectedTrainingMode !== 'standard';
 
   useEffect(() => {
-    if (selectedType === 'time') {
-      setCustomTime(String(selectedValue));
-    }
-  }, [selectedType, selectedValue]);
+    setCustomTextDraft(customText);
+  }, [customText]);
 
-  useEffect(() => {
-    if (!isCustomTimeOpen) return undefined;
-
-    const closeCustomTime = (event) => {
-      if (customTimeRef.current?.contains(event.target)) return;
-
-      setIsCustomTimeOpen(false);
-    };
-
-    document.addEventListener('pointerdown', closeCustomTime);
-    return () => document.removeEventListener('pointerdown', closeCustomTime);
-  }, [isCustomTimeOpen]);
-
-  useEffect(() => {
-    if (selectedTrainingMode !== 'standard') {
-      setLastTrainingMode(selectedTrainingMode);
-    }
-  }, [selectedTrainingMode]);
-
-  const applyCustomTime = () => {
-    const normalizedTime = Math.min(
-      MAX_CUSTOM_TIME,
-      Math.max(MIN_CUSTOM_TIME, Math.round(Number(customTime)))
-    );
-
-    if (!Number.isFinite(normalizedTime)) return;
-
-    setCustomTime(String(normalizedTime));
-    setIsCustomTimeOpen(false);
-    onSettingsChange('time', normalizedTime);
-  };
-
-  const toggleTraining = () => {
+  const selectTrainingMode = (modeId) => {
     if (disabled) return;
 
-    onTrainingModeChange(
-      isTrainingEnabled ? 'standard' : lastTrainingMode
-    );
+    if (modeId === 'custom') {
+      setCustomTextDraft(customText);
+      setIsCustomTextOpen(true);
+    }
+
+    onTrainingModeChange(modeId);
+  };
+
+  const applyCustomText = () => {
+    onCustomTextChange(customTextDraft);
+    setIsCustomTextOpen(false);
   };
 
   return (
-    <motion.section
-      className="settings"
-      aria-label="Test settings"
-      layout
-      transition={{ duration: 0.22, ease: 'easeOut' }}
-    >
-      <div className="settings-primary">
-        <div className="settings-row">
-          <span className="settings-label">time</span>
-          <div className="mode-group" role="group" aria-label="Choose time mode">
-            {TIME_MODES.map((mode) => (
-              <motion.button
-                className={
-                  selectedType === 'time' && mode === selectedValue
-                    ? 'mode active'
-                    : 'mode'
-                }
-                disabled={disabled}
-                key={mode}
-                onClick={() => onSettingsChange('time', mode)}
-                type="button"
-                whileHover={disabled ? undefined : buttonMotion.hover}
-                whileTap={disabled ? undefined : buttonMotion.tap}
-              >
-                {selectedType === 'time' && mode === selectedValue && (
-                  <motion.span
-                    className="mode-active-bg"
-                    layoutId="active-mode"
-                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  />
-                )}
-                <span className="mode-text">{mode}s</span>
-              </motion.button>
-            ))}
-
-            <div className="custom-time" ref={customTimeRef}>
-              <motion.button
-                aria-expanded={isCustomTimeOpen}
-                aria-label="Custom time"
-                className={
-                  isCustomTimeSelected
-                    ? 'mode custom-time-toggle active'
-                    : 'mode custom-time-toggle'
-                }
-                disabled={disabled}
-                onClick={() => setIsCustomTimeOpen((current) => !current)}
-                type="button"
-                whileHover={disabled ? undefined : buttonMotion.hover}
-                whileTap={disabled ? undefined : buttonMotion.tap}
-              >
-                {isCustomTimeSelected && (
-                  <motion.span
-                    className="mode-active-bg"
-                    layoutId="active-mode"
-                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  />
-                )}
-                <SettingsIcon />
-                {isCustomTimeSelected && (
-                  <span className="mode-text custom-time-value">{selectedValue}s</span>
-                )}
-              </motion.button>
-
-              <AnimatePresence>
-                {isCustomTimeOpen && !disabled && (
-                  <motion.form
-                    className="custom-time-panel"
-                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      applyCustomTime();
-                    }}
-                    transition={{ duration: 0.16, ease: 'easeOut' }}
-                  >
-                    <label htmlFor="custom-time-input">seconds</label>
-                    <input
-                      id="custom-time-input"
-                      inputMode="numeric"
-                      max={MAX_CUSTOM_TIME}
-                      min={MIN_CUSTOM_TIME}
-                      onChange={(event) => setCustomTime(event.target.value)}
-                      type="number"
-                      value={customTime}
-                    />
-                    <button type="submit">Set</button>
-                  </motion.form>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-
-        <div className="settings-divider" aria-hidden="true" />
-
-        <div className="settings-row">
-          <span className="settings-label">words</span>
-          <div className="mode-group" role="group" aria-label="Choose word count">
-            {WORD_MODES.map((mode) => (
-              <motion.button
-                className={
-                  selectedType === 'words' && mode === selectedValue
-                    ? 'mode active'
-                    : 'mode'
-                }
-                disabled={disabled}
-                key={mode}
-                onClick={() => onSettingsChange('words', mode)}
-                type="button"
-                whileHover={disabled ? undefined : buttonMotion.hover}
-                whileTap={disabled ? undefined : buttonMotion.tap}
-              >
-                {selectedType === 'words' && mode === selectedValue && (
-                  <motion.span
-                    className="mode-active-bg"
-                    layoutId="active-mode"
-                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                  />
-                )}
-                <span className="mode-text">{mode}</span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className={isTrainingEnabled ? 'training-rail' : 'training-rail training-off'}
-        data-onboarding-target="training"
+    <>
+      <motion.section
+        className="settings settings-inline"
+        aria-label="Test settings"
+        layout
+        transition={{ duration: 0.22, ease: 'easeOut' }}
       >
-        <div className="training-rail-top">
-          <span className="training-rail-label">training</span>
+        <div className="inline-mode-group" role="group" aria-label="Choose training mode" data-onboarding-target="training">
+          <span className="inline-mode-title">training</span>
           <button
-            aria-label={isTrainingEnabled ? 'Turn training off' : 'Turn training on'}
-            aria-pressed={isTrainingEnabled}
-            className="training-toggle"
+            className={selectedTrainingMode === 'standard' ? 'inline-mode active' : 'inline-mode'}
             disabled={disabled}
-            onClick={toggleTraining}
+            onClick={() => onTrainingModeChange('standard')}
+            title="Standard mode"
             type="button"
           >
-            <span className="training-toggle-track" aria-hidden="true">
-              <span />
-            </span>
-            <strong>{isTrainingEnabled ? 'on' : 'off'}</strong>
+            standard
+          </button>
+          {TRAINING_CARD_MODES.map((mode) => (
+            <button
+              className={selectedTrainingMode === mode.id ? 'inline-mode active' : 'inline-mode'}
+              disabled={disabled}
+              key={mode.id}
+              onClick={() => selectTrainingMode(mode.id)}
+              title={mode.label}
+              type="button"
+            >
+              {TRAINING_LABELS[mode.id] || mode.shortLabel}
+            </button>
+          ))}
+        </div>
+
+        <span className="inline-divider" aria-hidden="true" />
+
+        <div className="inline-mode-group" role="group" aria-label="Choose test type">
+          <span className="inline-mode-title">test</span>
+          <button
+            className={selectedType === 'time' ? 'inline-mode active' : 'inline-mode'}
+            disabled={disabled}
+            onClick={() => onSettingsChange('time', selectedType === 'time' ? selectedValue : TIME_MODES[1])}
+            title="Timed test"
+            type="button"
+          >
+            time
+          </button>
+          <button
+            className={selectedType === 'words' ? 'inline-mode active' : 'inline-mode'}
+            disabled={disabled}
+            onClick={() => onSettingsChange('words', selectedType === 'words' ? selectedValue : WORD_MODES[0])}
+            title="Word-count test"
+            type="button"
+          >
+            words
           </button>
         </div>
-        <AnimatePresence initial={false}>
-          {isTrainingEnabled && (
-            <motion.div
-              className="training-mode-grid"
-              role="group"
-              aria-label="Choose training mode"
-              initial={{ opacity: 0, height: 0, y: -4 }}
-              animate={{ opacity: 1, height: 'auto', y: 0 }}
-              exit={{ opacity: 0, height: 0, y: -4 }}
+
+        <span className="inline-divider" aria-hidden="true" />
+
+        <div className="inline-mode-group" role="group" aria-label="Choose test length">
+          <span className="inline-mode-title">length</span>
+          {(selectedType === 'time' ? TIME_MODES : WORD_MODES).map((mode) => (
+            <button
+              className={mode === selectedValue ? 'inline-mode active' : 'inline-mode'}
+              disabled={disabled}
+              key={`${selectedType}-${mode}`}
+              onClick={() => onSettingsChange(selectedType, mode)}
+              title={selectedType === 'time' ? `${mode} seconds` : `${mode} words`}
+              type="button"
+            >
+              {selectedType === 'time' ? `${mode}s` : mode}
+            </button>
+          ))}
+
+          {isCustomTimeSelected && (
+            <span className="inline-mode inline-mode-static active" title="Custom time">
+              {selectedValue}s
+            </span>
+          )}
+        </div>
+      </motion.section>
+
+      <AnimatePresence>
+        {isCustomTextOpen && (
+          <motion.div
+            className="custom-text-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+          >
+            <button
+              aria-label="Close custom text"
+              className="custom-text-backdrop"
+              onClick={() => setIsCustomTextOpen(false)}
+              type="button"
+            />
+            <motion.form
+              aria-labelledby="custom-text-title"
+              className="custom-text-panel"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              onSubmit={(event) => {
+                event.preventDefault();
+                applyCustomText();
+              }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
-              {TRAINING_CARD_MODES.map((mode) => {
-                const meta = TRAINING_MODE_META[mode.id];
-                const isActive = selectedTrainingMode === mode.id;
-
-                return (
-                  <motion.button
-                    aria-label={`${mode.label}: ${mode.description}. ${meta.focus} focus, ${meta.difficulty} difficulty.`}
-                    className={
-                      isActive
-                        ? 'training-mode-card active'
-                        : 'training-mode-card'
-                    }
-                    disabled={disabled}
-                    key={mode.id}
-                    onClick={() => onTrainingModeChange(mode.id)}
-                    title={mode.description}
-                    type="button"
-                    whileHover={disabled ? undefined : buttonMotion.hover}
-                    whileTap={disabled ? undefined : buttonMotion.tap}
-                  >
-                    {isActive && (
-                      <motion.span
-                        className="training-mode-active-bg"
-                        layoutId="active-training-mode-card"
-                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-                      />
-                    )}
-                    <span className="training-mode-icon" aria-hidden="true">
-                      {meta.icon}
-                    </span>
-                    <span className="training-mode-copy">
-                      <strong>{mode.shortLabel}</strong>
-                      <small>{meta.focus}</small>
-                    </span>
-                    <span className={`training-mode-difficulty difficulty-${meta.difficulty}`}>
-                      {meta.difficulty}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </motion.section>
+              <label id="custom-text-title" htmlFor="custom-text-input">custom text</label>
+              <textarea
+                autoFocus
+                id="custom-text-input"
+                maxLength={1200}
+                onChange={(event) => setCustomTextDraft(event.target.value)}
+                placeholder="Paste or type the text you want to practice."
+                value={customTextDraft}
+              />
+              <div className="custom-text-actions">
+                <span>{customTextDraft.trim().length}/1200</span>
+                <button type="button" onClick={() => setIsCustomTextOpen(false)}>Cancel</button>
+                <button type="submit">Apply</button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
