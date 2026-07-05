@@ -1,6 +1,6 @@
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useEffect } from 'react';
-import { getTypingStyle } from '../typingIdentity.js';
+import { getTypingStyle } from '../../typingIdentity.js';
 
 function AnimatedNumber({ value }) {
   const count = useMotionValue(0);
@@ -128,37 +128,40 @@ function getSlowdownMarker(history = []) {
 function getWordHeatmap(targetText = '', typedText = '') {
   let startIndex = 0;
 
-  return targetText.split(' ').map((word, wordIndex, words) => {
-    const endIndex = startIndex + word.length;
-    let mistakes = 0;
-    let typedCount = 0;
+  return targetText
+    .split(' ')
+    .map((word, wordIndex, words) => {
+      const endIndex = startIndex + word.length;
+      let mistakes = 0;
+      let typedCount = 0;
 
-    for (let index = startIndex; index < endIndex; index += 1) {
-      if (typedText[index] === undefined) continue;
+      for (let index = startIndex; index < endIndex; index += 1) {
+        if (typedText[index] === undefined) continue;
 
-      typedCount += 1;
-      if (typedText[index] !== targetText[index]) mistakes += 1;
-    }
+        typedCount += 1;
+        if (typedText[index] !== targetText[index]) mistakes += 1;
+      }
 
-    const heat =
-      mistakes === 0
-        ? 'clean'
-        : mistakes === 1
-          ? 'warm'
-          : mistakes <= 3
-            ? 'hot'
-            : 'burn';
+      const heat =
+        mistakes === 0
+          ? 'clean'
+          : mistakes === 1
+            ? 'warm'
+            : mistakes <= 3
+              ? 'hot'
+              : 'burn';
 
-    startIndex = endIndex + (wordIndex < words.length - 1 ? 1 : 0);
+      startIndex = endIndex + (wordIndex < words.length - 1 ? 1 : 0);
 
-    return {
-      heat,
-      id: `${word}-${wordIndex}`,
-      mistakes,
-      typedCount,
-      word
-    };
-  }).filter((item) => item.typedCount > 0 || item.mistakes > 0);
+      return {
+        heat,
+        id: `${word}-${wordIndex}`,
+        mistakes,
+        typedCount,
+        word
+      };
+    })
+    .filter((item) => item.typedCount > 0 || item.mistakes > 0);
 }
 
 function getSegmentInsights(history = []) {
@@ -168,7 +171,10 @@ function getSegmentInsights(history = []) {
   const labels = ['start', 'middle', 'finish'];
   const segments = labels.map((label, index) => {
     const start = Math.floor((usableHistory.length / labels.length) * index);
-    const end = Math.max(start + 1, Math.floor((usableHistory.length / labels.length) * (index + 1)));
+    const end = Math.max(
+      start + 1,
+      Math.floor((usableHistory.length / labels.length) * (index + 1))
+    );
     const points = usableHistory.slice(start, end);
     const averageWpm = Math.round(
       points.reduce((total, point) => total + (Number(point.wpm) || 0), 0) / points.length
@@ -179,7 +185,9 @@ function getSegmentInsights(history = []) {
       label
     };
   });
-  const sortedSegments = [...segments].sort((first, second) => second.averageWpm - first.averageWpm);
+  const sortedSegments = [...segments].sort(
+    (first, second) => second.averageWpm - first.averageWpm
+  );
 
   return {
     best: sortedSegments[0],
@@ -193,9 +201,8 @@ function getNextGoal(stats) {
     Math.ceil((Number(stats.wpm) + 4) / 5) * 5,
     averageWpm ? Math.ceil((averageWpm + 4) / 5) * 5 : 0
   );
-  const accuracyTarget = Number(stats.accuracy) >= 95
-    ? Math.min(100, Number(stats.accuracy) + 1)
-    : 95;
+  const accuracyTarget =
+    Number(stats.accuracy) >= 95 ? Math.min(100, Number(stats.accuracy) + 1) : 95;
 
   return `Reach ${wpmTarget} WPM with ${accuracyTarget}% accuracy`;
 }
@@ -228,7 +235,9 @@ function ResultInsights({ stats }) {
         </div>
         <div>
           <span>vs average</span>
-          <strong>{averageWpm ? `${wpmDelta >= 0 ? '+' : ''}${wpmDelta} WPM` : 'New baseline'}</strong>
+          <strong>
+            {averageWpm ? `${wpmDelta >= 0 ? '+' : ''}${wpmDelta} WPM` : 'New baseline'}
+          </strong>
           <small>
             {averageAccuracy
               ? `${accuracyDelta >= 0 ? '+' : ''}${accuracyDelta}% accuracy`
@@ -250,7 +259,11 @@ function ResultInsights({ stats }) {
         <div className="heatmap-words" aria-label="Mistake heatmap by word">
           {heatmap.length > 0 ? (
             heatmap.slice(0, 44).map((item) => (
-              <span data-heat={item.heat} key={item.id} title={`${item.mistakes} mistakes`}>
+              <span
+                data-heat={item.heat}
+                key={item.id}
+                title={`${item.mistakes} mistakes`}
+              >
                 {item.word}
               </span>
             ))
@@ -338,7 +351,9 @@ function Results({ stats, onNextGame, onTryAgain }) {
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
       >
-        {isInvalid ? 'Invalid test' : (
+        {isInvalid ? (
+          'Invalid test'
+        ) : (
           <>
             <AnimatedNumber value={stats.wpm} /> WPM
           </>

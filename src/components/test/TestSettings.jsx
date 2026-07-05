@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { TRAINING_MODES } from '../trainingModes.js';
+import { useEffect, useState } from 'react';
+import { TRAINING_MODES } from '../../trainingModes.js';
 
 const TIME_MODES = [15, 30, 60];
 const WORD_MODES = [10, 30, 60];
@@ -59,10 +59,17 @@ function TestSettings({
         layout
         transition={{ duration: 0.22, ease: 'easeOut' }}
       >
-        <div className="inline-mode-group" role="group" aria-label="Choose training mode" data-onboarding-target="training">
+        <div
+          className="inline-mode-group"
+          role="group"
+          aria-label="Choose training mode"
+          data-onboarding-target="training"
+        >
           <span className="inline-mode-title">training</span>
           <button
-            className={selectedTrainingMode === 'standard' ? 'inline-mode active' : 'inline-mode'}
+            className={
+              selectedTrainingMode === 'standard' ? 'inline-mode active' : 'inline-mode'
+            }
             disabled={disabled}
             onClick={() => onTrainingModeChange('standard')}
             title="Standard mode"
@@ -72,7 +79,9 @@ function TestSettings({
           </button>
           {TRAINING_CARD_MODES.map((mode) => (
             <button
-              className={selectedTrainingMode === mode.id ? 'inline-mode active' : 'inline-mode'}
+              className={
+                selectedTrainingMode === mode.id ? 'inline-mode active' : 'inline-mode'
+              }
               disabled={disabled}
               key={mode.id}
               onClick={() => selectTrainingMode(mode.id)}
@@ -91,7 +100,12 @@ function TestSettings({
           <button
             className={selectedType === 'time' ? 'inline-mode active' : 'inline-mode'}
             disabled={disabled}
-            onClick={() => onSettingsChange('time', selectedType === 'time' ? selectedValue : TIME_MODES[1])}
+            onClick={() =>
+              onSettingsChange(
+                'time',
+                selectedType === 'time' ? selectedValue : TIME_MODES[1]
+              )
+            }
             title="Timed test"
             type="button"
           >
@@ -100,7 +114,12 @@ function TestSettings({
           <button
             className={selectedType === 'words' ? 'inline-mode active' : 'inline-mode'}
             disabled={disabled}
-            onClick={() => onSettingsChange('words', selectedType === 'words' ? selectedValue : WORD_MODES[0])}
+            onClick={() =>
+              onSettingsChange(
+                'words',
+                selectedType === 'words' ? selectedValue : WORD_MODES[0]
+              )
+            }
             title="Word-count test"
             type="button"
           >
@@ -160,7 +179,9 @@ function TestSettings({
               }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
-              <label id="custom-text-title" htmlFor="custom-text-input">custom text</label>
+              <label id="custom-text-title" htmlFor="custom-text-input">
+                custom text
+              </label>
               <textarea
                 autoFocus
                 id="custom-text-input"
@@ -171,7 +192,9 @@ function TestSettings({
               />
               <div className="custom-text-actions">
                 <span>{customTextDraft.trim().length}/1200</span>
-                <button type="button" onClick={() => setIsCustomTextOpen(false)}>Cancel</button>
+                <button type="button" onClick={() => setIsCustomTextOpen(false)}>
+                  Cancel
+                </button>
                 <button type="submit">Apply</button>
               </div>
             </motion.form>

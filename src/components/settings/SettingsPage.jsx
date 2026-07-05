@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
 import {
   ACCENT_COLORS,
-  THEME_PERSONALITIES,
   getDashboardThemeStats,
-  getUnlockedThemeIds
-} from '../themePersonalities.js';
+  getUnlockedThemeIds,
+  THEME_PERSONALITIES
+} from '../../themePersonalities.js';
 
 const SOUND_STYLES = [
   {
@@ -110,38 +110,38 @@ function SettingsPage({
             const isUnlocked = unlockedThemeIds.includes(themeOption.id) || isActive;
 
             return (
-            <button
-              aria-checked={theme === themeOption.id}
-              aria-disabled={!isUnlocked}
-              className={
-                [
+              <button
+                aria-checked={theme === themeOption.id}
+                aria-disabled={!isUnlocked}
+                className={[
                   'settings-theme-choice',
                   isActive ? 'active' : '',
                   !isUnlocked ? 'locked' : ''
-                ].filter(Boolean).join(' ')
-              }
-              key={themeOption.id}
-              onClick={() => onThemeChange(themeOption.id)}
-              role="radio"
-              type="button"
-            >
-              <span className="theme-preview-window" aria-hidden="true">
-                <span className="theme-preview-text">
-                  <i />
-                  <i />
-                  <i />
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                key={themeOption.id}
+                onClick={() => onThemeChange(themeOption.id)}
+                role="radio"
+                type="button"
+              >
+                <span className="theme-preview-window" aria-hidden="true">
+                  <span className="theme-preview-text">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className="theme-preview-caret" />
                 </span>
-                <span className="theme-preview-caret" />
-              </span>
-              <span className="theme-swatches" aria-hidden="true">
-                {themeOption.colors.map((color) => (
-                  <i key={color} style={{ background: color }} />
-                ))}
-              </span>
-              <strong>{themeOption.label}</strong>
-              <small>{themeOption.description}</small>
-              <em>{isUnlocked ? themeOption.soundStyle : themeOption.unlock.label}</em>
-            </button>
+                <span className="theme-swatches" aria-hidden="true">
+                  {themeOption.colors.map((color) => (
+                    <i key={color} style={{ background: color }} />
+                  ))}
+                </span>
+                <strong>{themeOption.label}</strong>
+                <small>{themeOption.description}</small>
+                <em>{isUnlocked ? themeOption.soundStyle : themeOption.unlock.label}</em>
+              </button>
             );
           })}
         </div>
@@ -161,7 +161,9 @@ function SettingsPage({
             {ACCENT_COLORS.map((color) => (
               <button
                 aria-label={`Use ${color} accent`}
-                className={accentColor === color ? 'accent-choice active' : 'accent-choice'}
+                className={
+                  accentColor === color ? 'accent-choice active' : 'accent-choice'
+                }
                 key={color}
                 onClick={() => onPreferencesChange({ accentColor: color })}
                 style={{ background: color }}
@@ -172,7 +174,9 @@ function SettingsPage({
               <span>custom</span>
               <input
                 aria-label="Custom accent color"
-                onChange={(event) => onPreferencesChange({ accentColor: event.target.value })}
+                onChange={(event) =>
+                  onPreferencesChange({ accentColor: event.target.value })
+                }
                 type="color"
                 value={accentColor || '#b9dc6d'}
               />
@@ -189,14 +193,16 @@ function SettingsPage({
           </div>
         </div>
 
-        <div className="sound-style-cards" role="radiogroup" aria-label="Mistake behavior">
+        <div
+          className="sound-style-cards"
+          role="radiogroup"
+          aria-label="Mistake behavior"
+        >
           {MISTAKE_MODES.map((mode) => (
             <button
               aria-checked={mistakeMode === mode.id}
               className={
-                mistakeMode === mode.id
-                  ? 'sound-style-card active'
-                  : 'sound-style-card'
+                mistakeMode === mode.id ? 'sound-style-card active' : 'sound-style-card'
               }
               key={mode.id}
               onClick={() => onPreferencesChange({ mistakeMode: mode.id })}
@@ -258,9 +264,7 @@ function SettingsPage({
             <button
               aria-checked={soundStyle === style.id}
               className={
-                soundStyle === style.id
-                  ? 'sound-style-card active'
-                  : 'sound-style-card'
+                soundStyle === style.id ? 'sound-style-card active' : 'sound-style-card'
               }
               disabled={!soundEnabled}
               key={style.id}

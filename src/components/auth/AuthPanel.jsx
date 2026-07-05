@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   sendPasswordResetEmail,
-  signInWithPopup,
-  signInWithEmailAndPassword
+  signInWithEmailAndPassword,
+  signInWithPopup
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { LEGAL_VERSION } from '../legal.js';
-import { auth, db, isFirebaseConfigured } from '../services/firebase.js';
-import { VisibilityIcon, VisibilityOffIcon } from './MaterialIcons.jsx';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { LEGAL_VERSION } from '../../legal.js';
+import { auth, db, isFirebaseConfigured } from '../../services/firebase.js';
+import { VisibilityIcon, VisibilityOffIcon } from '../common/MaterialIcons.jsx';
 
 function getFriendlyError(error) {
   if (!error?.code) return 'Something went wrong. Try again.';
@@ -199,11 +199,7 @@ function AuthPanel({
     setIsLoading(true);
 
     try {
-      await sendPasswordResetEmail(
-        auth,
-        email.trim(),
-        getPasswordResetActionSettings()
-      );
+      await sendPasswordResetEmail(auth, email.trim(), getPasswordResetActionSettings());
       setResetMessage('Password reset email sent. Check your inbox.');
     } catch (authError) {
       const friendlyError = getFriendlyError(authError);
@@ -305,8 +301,15 @@ function AuthPanel({
                 type="checkbox"
               />
               <span>
-                I agree to the <a href="/terms" onClick={onClose}>Terms</a> and{' '}
-                <a href="/privacy" onClick={onClose}>Privacy Policy</a>.
+                I agree to the{' '}
+                <a href="/terms" onClick={onClose}>
+                  Terms
+                </a>{' '}
+                and{' '}
+                <a href="/privacy" onClick={onClose}>
+                  Privacy Policy
+                </a>
+                .
               </span>
             </label>
           )}

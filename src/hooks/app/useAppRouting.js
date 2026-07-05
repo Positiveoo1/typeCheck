@@ -65,7 +65,9 @@ export function loadPublicProfileUserId() {
 
 export function getPathForPage(page, params = {}) {
   if (page === 'public-profile') {
-    return params.userId ? `/player/${encodeURIComponent(params.userId)}` : '/leaderboard';
+    return params.userId
+      ? `/player/${encodeURIComponent(params.userId)}`
+      : '/leaderboard';
   }
 
   return PAGE_PATHS[page] || '/';

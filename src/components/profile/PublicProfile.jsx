@@ -7,7 +7,7 @@ import {
   getPlayerInitials,
   getRankTier,
   getTypingStyle
-} from '../typingIdentity.js';
+} from '../../typingIdentity.js';
 
 function formatDate(value) {
   if (!value) return 'Pending';
@@ -26,11 +26,16 @@ function formatDate(value) {
 function PublicProfile({ error, isLoading, onBack, playerName, results }) {
   const bestResult = results[0] || null;
   const recentResults = [...results]
-    .sort((first, second) => new Date(second.createdAt || 0) - new Date(first.createdAt || 0))
+    .sort(
+      (first, second) => new Date(second.createdAt || 0) - new Date(first.createdAt || 0)
+    )
     .slice(0, 10);
   const averageAccuracy = getAverageAccuracy(results);
   const averageWpm = getAverageWpm(results);
-  const bestAccuracy = Math.max(...results.map((result) => Number(result.accuracy) || 0), 0);
+  const bestAccuracy = Math.max(
+    ...results.map((result) => Number(result.accuracy) || 0),
+    0
+  );
   const consistency = getConsistencyScore(results);
   const rank = getRankTier(bestResult?.wpm || 0);
   const typingStyle = getTypingStyle(bestResult || {}, {
@@ -63,7 +68,9 @@ function PublicProfile({ error, isLoading, onBack, playerName, results }) {
           <div>
             <p className="eyebrow">player profile</p>
             <h2>{playerName}</h2>
-            <p>{rank.label} typist - {typingStyle.label}</p>
+            <p>
+              {rank.label} typist - {typingStyle.label}
+            </p>
           </div>
         </div>
         <button className="secondary-action" onClick={onBack} type="button">
@@ -82,14 +89,19 @@ function PublicProfile({ error, isLoading, onBack, playerName, results }) {
               <div className="public-profile-rank">
                 <span>rank</span>
                 <strong>{rank.level}</strong>
-                <small>{rank.label} - {rank.progress}% to next tier</small>
+                <small>
+                  {rank.label} - {rank.progress}% to next tier
+                </small>
               </div>
               <div className="public-profile-style" data-tone={typingStyle.tone}>
                 <span>typing style</span>
                 <strong>{typingStyle.label}</strong>
                 <small>{typingStyle.description}</small>
               </div>
-              <div className="public-profile-graph" aria-label="Recent public WPM results">
+              <div
+                className="public-profile-graph"
+                aria-label="Recent public WPM results"
+              >
                 <div>
                   <span>recent form</span>
                   <strong>{averageWpm} avg WPM</strong>
@@ -143,7 +155,11 @@ function PublicProfile({ error, isLoading, onBack, playerName, results }) {
               <div className="achievement-grid compact">
                 {achievements.map((badge) => (
                   <div
-                    className={badge.isUnlocked ? 'achievement-badge unlocked' : 'achievement-badge'}
+                    className={
+                      badge.isUnlocked
+                        ? 'achievement-badge unlocked'
+                        : 'achievement-badge'
+                    }
                     key={badge.id}
                   >
                     <span>{badge.label.slice(0, 2)}</span>

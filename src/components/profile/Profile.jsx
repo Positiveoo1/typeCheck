@@ -6,7 +6,7 @@ import {
   getConsistencyScore,
   getRankTier,
   getTypingStyle
-} from '../typingIdentity.js';
+} from '../../typingIdentity.js';
 
 const PROFILE_FIELDS = [
   { id: 'username', label: 'Username', placeholder: 'typechecker' },
@@ -100,7 +100,9 @@ function BadgeShelf({ badges }) {
     <div className="achievement-grid" aria-label="Achievement badges">
       {badges.map((badge) => (
         <div
-          className={badge.isUnlocked ? 'achievement-badge unlocked' : 'achievement-badge'}
+          className={
+            badge.isUnlocked ? 'achievement-badge unlocked' : 'achievement-badge'
+          }
           key={badge.id}
         >
           <span>{badge.label.slice(0, 2)}</span>
@@ -114,11 +116,9 @@ function BadgeShelf({ badges }) {
 
 function ActivityGrid({ results }) {
   const today = new Date();
-  const todayUtc = new Date(Date.UTC(
-    today.getUTCFullYear(),
-    today.getUTCMonth(),
-    today.getUTCDate()
-  ));
+  const todayUtc = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  );
   const startDate = new Date(todayUtc);
   startDate.setUTCDate(
     todayUtc.getUTCDate() - (CONTRIBUTION_WEEKS - 1) * 7 - todayUtc.getUTCDay()
@@ -223,10 +223,7 @@ function Profile({
 
   const stats = useMemo(() => {
     const modes = Object.values(dashboard.modes || {});
-    const bestWpm = Math.max(
-      ...modes.map((mode) => Number(mode.bestWpm) || 0),
-      0
-    );
+    const bestWpm = Math.max(...modes.map((mode) => Number(mode.bestWpm) || 0), 0);
     const bestAccuracy = Math.max(
       ...modes.map((mode) => Number(mode.bestAccuracy) || 0),
       0
@@ -258,13 +255,17 @@ function Profile({
     totalTypingSeconds: stats.totalTypingSeconds
   });
 
-  const profileName = profile.username ? `@${profile.username}` : user.displayName || user.email;
-  const avatarInitial = (profile.username || user.displayName || user.email || 'U').slice(0, 1);
-  const recentResetEmails = getRecentEvents(
-    profile.accountSecurity?.resetEmailSentAt
+  const profileName = profile.username
+    ? `@${profile.username}`
+    : user.displayName || user.email;
+  const avatarInitial = (profile.username || user.displayName || user.email || 'U').slice(
+    0,
+    1
   );
-  const isPasswordProvider =
-    user.providerData?.some((provider) => provider.providerId === 'password');
+  const recentResetEmails = getRecentEvents(profile.accountSecurity?.resetEmailSentAt);
+  const isPasswordProvider = user.providerData?.some(
+    (provider) => provider.providerId === 'password'
+  );
   const resetEmailsRemaining = Math.max(
     0,
     PASSWORD_RESET_EMAIL_LIMIT - recentResetEmails.length
@@ -374,14 +375,19 @@ function Profile({
           <div className="profile-stats-grid">
             <StatCard label="best wpm" value={stats.bestWpm} />
             <StatCard label="completed" value={stats.completed} />
-            <StatCard label="typing time" value={formatDuration(stats.totalTypingSeconds)} />
+            <StatCard
+              label="typing time"
+              value={formatDuration(stats.totalTypingSeconds)}
+            />
             <StatCard label="estimated words" value={stats.estimatedWords} />
           </div>
           <div className="profile-identity-strip">
             <div>
               <span>rank tier</span>
               <strong>{stats.rank.label}</strong>
-              <small>Level {stats.rank.level} - {stats.rank.progress}% to next tier</small>
+              <small>
+                Level {stats.rank.level} - {stats.rank.progress}% to next tier
+              </small>
             </div>
             <div>
               <span>typing style</span>
@@ -418,7 +424,9 @@ function Profile({
           <div className="account-security-grid">
             <div>
               <span>reset emails left</span>
-              <strong>{resetEmailsRemaining}/{PASSWORD_RESET_EMAIL_LIMIT}</strong>
+              <strong>
+                {resetEmailsRemaining}/{PASSWORD_RESET_EMAIL_LIMIT}
+              </strong>
               <small>Every {ACCOUNT_SECURITY_WINDOW_DAYS} days</small>
             </div>
           </div>
@@ -437,7 +445,11 @@ function Profile({
               {resetStatus === 'sending' ? 'Sending' : 'Send reset email'}
             </button>
             {resetMessage && (
-              <p className={resetStatus === 'error' ? 'profile-status error' : 'profile-status'}>
+              <p
+                className={
+                  resetStatus === 'error' ? 'profile-status error' : 'profile-status'
+                }
+              >
                 {resetMessage}
               </p>
             )}
@@ -505,7 +517,11 @@ function Profile({
                   </div>
                 </label>
               ))}
-              <button className="primary-action" disabled={saveStatus === 'saving'} type="submit">
+              <button
+                className="primary-action"
+                disabled={saveStatus === 'saving'}
+                type="submit"
+              >
                 {saveStatus === 'saving' ? 'Saving' : 'Save profile'}
               </button>
               {saveStatus === 'error' && (

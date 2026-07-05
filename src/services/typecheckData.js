@@ -7,6 +7,10 @@ import {
 } from '../appState.js';
 
 let firebaseRuntimePromise = null;
+const MAX_CLOUD_WPM = 400;
+const MAX_RESULT_CHARS = 20000;
+const MAX_MODE_LABEL_LENGTH = 80;
+const MAX_TRAINING_MODE_LENGTH = 40;
 
 export function getFirebaseRuntime() {
   if (!firebaseRuntimePromise) {
@@ -69,6 +73,31 @@ export function getLeaderboardPlayerName(profile) {
   if (profile?.fallbackName) return profile.fallbackName;
 
   return 'Anonymous typist';
+}
+
+function isNumberInRange(value, min, max) {
+  return Number.isFinite(value) && value >= min && value <= max;
+}
+
+function isStringWithLength(value, min, max) {
+  return typeof value === 'string' && value.length >= min && value.length <= max;
+}
+
+export function isCloudResultEligible(result) {
+  return (
+    isNumberInRange(result?.accuracy, 0, 100) &&
+    isNumberInRange(result?.correctChars, 0, MAX_RESULT_CHARS) &&
+    isNumberInRange(result?.elapsedSeconds, 0, Number.MAX_SAFE_INTEGER) &&
+    isNumberInRange(result?.wpm, 0, MAX_CLOUD_WPM) &&
+    isNumberInRange(result?.wrongChars, 0, MAX_RESULT_CHARS) &&
+    isStringWithLength(result?.modeLabel, 1, MAX_MODE_LABEL_LENGTH) &&
+    (result?.testType === 'time' || result?.testType === 'words') &&
+    isStringWithLength(
+      result?.trainingMode || 'standard',
+      1,
+      MAX_TRAINING_MODE_LENGTH
+    )
+  );
 }
 
 export function serializePublicPlayer(firebase, profile, user) {

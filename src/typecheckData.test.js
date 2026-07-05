@@ -7,6 +7,7 @@ import {
   getPublicPlayerDocRef,
   getResultsCollectionRef,
   getUserDocRef,
+  isCloudResultEligible,
   loadFirebaseDashboard,
   serializeDashboard,
   serializePublicPlayer,
@@ -160,6 +161,33 @@ describe('display and auth helpers', () => {
       getAuthActionErrorMessage({ code: 'auth/something-new' }),
       'Could not complete this account action.'
     );
+  });
+});
+
+describe('cloud result eligibility', () => {
+  const validResult = {
+    accuracy: 98,
+    correctChars: 120,
+    elapsedSeconds: 30,
+    modeLabel: '30s',
+    testType: 'time',
+    trainingMode: 'standard',
+    wpm: 48,
+    wrongChars: 3
+  };
+
+  it('accepts results that match Firestore result rule bounds', () => {
+    assert.equal(isCloudResultEligible(validResult), true);
+  });
+
+  it('rejects results Firestore rules would deny', () => {
+    assert.equal(isCloudResultEligible({ ...validResult, wpm: 401 }), false);
+    assert.equal(
+      isCloudResultEligible({ ...validResult, wpm: Number.POSITIVE_INFINITY }),
+      false
+    );
+    assert.equal(isCloudResultEligible({ ...validResult, modeLabel: '' }), false);
+    assert.equal(isCloudResultEligible({ ...validResult, testType: 'custom' }), false);
   });
 });
 

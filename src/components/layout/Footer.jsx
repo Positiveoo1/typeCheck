@@ -1,4 +1,4 @@
-import { LEGAL_VERSION } from '../legal.js';
+import { LEGAL_VERSION } from '../../legal.js';
 
 function Footer({ onNavigate }) {
   return (

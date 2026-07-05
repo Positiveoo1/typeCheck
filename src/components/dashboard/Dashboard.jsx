@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TRAINING_MODES } from '../trainingModes.js';
+import { TRAINING_MODES } from '../../trainingModes.js';
 
 const TIME_MODES = ['15s', '30s', '60s'];
 const WORD_MODES = ['10 words', '30 words', '60 words'];
@@ -27,18 +27,15 @@ function getTrainingModeStats(dashboard) {
         trainingStats[trainingMode].bestAccuracy,
         Number(result.accuracy) || 0
       ),
-      bestWpm: Math.max(
-        trainingStats[trainingMode].bestWpm,
-        Number(result.wpm) || 0
-      ),
+      bestWpm: Math.max(trainingStats[trainingMode].bestWpm, Number(result.wpm) || 0),
       completed: trainingStats[trainingMode].completed + 1
     };
   });
 
   Object.entries(dashboard.modes || {}).forEach(([modeLabel, modeStats]) => {
-    const matchingMode = TRAINING_DASHBOARD_MODES.find((mode) => (
+    const matchingMode = TRAINING_DASHBOARD_MODES.find((mode) =>
       modeLabel.startsWith(`${mode.id.replace(/-/g, ' ')} `)
-    ));
+    );
 
     if (!matchingMode) return;
 

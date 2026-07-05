@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import {
   useCallback,
   useEffect,
@@ -6,15 +7,14 @@ import {
   useRef,
   useState
 } from 'react';
-import { motion } from 'framer-motion';
+import { buildTrainingTarget, getTrainingMode } from '../../trainingModes.js';
 import {
   buildWordTokens,
   calculateStats,
   getModeLabel,
   getNextTypedText,
   getTimeLeft
-} from '../typingLogic.js';
-import { buildTrainingTarget, getTrainingMode } from '../trainingModes.js';
+} from '../../typingLogic.js';
 
 const KEYBOARD_ROWS = [
   [

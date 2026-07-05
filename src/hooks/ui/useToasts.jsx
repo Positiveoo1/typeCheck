@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { createId } from '../appState.js';
+import { useCallback, useState } from 'react';
+import { createId } from '../../appState.js';
 
 const TOAST_LIFETIME_MS = 4200;
 
@@ -40,28 +40,31 @@ export function useToasts() {
   const [toasts, setToasts] = useState([]);
 
   const dismissToast = useCallback((toastId) => {
-    setToasts((currentToasts) => (
-      currentToasts.filter((toast) => toast.id !== toastId)
-    ));
+    setToasts((currentToasts) => currentToasts.filter((toast) => toast.id !== toastId));
   }, []);
 
-  const notify = useCallback(({ message = '', title, type = 'info' }) => {
-    const toastId = createId();
+  const notify = useCallback(
+    ({ message = '', title, type = 'info' }) => {
+      const toastId = createId();
 
-    setToasts((currentToasts) => [
-      ...currentToasts,
-      {
-        id: toastId,
-        message,
-        title,
-        type
-      }
-    ].slice(-4));
+      setToasts((currentToasts) =>
+        [
+          ...currentToasts,
+          {
+            id: toastId,
+            message,
+            title,
+            type
+          }
+        ].slice(-4)
+      );
 
-    window.setTimeout(() => {
-      dismissToast(toastId);
-    }, TOAST_LIFETIME_MS);
-  }, [dismissToast]);
+      window.setTimeout(() => {
+        dismissToast(toastId);
+      }, TOAST_LIFETIME_MS);
+    },
+    [dismissToast]
+  );
 
   return {
     dismissToast,

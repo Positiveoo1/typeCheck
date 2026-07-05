@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
 import {
   CATEGORY_FILTERS,
   DEFAULT_MODE_FILTER,
@@ -9,8 +9,8 @@ import {
   getModeOptions,
   getPlayerInitials,
   sortLeaderboardEntries
-} from '../leaderboardLogic.js';
-import { EmojiEventsIcon } from './MaterialIcons.jsx';
+} from '../../leaderboardLogic.js';
+import { EmojiEventsIcon } from '../common/MaterialIcons.jsx';
 
 function Podium({ entries, onOpenProfile, currentUserId }) {
   if (entries.length === 0) return null;

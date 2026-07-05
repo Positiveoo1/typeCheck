@@ -1,5 +1,5 @@
-import { useLayoutEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useLayoutEffect, useState } from 'react';
 
 const ONBOARDING_ITEMS = [
   {
@@ -65,10 +65,7 @@ function Onboarding({ onDismiss }) {
       const viewportHeight = window.innerHeight;
       const panelWidth = Math.min(320, viewportWidth - 28);
       const spaceBelow = viewportHeight - rect.bottom;
-      const panelTop =
-        spaceBelow > 220
-          ? rect.bottom + 16
-          : Math.max(14, rect.top - 232);
+      const panelTop = spaceBelow > 220 ? rect.bottom + 16 : Math.max(14, rect.top - 232);
 
       setSpotlight({
         height: rect.height + padding * 2,
@@ -137,15 +134,14 @@ function Onboarding({ onDismiss }) {
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ duration: 0.24, ease: 'easeOut' }}
       >
-        <p className="eyebrow">quick start {stepIndex + 1}/{ONBOARDING_ITEMS.length}</p>
+        <p className="eyebrow">
+          quick start {stepIndex + 1}/{ONBOARDING_ITEMS.length}
+        </p>
         <h2 id="onboarding-title">{step.title}</h2>
         <p>{step.text}</p>
         <div className="onboarding-progress" aria-hidden="true">
           {ONBOARDING_ITEMS.map((item, index) => (
-            <span
-              className={index === stepIndex ? 'active' : ''}
-              key={item.title}
-            />
+            <span className={index === stepIndex ? 'active' : ''} key={item.title} />
           ))}
         </div>
         <div className="onboarding-actions">

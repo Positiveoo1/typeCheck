@@ -1,44 +1,47 @@
 import { useCallback, useRef, useState } from 'react';
-import { createEmptyDashboard, createModeStats } from '../appState.js';
+import { createEmptyDashboard, createModeStats } from '../../appState.js';
+import { isFirebaseConfigured } from '../../services/firebaseConfig.js';
 import {
   getDashboardDocRef,
   getFirebaseRuntime,
   serializeDashboard
-} from '../services/typecheckData.js';
-import { isFirebaseConfigured } from '../services/firebaseConfig.js';
+} from '../../services/typecheckData.js';
 
 export function useDashboardPersistence({ notify, user }) {
   const [dashboard, setDashboard] = useState(createEmptyDashboard);
   const activeAttemptRef = useRef(null);
 
-  const updateDashboard = useCallback((updater) => {
-    setDashboard((currentDashboard) => {
-      const nextDashboard = updater(currentDashboard);
+  const updateDashboard = useCallback(
+    (updater) => {
+      setDashboard((currentDashboard) => {
+        const nextDashboard = updater(currentDashboard);
 
-      if (!user || !isFirebaseConfigured) return nextDashboard;
+        if (!user || !isFirebaseConfigured) return nextDashboard;
 
-      getFirebaseRuntime()
-        .then((firebase) => {
-          if (!firebase.db) return;
+        getFirebaseRuntime()
+          .then((firebase) => {
+            if (!firebase.db) return;
 
-          return firebase.setDoc(
-            getDashboardDocRef(firebase, user.uid),
-            serializeDashboard(firebase, nextDashboard),
-            { merge: true }
-          );
-        })
-        .catch((error) => {
-          console.error('Failed to save dashboard:', error);
-          notify({
-            title: 'Dashboard not saved',
-            message: 'Your latest progress could not be synced.',
-            type: 'error'
+            return firebase.setDoc(
+              getDashboardDocRef(firebase, user.uid),
+              serializeDashboard(firebase, nextDashboard),
+              { merge: true }
+            );
+          })
+          .catch((error) => {
+            console.error('Failed to save dashboard:', error);
+            notify({
+              title: 'Dashboard not saved',
+              message: 'Your latest progress could not be synced.',
+              type: 'error'
+            });
           });
-        });
 
-      return nextDashboard;
-    });
-  }, [notify, user]);
+        return nextDashboard;
+      });
+    },
+    [notify, user]
+  );
 
   const markIncompleteAttempt = useCallback(() => {
     const currentAttempt = activeAttemptRef.current;

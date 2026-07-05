@@ -1,22 +1,16 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   DashboardIcon,
   EmojiEventsIcon,
   KeyboardIcon,
   PersonIcon,
   SettingsIcon
-} from './MaterialIcons.jsx';
+} from '../common/MaterialIcons.jsx';
 
-const AuthPanel = lazy(() => import('./AuthPanel.jsx'));
+const AuthPanel = lazy(() => import('../auth/AuthPanel.jsx'));
 
-function Header({
-  currentPage,
-  onNotify,
-  profile,
-  user,
-  onNavigate
-}) {
+function Header({ currentPage, onNotify, profile, user, onNavigate }) {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const navRef = useRef(null);
 
@@ -56,11 +50,7 @@ function Header({
         </div>
       </motion.button>
 
-      <nav
-        className="nav-actions"
-        aria-label="Primary"
-        ref={navRef}
-      >
+      <nav className="nav-actions" aria-label="Primary" ref={navRef}>
         <motion.button
           aria-label="Typing test"
           className={currentPage === 'test' ? 'nav-icon active' : 'nav-icon'}
