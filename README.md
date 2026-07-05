@@ -22,7 +22,7 @@ TypeCheck v1.6.0 is a beginner-friendly typing speed test built with Next.js, Re
 - SEO metadata, robots.txt, and sitemap support.
 
 ## Tech Stack
-m,
+
 - Next.js `15`
 - React `19`
 - Firebase Auth and Firestore
@@ -135,16 +135,16 @@ extension or privacy blocker interrupting a Firestore network request.
 
 ## App Navigation
 
-The UI uses hash-based page state inside the main Next page:
+The UI supports real Next routes while preserving old hash links as redirects:
 
-- `/#test`: typing test
-- `/#dashboard`: dashboard
-- `/#leaderboard`: leaderboard
-- `/#profile`: signed-in user profile
-- `/#settings`: settings
-- `/#privacy`: privacy page
-- `/#terms`: terms page
-- `/#player={userId}`: public profile
+- `/`: typing test
+- `/dashboard`: dashboard
+- `/leaderboard`: leaderboard
+- `/profile`: signed-in user profile
+- `/settings`: settings
+- `/privacy`: privacy page
+- `/terms`: terms page
+- `/player/{userId}`: public profile
 
 ## Project Structure
 

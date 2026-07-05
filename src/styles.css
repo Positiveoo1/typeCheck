@@ -2710,8 +2710,7 @@ h2 {
   gap: 6px;
 }
 
-.profile-form label span,
-.password-change-form label span {
+.profile-form label span {
   color: var(--muted);
   font-size: 0.76rem;
   text-transform: uppercase;
@@ -2731,16 +2730,6 @@ h2 {
 .profile-form input:focus {
   border-color: rgba(var(--caret-rgb), 0.38);
   box-shadow: 0 0 0 3px rgba(var(--caret-rgb), 0.08);
-}
-
-.password-change-form .password-field input {
-  min-height: 42px;
-}
-
-.password-change-form input:disabled,
-.password-change-form .password-visibility-toggle:disabled {
-  cursor: not-allowed;
-  opacity: 0.58;
 }
 
 .profile-form button {
@@ -2922,27 +2911,6 @@ h2 {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-}
-
-.password-change-form {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.password-change-form label {
-  display: grid;
-  gap: 6px;
-}
-
-.password-change-form button,
-.password-change-form .profile-status {
-  justify-self: start;
-}
-
-.password-change-form button,
-.password-change-form .profile-status {
-  grid-column: 1 / -1;
 }
 
 .profile-contrib {
@@ -5394,8 +5362,7 @@ h2 {
 
   .account-security-grid,
   .achievement-grid,
-  .achievement-grid.compact,
-  .password-change-form {
+  .achievement-grid.compact {
     grid-template-columns: 1fr;
   }
 

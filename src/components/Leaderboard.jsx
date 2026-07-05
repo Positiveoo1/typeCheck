@@ -1,95 +1,16 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import {
+  CATEGORY_FILTERS,
+  DEFAULT_MODE_FILTER,
+  formatLeaderboardDate,
+  getEntryTestType,
+  getLeaderboardSummary,
+  getModeOptions,
+  getPlayerInitials,
+  sortLeaderboardEntries
+} from '../leaderboardLogic.js';
 import { EmojiEventsIcon } from './MaterialIcons.jsx';
-
-const DEFAULT_MODE_FILTER = '10 words';
-const CATEGORY_FILTERS = [
-  { id: 'all', label: 'all' },
-  { id: 'time', label: 'time' },
-  { id: 'words', label: 'words' }
-];
-
-function formatDate(value) {
-  if (!value) return 'Pending';
-
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) return 'Pending';
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  }).format(date);
-}
-
-function sortLeaderboardEntries(firstEntry, secondEntry) {
-  return (
-    secondEntry.wpm - firstEntry.wpm ||
-    secondEntry.accuracy - firstEntry.accuracy ||
-    (new Date(secondEntry.createdAt || 0) - new Date(firstEntry.createdAt || 0))
-  );
-}
-
-function getEntryTestType(entry) {
-  if (entry.testType === 'time' || entry.testType === 'words') return entry.testType;
-
-  return String(entry.modeLabel || '').includes('words') ? 'words' : 'time';
-}
-
-function getModeOptions(entries) {
-  const priority = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
-
-  return [...new Set(entries.map((entry) => entry.modeLabel).filter(Boolean))]
-    .sort((firstMode, secondMode) => {
-      const firstPriority = priority.indexOf(firstMode);
-      const secondPriority = priority.indexOf(secondMode);
-
-      if (firstPriority !== -1 || secondPriority !== -1) {
-        return (
-          (firstPriority === -1 ? priority.length : firstPriority) -
-          (secondPriority === -1 ? priority.length : secondPriority)
-        );
-      }
-
-      return firstMode.localeCompare(secondMode);
-    });
-}
-
-function getPlayerInitials(name) {
-  const words = String(name || '')
-    .replace(/^@/, '')
-    .split(/[\s._-]+/)
-    .map((word) => word.trim())
-    .filter(Boolean);
-
-  if (words.length === 0) return '?';
-
-  return words
-    .slice(0, 2)
-    .map((word) => word.slice(0, 1).toUpperCase())
-    .join('');
-}
-
-function getLeaderboardSummary(entries) {
-  if (entries.length === 0) {
-    return {
-      averageAccuracy: 0,
-      modeCount: 0,
-      topWpm: 0,
-      totalEntries: 0
-    };
-  }
-
-  const accuracyTotal = entries.reduce((total, entry) => total + Number(entry.accuracy || 0), 0);
-
-  return {
-    averageAccuracy: Math.round(accuracyTotal / entries.length),
-    modeCount: new Set(entries.map((entry) => entry.modeLabel).filter(Boolean)).size,
-    topWpm: Math.max(...entries.map((entry) => Number(entry.wpm) || 0)),
-    totalEntries: entries.length
-  };
-}
 
 function Podium({ entries, onOpenProfile, currentUserId }) {
   if (entries.length === 0) return null;
@@ -108,7 +29,9 @@ function Podium({ entries, onOpenProfile, currentUserId }) {
               'podium-card',
               `podium-rank-${rank}`,
               isCurrentUser ? 'current-user' : ''
-            ].filter(Boolean).join(' ')}
+            ]
+              .filter(Boolean)
+              .join(' ')}
             key={`podium-${entry.id}-${rank}`}
             onClick={() => onOpenProfile(entry.userId)}
             type="button"
@@ -117,15 +40,16 @@ function Podium({ entries, onOpenProfile, currentUserId }) {
             transition={{ duration: 0.22, delay: index * 0.05, ease: 'easeOut' }}
           >
             <span className="podium-rank">
-              {rank === 1 && <EmojiEventsIcon />}
-              #{rank}
+              {rank === 1 && <EmojiEventsIcon />}#{rank}
             </span>
             <span className="podium-avatar" aria-hidden="true">
               {getPlayerInitials(entry.playerName)}
             </span>
             <strong>{entry.playerName}</strong>
             <span className="podium-score">{entry.wpm} WPM</span>
-            <small>{entry.accuracy}% accuracy &middot; {entry.modeLabel}</small>
+            <small>
+              {entry.accuracy}% accuracy &middot; {entry.modeLabel}
+            </small>
             {isCurrentUser && <em>you</em>}
           </motion.button>
         );
@@ -142,20 +66,23 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
     [entries]
   );
   const categoryEntries = useMemo(
-    () => rankedEntries.filter((entry) => (
-      categoryFilter === 'all' || getEntryTestType(entry) === categoryFilter
-    )),
+    () =>
+      rankedEntries.filter(
+        (entry) => categoryFilter === 'all' || getEntryTestType(entry) === categoryFilter
+      ),
     [categoryFilter, rankedEntries]
   );
   const modeOptions = useMemo(() => getModeOptions(categoryEntries), [categoryEntries]);
   const effectiveModeFilter = modeOptions.includes(modeFilter) ? modeFilter : 'all';
   const filteredEntries = useMemo(
-    () => categoryEntries
-      .filter((entry) => (
-        effectiveModeFilter === 'all' || entry.modeLabel === effectiveModeFilter
-      ))
-      .sort(sortLeaderboardEntries)
-      .slice(0, 50),
+    () =>
+      categoryEntries
+        .filter(
+          (entry) =>
+            effectiveModeFilter === 'all' || entry.modeLabel === effectiveModeFilter
+        )
+        .sort(sortLeaderboardEntries)
+        .slice(0, 50),
     [categoryEntries, effectiveModeFilter]
   );
   const activeFilterLabel =
@@ -212,7 +139,11 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         <div className="leaderboard-filters" aria-label="Leaderboard filters">
           <div className="leaderboard-filter-card">
             <span>type</span>
-            <div className="leaderboard-filter-group" role="group" aria-label="Filter by test type">
+            <div
+              className="leaderboard-filter-group"
+              role="group"
+              aria-label="Filter by test type"
+            >
               {CATEGORY_FILTERS.map((filter) => (
                 <button
                   className={categoryFilter === filter.id ? 'active' : ''}
@@ -230,7 +161,11 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
           </div>
           <div className="leaderboard-filter-card mode-filter-card">
             <span>mode</span>
-            <div className="leaderboard-filter-group mode-filter-group" role="group" aria-label="Filter by mode">
+            <div
+              className="leaderboard-filter-group mode-filter-group"
+              role="group"
+              aria-label="Filter by mode"
+            >
               <button
                 className={effectiveModeFilter === 'all' ? 'active' : ''}
                 onClick={() => setModeFilter('all')}
@@ -255,7 +190,10 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         {!currentUserId && (
           <div className="leaderboard-auth-prompt">
             <strong>Want to see yourself here?</strong>
-            <span>Log in or create an account, finish a test, and claim your spot on the board.</span>
+            <span>
+              Log in or create an account, finish a test, and claim your spot on the
+              board.
+            </span>
           </div>
         )}
 
@@ -272,7 +210,11 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
               entries={filteredEntries}
               onOpenProfile={onOpenProfile}
             />
-            <div className="leaderboard-table" role="table" aria-label="Global typing leaderboard">
+            <div
+              className="leaderboard-table"
+              role="table"
+              aria-label="Global typing leaderboard"
+            >
               <div className="leaderboard-row leaderboard-head" role="row">
                 <span role="columnheader">rank</span>
                 <span role="columnheader">player</span>
@@ -311,10 +253,18 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
                         {isCurrentUser && <span className="leaderboard-you">you</span>}
                       </span>
                     </strong>
-                    <span className="leaderboard-wpm" data-label="wpm" role="cell">{entry.wpm}</span>
-                    <span data-label="accuracy" role="cell">{entry.accuracy}%</span>
-                    <span className="leaderboard-mode" data-label="mode" role="cell">{entry.modeLabel}</span>
-                    <span data-label="date" role="cell">{formatDate(entry.createdAt)}</span>
+                    <span className="leaderboard-wpm" data-label="wpm" role="cell">
+                      {entry.wpm}
+                    </span>
+                    <span data-label="accuracy" role="cell">
+                      {entry.accuracy}%
+                    </span>
+                    <span className="leaderboard-mode" data-label="mode" role="cell">
+                      {entry.modeLabel}
+                    </span>
+                    <span data-label="date" role="cell">
+                      {formatLeaderboardDate(entry.createdAt)}
+                    </span>
                   </motion.button>
                 );
               })}

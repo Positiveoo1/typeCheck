@@ -7,7 +7,6 @@ import {
   getRankTier,
   getTypingStyle
 } from '../typingIdentity.js';
-import { VisibilityIcon, VisibilityOffIcon } from './MaterialIcons.jsx';
 
 const PROFILE_FIELDS = [
   { id: 'username', label: 'Username', placeholder: 'typechecker' },
@@ -19,7 +18,6 @@ const PROFILE_FIELDS = [
 const CONTRIBUTION_WEEKS = 53;
 const DAY_LABELS = ['', 'monday', '', 'wednesday', '', 'friday', ''];
 const ACCOUNT_SECURITY_WINDOW_DAYS = 30;
-const PASSWORD_CHANGE_LIMIT = 2;
 const PASSWORD_RESET_EMAIL_LIMIT = 4;
 
 function formatDate(value) {
@@ -114,36 +112,6 @@ function BadgeShelf({ badges }) {
   );
 }
 
-function PasswordField({
-  autoComplete,
-  disabled,
-  isVisible,
-  onChange,
-  onToggleVisibility,
-  value
-}) {
-  return (
-    <div className="password-field">
-      <input
-        autoComplete={autoComplete}
-        disabled={disabled}
-        onChange={onChange}
-        type={isVisible ? 'text' : 'password'}
-        value={value}
-      />
-      <button
-        aria-label={isVisible ? 'Hide password' : 'Show password'}
-        className="password-visibility-toggle"
-        disabled={disabled}
-        onClick={onToggleVisibility}
-        type="button"
-      >
-        {isVisible ? <VisibilityOffIcon /> : <VisibilityIcon />}
-      </button>
-    </div>
-  );
-}
-
 function ActivityGrid({ results }) {
   const today = new Date();
   const todayUtc = new Date(Date.UTC(
@@ -211,7 +179,6 @@ function ActivityGrid({ results }) {
 
 function Profile({
   dashboard,
-  onChangePassword,
   onNotify,
   onRequestPasswordReset,
   onSaveProfile,
@@ -226,18 +193,6 @@ function Profile({
     username: profile.username || '',
     website: profile.website || ''
   });
-  const [passwordValues, setPasswordValues] = useState({
-    currentPassword: '',
-    nextPassword: '',
-    confirmPassword: ''
-  });
-  const [visiblePasswordFields, setVisiblePasswordFields] = useState({
-    confirmPassword: false,
-    currentPassword: false,
-    nextPassword: false
-  });
-  const [passwordStatus, setPasswordStatus] = useState('idle');
-  const [passwordMessage, setPasswordMessage] = useState('');
   const [resetStatus, setResetStatus] = useState('idle');
   const [resetMessage, setResetMessage] = useState('');
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -308,19 +263,11 @@ function Profile({
   const recentResetEmails = getRecentEvents(
     profile.accountSecurity?.resetEmailSentAt
   );
-  const recentPasswordChanges = getRecentEvents(
-    profile.accountSecurity?.passwordChangedAt
-  );
   const isPasswordProvider =
-    user.providerData?.some((provider) => provider.providerId === 'password') ||
-    recentPasswordChanges.length > 0;
+    user.providerData?.some((provider) => provider.providerId === 'password');
   const resetEmailsRemaining = Math.max(
     0,
     PASSWORD_RESET_EMAIL_LIMIT - recentResetEmails.length
-  );
-  const passwordChangesRemaining = Math.max(
-    0,
-    PASSWORD_CHANGE_LIMIT - recentPasswordChanges.length
   );
 
   const openEditProfile = () => {
@@ -376,56 +323,6 @@ function Profile({
         type: 'error'
       });
     }
-  };
-
-  const submitPasswordChange = async (event) => {
-    event.preventDefault();
-    setPasswordStatus('saving');
-    setPasswordMessage('');
-
-    if (passwordValues.nextPassword !== passwordValues.confirmPassword) {
-      const passwordError = 'New password confirmation does not match.';
-
-      setPasswordStatus('error');
-      setPasswordMessage(passwordError);
-      onNotify?.({
-        title: 'Password mismatch',
-        message: passwordError,
-        type: 'warning'
-      });
-      return;
-    }
-
-    try {
-      await onChangePassword({
-        currentPassword: passwordValues.currentPassword,
-        nextPassword: passwordValues.nextPassword
-      });
-      setPasswordValues({
-        currentPassword: '',
-        nextPassword: '',
-        confirmPassword: ''
-      });
-      setPasswordStatus('saved');
-      setPasswordMessage(
-        isPasswordProvider ? 'Password changed.' : 'Password created.'
-      );
-    } catch (error) {
-      setPasswordStatus('error');
-      setPasswordMessage(error.message || 'Could not change password.');
-      onNotify?.({
-        title: 'Password update failed',
-        message: error.message || 'Could not change password.',
-        type: 'error'
-      });
-    }
-  };
-
-  const togglePasswordVisibility = (fieldId) => {
-    setVisiblePasswordFields((currentFields) => ({
-      ...currentFields,
-      [fieldId]: !currentFields[fieldId]
-    }));
   };
 
   return (
@@ -524,11 +421,6 @@ function Profile({
               <strong>{resetEmailsRemaining}/{PASSWORD_RESET_EMAIL_LIMIT}</strong>
               <small>Every {ACCOUNT_SECURITY_WINDOW_DAYS} days</small>
             </div>
-            <div>
-              <span>changes left</span>
-              <strong>{passwordChangesRemaining}/{PASSWORD_CHANGE_LIMIT}</strong>
-              <small>Every {ACCOUNT_SECURITY_WINDOW_DAYS} days</small>
-            </div>
           </div>
 
           <div className="account-security-actions">
@@ -550,85 +442,6 @@ function Profile({
               </p>
             )}
           </div>
-
-          <form className="password-change-form" onSubmit={submitPasswordChange}>
-            {isPasswordProvider && (
-              <label>
-                <span>Current password</span>
-                <PasswordField
-                  autoComplete="current-password"
-                  disabled={passwordChangesRemaining === 0}
-                  isVisible={visiblePasswordFields.currentPassword}
-                  onChange={(event) => {
-                    setPasswordValues((currentValues) => ({
-                      ...currentValues,
-                      currentPassword: event.target.value
-                    }));
-                  }}
-                  onToggleVisibility={() => togglePasswordVisibility('currentPassword')}
-                  value={passwordValues.currentPassword}
-                />
-              </label>
-            )}
-            <label>
-              <span>{isPasswordProvider ? 'New password' : 'Create password'}</span>
-              <PasswordField
-                autoComplete="new-password"
-                disabled={passwordChangesRemaining === 0}
-                isVisible={visiblePasswordFields.nextPassword}
-                onChange={(event) => {
-                  setPasswordValues((currentValues) => ({
-                    ...currentValues,
-                    nextPassword: event.target.value
-                  }));
-                }}
-                onToggleVisibility={() => togglePasswordVisibility('nextPassword')}
-                value={passwordValues.nextPassword}
-              />
-            </label>
-            <label>
-              <span>Confirm new password</span>
-              <PasswordField
-                autoComplete="new-password"
-                disabled={passwordChangesRemaining === 0}
-                isVisible={visiblePasswordFields.confirmPassword}
-                onChange={(event) => {
-                  setPasswordValues((currentValues) => ({
-                    ...currentValues,
-                    confirmPassword: event.target.value
-                  }));
-                }}
-                onToggleVisibility={() => togglePasswordVisibility('confirmPassword')}
-                value={passwordValues.confirmPassword}
-              />
-            </label>
-            <button
-              className="primary-action"
-              disabled={
-                passwordStatus === 'saving' ||
-                passwordChangesRemaining === 0
-              }
-              type="submit"
-            >
-              {passwordStatus === 'saving'
-                ? isPasswordProvider
-                  ? 'Changing'
-                  : 'Creating'
-                : isPasswordProvider
-                  ? 'Change password'
-                  : 'Create password'}
-            </button>
-            {!isPasswordProvider && (
-              <p className="profile-status">
-                Create a password to sign in with email as well as Google.
-              </p>
-            )}
-            {passwordMessage && (
-              <p className={passwordStatus === 'error' ? 'profile-status error' : 'profile-status'}>
-                {passwordMessage}
-              </p>
-            )}
-          </form>
         </div>
       </section>
 

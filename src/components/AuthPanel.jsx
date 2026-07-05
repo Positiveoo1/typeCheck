@@ -36,7 +36,7 @@ function getPasswordResetActionSettings() {
 
   return {
     handleCodeInApp: false,
-    url: `${window.location.origin}/#test`
+    url: window.location.origin
   };
 }
 
@@ -305,8 +305,8 @@ function AuthPanel({
                 type="checkbox"
               />
               <span>
-                I agree to the <a href="#terms" onClick={onClose}>Terms</a> and{' '}
-                <a href="#privacy" onClick={onClose}>Privacy Policy</a>.
+                I agree to the <a href="/terms" onClick={onClose}>Terms</a> and{' '}
+                <a href="/privacy" onClick={onClose}>Privacy Policy</a>.
               </span>
             </label>
           )}

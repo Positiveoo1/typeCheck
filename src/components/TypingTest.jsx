@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { motion } from 'framer-motion';
 import {
   buildWordTokens,
   calculateStats,
   getModeLabel,
   getNextTypedText,
-  getTimeLeft,
+  getTimeLeft
 } from '../typingLogic.js';
 import { buildTrainingTarget, getTrainingMode } from '../trainingModes.js';
 
@@ -71,7 +78,10 @@ function playToneSound(audioContextRef, volume, style) {
 
   oscillator.type = isBright ? 'square' : 'sine';
   oscillator.frequency.setValueAtTime(isBright ? 980 : 420, startedAt);
-  oscillator.frequency.exponentialRampToValueAtTime(isBright ? 520 : 260, startedAt + 0.055);
+  oscillator.frequency.exponentialRampToValueAtTime(
+    isBright ? 520 : 260,
+    startedAt + 0.055
+  );
   gain.gain.setValueAtTime(Math.max(0.001, volume * (isBright ? 0.08 : 0.12)), startedAt);
   gain.gain.exponentialRampToValueAtTime(0.001, startedAt + (isBright ? 0.035 : 0.06));
 
@@ -94,7 +104,9 @@ function playKeySound(audioPoolRef, audioContextRef, volume, style) {
     audioPoolRef.current.push(createKeyAudio(volume));
   }
 
-  const availableAudio = audioPoolRef.current.find((audio) => audio.paused || audio.ended);
+  const availableAudio = audioPoolRef.current.find(
+    (audio) => audio.paused || audio.ended
+  );
   const audio =
     availableAudio ||
     (audioPoolRef.current.length < KEY_SOUND_POOL_SIZE
@@ -141,7 +153,7 @@ function VisualKeyboard({ keyboardRef, pressedKeyStates, pressedKeys }) {
 }
 
 function ShortcutHints() {
-  const   hint =  { label: 'restart', keys: ['Esc'] };
+  const hint = { label: 'restart', keys: ['Esc'] };
 
   return (
     <section
@@ -242,6 +254,10 @@ function TypingTest({
   const keySoundPoolRef = useRef([]);
   const audioContextRef = useRef(null);
   const currentLetterRef = useRef(null);
+  const elapsedTimeRef = useRef(0);
+  const isRunningRef = useRef(false);
+  const targetTextRef = useRef('');
+  const timeLeftRef = useRef(testType === 'time' ? testValue : 0);
   const typedTextRef = useRef('');
   const startedAtRef = useRef(null);
   const accumulatedElapsedRef = useRef(0);
@@ -262,7 +278,11 @@ function TypingTest({
   const isReplay = Boolean(targetTextOverride);
   const activeTrainingMode = getTrainingMode(trainingMode);
   const isAccuracyLock = trainingMode === 'accuracy-lock';
-  const currentMistakes = calculateStats(targetText, typedText, Math.max(elapsedTime, 0.1)).wrongChars;
+  const currentMistakes = calculateStats(
+    targetText,
+    typedText,
+    Math.max(elapsedTime, 0.1)
+  ).wrongChars;
   const unresolvedSpaceMistakeIndex = getUnresolvedSpaceMistakeIndex(
     targetText,
     typedText
@@ -285,86 +305,99 @@ function TypingTest({
     };
   }, []);
 
-  const recordSpeedSnapshot = (elapsedSeconds, nextTypedText) => {
-    const normalizedElapsedSeconds = Math.max(0, elapsedSeconds);
-    const snapshot = calculateStats(
-      targetText,
-      nextTypedText,
-      normalizedElapsedSeconds
-    );
-    const lastSnapshot = speedHistoryRef.current.at(-1);
+  const recordSpeedSnapshot = useCallback(
+    (elapsedSeconds, nextTypedText) => {
+      const normalizedElapsedSeconds = Math.max(0, elapsedSeconds);
+      const snapshot = calculateStats(
+        targetText,
+        nextTypedText,
+        normalizedElapsedSeconds
+      );
+      const lastSnapshot = speedHistoryRef.current.at(-1);
 
-    if (
-      lastSnapshot &&
-      normalizedElapsedSeconds - lastSnapshot.elapsedSeconds < 0.45 &&
-      snapshot.wpm === lastSnapshot.wpm
-    ) {
-      return;
-    }
-
-    speedHistoryRef.current = [
-      ...speedHistoryRef.current,
-      {
-        elapsedSeconds: normalizedElapsedSeconds,
-        wpm: snapshot.wpm
+      if (
+        lastSnapshot &&
+        normalizedElapsedSeconds - lastSnapshot.elapsedSeconds < 0.45 &&
+        snapshot.wpm === lastSnapshot.wpm
+      ) {
+        return;
       }
-    ].slice(-90);
-  };
 
-  const createResult = (nextTypedText, elapsedSeconds, options = {}) => {
-    const finalStats = calculateStats(targetText, nextTypedText, elapsedSeconds);
-    const speedHistory = [...speedHistoryRef.current];
-    const lastSnapshot = speedHistory.at(-1);
+      speedHistoryRef.current = [
+        ...speedHistoryRef.current,
+        {
+          elapsedSeconds: normalizedElapsedSeconds,
+          wpm: snapshot.wpm
+        }
+      ].slice(-90);
+    },
+    [targetText]
+  );
 
-    if (
-      !lastSnapshot ||
-      lastSnapshot.elapsedSeconds !== finalStats.elapsedSeconds ||
-      lastSnapshot.wpm !== finalStats.wpm
-    ) {
-      speedHistory.push({
-        elapsedSeconds: finalStats.elapsedSeconds,
-        wpm: finalStats.wpm
-      });
-    }
+  const createResult = useCallback(
+    (nextTypedText, elapsedSeconds, options = {}) => {
+      const finalStats = calculateStats(targetText, nextTypedText, elapsedSeconds);
+      const speedHistory = [...speedHistoryRef.current];
+      const lastSnapshot = speedHistory.at(-1);
 
-    return {
-      ...finalStats,
-      endedByAccuracyLock: Boolean(options.endedByAccuracyLock),
-      modeLabel: getModeLabel(testType, testValue, trainingMode),
-      speedHistory,
-      targetText,
-      testType,
-      typedText: nextTypedText,
-      trainingMode
-    };
-  };
+      if (
+        !lastSnapshot ||
+        lastSnapshot.elapsedSeconds !== finalStats.elapsedSeconds ||
+        lastSnapshot.wpm !== finalStats.wpm
+      ) {
+        speedHistory.push({
+          elapsedSeconds: finalStats.elapsedSeconds,
+          wpm: finalStats.wpm
+        });
+      }
+
+      return {
+        ...finalStats,
+        endedByAccuracyLock: Boolean(options.endedByAccuracyLock),
+        modeLabel: getModeLabel(testType, testValue, trainingMode),
+        speedHistory,
+        targetText,
+        testType,
+        typedText: nextTypedText,
+        trainingMode
+      };
+    },
+    [targetText, testType, testValue, trainingMode]
+  );
 
   const pauseWordTimer = useCallback(() => {
     if (testType !== 'words') return;
-    if (!isRunning || !startedAtRef.current || hasFinishedRef.current) return;
+    if (!isRunningRef.current || !startedAtRef.current || hasFinishedRef.current) return;
 
     const elapsed = (performance.now() - startedAtRef.current) / 1000;
     accumulatedElapsedRef.current += elapsed;
     startedAtRef.current = null;
+    elapsedTimeRef.current = accumulatedElapsedRef.current;
     setElapsedTime(accumulatedElapsedRef.current);
+    isRunningRef.current = false;
     setIsRunning(false);
     onActiveChange(false);
-  }, [isRunning, onActiveChange, testType]);
+  }, [onActiveChange, testType]);
 
   useEffect(() => {
-    setTargetText(
+    const nextTargetText =
       targetTextOverride ||
-        buildTrainingTarget({
-          customText,
-          testType,
-          testValue,
-          trainingMode
-        })
-    );
+      buildTrainingTarget({
+        customText,
+        testType,
+        testValue,
+        trainingMode
+      });
+
+    targetTextRef.current = nextTargetText;
+    setTargetText(nextTargetText);
     setTypedText('');
     setPressedKeyStates({});
+    timeLeftRef.current = testType === 'time' ? testValue : 0;
     setTimeLeft(testType === 'time' ? testValue : 0);
+    elapsedTimeRef.current = 0;
     setElapsedTime(0);
+    isRunningRef.current = false;
     setIsRunning(false);
     startedAtRef.current = null;
     accumulatedElapsedRef.current = 0;
@@ -395,24 +428,41 @@ function TypingTest({
   }, [typedText]);
 
   useEffect(() => {
+    targetTextRef.current = targetText;
+  }, [targetText]);
+
+  useEffect(() => {
+    elapsedTimeRef.current = elapsedTime;
+  }, [elapsedTime]);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
+  useEffect(() => {
     if (!isRunning) return undefined;
 
     const interval = setInterval(() => {
       const elapsed = (performance.now() - startedAtRef.current) / 1000;
       const totalElapsed =
-        testType === 'words'
-          ? accumulatedElapsedRef.current + elapsed
-          : elapsed;
+        testType === 'words' ? accumulatedElapsedRef.current + elapsed : elapsed;
+      elapsedTimeRef.current = totalElapsed;
       setElapsedTime(totalElapsed);
       recordSpeedSnapshot(totalElapsed, typedTextRef.current);
 
       if (testType !== 'time') return;
 
       const nextTimeLeft = getTimeLeft(testValue, totalElapsed);
+      timeLeftRef.current = nextTimeLeft;
       setTimeLeft(nextTimeLeft);
 
       if (nextTimeLeft === 0) {
         clearInterval(interval);
+        isRunningRef.current = false;
         setIsRunning(false);
         onActiveChange(false);
         onFinish(createResult(typedTextRef.current, testValue));
@@ -420,7 +470,15 @@ function TypingTest({
     }, 250);
 
     return () => clearInterval(interval);
-  }, [isRunning, onActiveChange, onFinish, targetText, testType, testValue, trainingMode]);
+  }, [
+    createResult,
+    isRunning,
+    onActiveChange,
+    onFinish,
+    recordSpeedSnapshot,
+    testType,
+    testValue
+  ]);
 
   useLayoutEffect(() => {
     const currentElement = currentLetterRef.current;
@@ -428,9 +486,7 @@ function TypingTest({
 
     if (!currentElement || !wordDisplay) {
       setCaretPosition((currentPosition) =>
-        currentPosition.visible
-          ? { ...currentPosition, visible: false }
-          : currentPosition
+        currentPosition.visible ? { ...currentPosition, visible: false } : currentPosition
       );
       return;
     }
@@ -513,10 +569,8 @@ function TypingTest({
       return event.key === expectedChar ? 'correct' : 'wrong';
     };
 
-    const isTypingInputEvent = (event) => (
-      isTypingFocusedRef.current &&
-      event.target === inputRef.current
-    );
+    const isTypingInputEvent = (event) =>
+      isTypingFocusedRef.current && event.target === inputRef.current;
 
     const handleKeyDown = (event) => {
       if (!isTypingInputEvent(event)) return;
@@ -611,85 +665,110 @@ function TypingTest({
     };
   }, [pauseWordTimer]);
 
-  const applyTypedValue = (value) => {
-    if (testType === 'time' && timeLeft === 0) return;
-    if (hasFinishedRef.current) return;
-    if (!isTypingFocusedRef.current) {
-      return;
-    }
+  const applyTypedValue = useCallback(
+    (value) => {
+      const currentTargetText = targetTextRef.current;
 
-    const currentTypedText = typedTextRef.current;
+      if (testType === 'time' && timeLeftRef.current === 0) return;
+      if (hasFinishedRef.current) return;
+      if (!isTypingFocusedRef.current) {
+        return;
+      }
 
-    if (!hasStartedRef.current && value.length > 0) {
-      startedAtRef.current = performance.now();
-      hasStartedRef.current = true;
-      speedHistoryRef.current = [{ elapsedSeconds: 0, wpm: 0 }];
-      setIsRunning(true);
-      onActiveChange(true);
-      onStart({ targetText, testType, testValue, trainingMode });
-    } else if (
-      testType === 'words' &&
-      hasStartedRef.current &&
-      !isRunning &&
-      value !== currentTypedText
-    ) {
-      startedAtRef.current = performance.now();
-      setIsRunning(true);
-      onActiveChange(true);
-    }
+      const currentTypedText = typedTextRef.current;
 
-    const nextTypedText = getNextTypedText(
-      targetText,
-      currentTypedText,
-      value,
-      mistakeMode !== 'strict'
-    );
-    typedTextRef.current = nextTypedText;
-    setTypedText(nextTypedText);
+      if (!hasStartedRef.current && value.length > 0) {
+        startedAtRef.current = performance.now();
+        hasStartedRef.current = true;
+        speedHistoryRef.current = [{ elapsedSeconds: 0, wpm: 0 }];
+        isRunningRef.current = true;
+        setIsRunning(true);
+        onActiveChange(true);
+        onStart({ targetText: currentTargetText, testType, testValue, trainingMode });
+      } else if (
+        testType === 'words' &&
+        hasStartedRef.current &&
+        !isRunningRef.current &&
+        value !== currentTypedText
+      ) {
+        startedAtRef.current = performance.now();
+        isRunningRef.current = true;
+        setIsRunning(true);
+        onActiveChange(true);
+      }
 
-    const nextStats = calculateStats(targetText, nextTypedText, Math.max(elapsedTime, 0.1));
+      const nextTypedText = getNextTypedText(
+        currentTargetText,
+        currentTypedText,
+        value,
+        mistakeMode !== 'strict'
+      );
+      typedTextRef.current = nextTypedText;
+      setTypedText(nextTypedText);
 
-    if (isAccuracyLock && nextStats.wrongChars >= ACCURACY_LOCK_MISTAKE_LIMIT) {
-      const currentRunElapsed = startedAtRef.current
-        ? (performance.now() - startedAtRef.current) / 1000
-        : 0;
-      const elapsed =
-        testType === 'words'
-          ? accumulatedElapsedRef.current + currentRunElapsed
-          : currentRunElapsed;
+      const nextStats = calculateStats(
+        currentTargetText,
+        nextTypedText,
+        Math.max(elapsedTimeRef.current, 0.1)
+      );
 
-      hasFinishedRef.current = true;
-      accumulatedElapsedRef.current = elapsed;
-      setElapsedTime(elapsed);
-      setIsRunning(false);
-      onActiveChange(false);
-      recordSpeedSnapshot(elapsed, nextTypedText);
-      onFinish(createResult(nextTypedText, elapsed, { endedByAccuracyLock: true }));
-      return;
-    }
+      if (isAccuracyLock && nextStats.wrongChars >= ACCURACY_LOCK_MISTAKE_LIMIT) {
+        const currentRunElapsed = startedAtRef.current
+          ? (performance.now() - startedAtRef.current) / 1000
+          : 0;
+        const elapsed =
+          testType === 'words'
+            ? accumulatedElapsedRef.current + currentRunElapsed
+            : currentRunElapsed;
 
-    const isCustomComplete =
-      trainingMode === 'custom' &&
-      nextTypedText === targetText;
-    const isWordTestComplete =
-      testType === 'words' &&
-      nextTypedText.length === targetText.length &&
-      isLastWordFullyCorrect(targetText, nextTypedText);
+        hasFinishedRef.current = true;
+        accumulatedElapsedRef.current = elapsed;
+        elapsedTimeRef.current = elapsed;
+        setElapsedTime(elapsed);
+        isRunningRef.current = false;
+        setIsRunning(false);
+        onActiveChange(false);
+        recordSpeedSnapshot(elapsed, nextTypedText);
+        onFinish(createResult(nextTypedText, elapsed, { endedByAccuracyLock: true }));
+        return;
+      }
 
-    if (isCustomComplete || isWordTestComplete) {
-      const currentRunElapsed = startedAtRef.current
-        ? (performance.now() - startedAtRef.current) / 1000
-        : 0;
-      const elapsed = accumulatedElapsedRef.current + currentRunElapsed;
-      hasFinishedRef.current = true;
-      accumulatedElapsedRef.current = elapsed;
-      setElapsedTime(elapsed);
-      setIsRunning(false);
-      onActiveChange(false);
-      recordSpeedSnapshot(elapsed, nextTypedText);
-      onFinish(createResult(nextTypedText, elapsed));
-    }
-  };
+      const isCustomComplete =
+        trainingMode === 'custom' && nextTypedText === currentTargetText;
+      const isWordTestComplete =
+        testType === 'words' &&
+        nextTypedText.length === currentTargetText.length &&
+        isLastWordFullyCorrect(currentTargetText, nextTypedText);
+
+      if (isCustomComplete || isWordTestComplete) {
+        const currentRunElapsed = startedAtRef.current
+          ? (performance.now() - startedAtRef.current) / 1000
+          : 0;
+        const elapsed = accumulatedElapsedRef.current + currentRunElapsed;
+        hasFinishedRef.current = true;
+        accumulatedElapsedRef.current = elapsed;
+        elapsedTimeRef.current = elapsed;
+        setElapsedTime(elapsed);
+        isRunningRef.current = false;
+        setIsRunning(false);
+        onActiveChange(false);
+        recordSpeedSnapshot(elapsed, nextTypedText);
+        onFinish(createResult(nextTypedText, elapsed));
+      }
+    },
+    [
+      createResult,
+      isAccuracyLock,
+      mistakeMode,
+      onActiveChange,
+      onFinish,
+      onStart,
+      recordSpeedSnapshot,
+      testType,
+      testValue,
+      trainingMode
+    ]
+  );
 
   useEffect(() => {
     const focusTypingFromKey = (event) => {
@@ -787,10 +866,15 @@ function TypingTest({
         </span>
 
         {trainingMode !== 'standard' && !isReplay && (
-          <div className="training-badge" aria-label={`${activeTrainingMode.label} training mode`}>
+          <div
+            className="training-badge"
+            aria-label={`${activeTrainingMode.label} training mode`}
+          >
             <span>{activeTrainingMode.shortLabel}</span>
             {isAccuracyLock && (
-              <strong>{Math.max(0, ACCURACY_LOCK_MISTAKE_LIMIT - currentMistakes)} left</strong>
+              <strong>
+                {Math.max(0, ACCURACY_LOCK_MISTAKE_LIMIT - currentMistakes)} left
+              </strong>
             )}
           </div>
         )}
@@ -825,8 +909,7 @@ function TypingTest({
           >
             {word.letters.map(({ char, index }) => {
               const isAfterUnresolvedSpaceMistake =
-                unresolvedSpaceMistakeIndex !== -1 &&
-                index > unresolvedSpaceMistakeIndex;
+                unresolvedSpaceMistakeIndex !== -1 && index > unresolvedSpaceMistakeIndex;
               const typedChar = isAfterUnresolvedSpaceMistake
                 ? undefined
                 : typedText[index];
@@ -853,13 +936,12 @@ function TypingTest({
               );
             })}
 
-            {word.space && (
+            {word.space &&
               (() => {
                 const typedSpaceChar = typedText[word.space.index];
                 const isWrongSpace =
                   typedSpaceChar !== undefined && typedSpaceChar !== ' ';
-                const isCurrent =
-                  word.space.index === typedText.length || isWrongSpace;
+                const isCurrent = word.space.index === typedText.length || isWrongSpace;
                 const wrongSpaceText = isWrongSpace
                   ? typedText.slice(word.space.index)
                   : '';
@@ -878,8 +960,7 @@ function TypingTest({
                     {isWrongSpace ? wrongSpaceText : ' '}
                   </span>
                 );
-              })()
-            )}
+              })()}
           </span>
         ))}
       </motion.div>
