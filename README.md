@@ -1,6 +1,16 @@
 # TypeCheck
+[![CI](https://github.com/Positiveoo1/typeCheck/actions/workflows/ci.yml/badge.svg)](https://github.com/Positiveoo1/typeCheck/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Node](https://img.shields.io/badge/node-%3E%3D18.18.0-brightgreen)](package.json)
 
 TypeCheck v1.6.3 is a beginner-friendly typing speed test built with Next.js, React, and Firebase. It measures typing speed, accuracy, mistakes, and progress over time, with training modes, theme unlocks, keyboard feedback, profile pages, and a leaderboard.
+
+## Demo
+
+![TypeCheck demo](public/social-preview.png)
+
+**[Try it live →](https://type-check-taupe.vercel.app)**
 
 ## Features
 
@@ -207,6 +217,10 @@ Current tests cover:
 - time and mode helpers
 - training target generation
 - word token indexes
+
+## Contributing
+
+Contributions are welcome — bug fixes, new training modes, new language word lists, or UI improvements. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, test/lint requirements, and PR conventions.
 
 ## Deployment Notes
 
