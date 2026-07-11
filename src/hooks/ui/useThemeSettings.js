@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   DEFAULT_SETTINGS,
+  LANGUAGE_IDS,
   loadSettings,
   loadTheme,
   MAX_CUSTOM_TEXT_LENGTH,
@@ -110,6 +111,26 @@ export function useThemeSettings({
     [markIncompleteAttempt, setReplayTargetText, setRestartKey, setResult, settings]
   );
 
+  const handleLanguageChange = useCallback(
+    (nextLanguage) => {
+      if (!LANGUAGE_IDS.includes(nextLanguage)) return;
+
+      markIncompleteAttempt();
+      setReplayTargetText(null);
+
+      const nextSettings = {
+        ...settings,
+        language: nextLanguage
+      };
+
+      setSettings(nextSettings);
+      saveSettings(nextSettings);
+      setResult(null);
+      setRestartKey((key) => key + 1);
+    },
+    [markIncompleteAttempt, setReplayTargetText, setRestartKey, setResult, settings]
+  );
+
   const handleCustomTextChange = useCallback(
     (nextCustomText) => {
       const trimmedCustomText = String(nextCustomText || '').slice(
@@ -195,6 +216,7 @@ export function useThemeSettings({
   return {
     effectiveSoundStyle,
     handleCustomTextChange,
+    handleLanguageChange,
     handlePreferencesChange,
     handleSettingsChange,
     handleSoundToggle,

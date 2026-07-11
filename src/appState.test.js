@@ -64,6 +64,7 @@ describe('settings normalization', () => {
         soundVolume: 4,
         testType: 'words',
         timeMode: 1000,
+        language: 'uzbek',
         trainingMode: 'code',
         wordMode: 999
       })
@@ -73,6 +74,7 @@ describe('settings normalization', () => {
       ...DEFAULT_SETTINGS,
       accentColor: '#00ffaa',
       customText: 'one two',
+      language: 'uzbek',
       reducedMotion: true,
       showKeyboard: false,
       soundEnabled: false,

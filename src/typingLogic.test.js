@@ -9,6 +9,7 @@ import {
   getTimeLeft,
   shuffleWords
 } from './typingLogic.js';
+import { uzbekWords } from './languages.js';
 import { buildCustomTarget, buildTrainingTarget } from './trainingModes.js';
 
 describe('calculateStats', () => {
@@ -107,6 +108,7 @@ describe('time and mode helpers', () => {
     assert.equal(getModeLabel('words', 10), '10 words');
     assert.equal(getModeLabel('time', 30, 'accuracy-lock'), 'accuracy lock 30s');
     assert.equal(getModeLabel('words', 10, 'code'), 'code 10 words');
+    assert.equal(getModeLabel('time', 30, 'standard', 'uzbek'), 'uzbek 30s');
   });
 
   it('uses fixed generated words for time mode and chosen length for word mode', () => {
@@ -173,6 +175,22 @@ describe('training modes', () => {
     });
 
     assert.equal(customTarget.split(/\s+/).length, 4);
+  });
+
+  it('builds standard targets from the selected language word list', () => {
+    const uzbekTarget = buildTrainingTarget({
+      language: 'uzbek',
+      random: () => 0,
+      testType: 'words',
+      testValue: 8,
+      trainingMode: 'standard'
+    });
+
+    assert.equal(uzbekTarget.split(/\s+/).length, 8);
+    assert.equal(
+      uzbekTarget.split(/\s+/).every((word) => uzbekWords.includes(word)),
+      true
+    );
   });
 });
 

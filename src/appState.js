@@ -1,4 +1,5 @@
 import { getThemeIds, normalizeAccentColor } from './themePersonalities.js';
+import { DEFAULT_LANGUAGE, getLanguageIds } from './languages.js';
 import { getTrainingModeIds } from './trainingModes.js';
 
 export const SETTINGS_KEY = 'typecheck-settings';
@@ -16,6 +17,7 @@ export const PASSWORD_RESET_EMAIL_LIMIT = 4;
 export const MISTAKE_MODES = ['backspace', 'strict'];
 export const SOUND_STYLES = ['click', 'soft', 'bright'];
 export const TRAINING_MODE_IDS = getTrainingModeIds();
+export const LANGUAGE_IDS = getLanguageIds();
 export const MIN_CUSTOM_TIME = 5;
 export const MAX_CUSTOM_TIME = 300;
 export const MAX_CUSTOM_TEXT_LENGTH = 1200;
@@ -23,6 +25,7 @@ export const MIN_CUSTOM_TEST_CHARACTERS = 10;
 
 export const DEFAULT_SETTINGS = {
   customText: 'Small steady practice makes typing feel effortless.',
+  language: DEFAULT_LANGUAGE,
   mistakeMode: 'backspace',
   reducedMotion: false,
   showKeyboard: true,
@@ -100,6 +103,9 @@ export function loadSettings() {
         DEFAULT_SETTINGS.accentColor
       ),
       customText: normalizeCustomTextSetting(savedSettings?.customText),
+      language: LANGUAGE_IDS.includes(savedSettings?.language)
+        ? savedSettings.language
+        : DEFAULT_SETTINGS.language,
       showKeyboard:
         typeof savedSettings?.showKeyboard === 'boolean'
           ? savedSettings.showKeyboard

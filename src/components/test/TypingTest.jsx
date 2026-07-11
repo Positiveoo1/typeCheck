@@ -232,6 +232,7 @@ function TypingTest({
   soundStyle,
   soundVolume,
   targetTextOverride,
+  language = 'english',
   trainingMode = 'standard'
 }) {
   const [targetText, setTargetText] = useState('');
@@ -354,7 +355,8 @@ function TypingTest({
       return {
         ...finalStats,
         endedByAccuracyLock: Boolean(options.endedByAccuracyLock),
-        modeLabel: getModeLabel(testType, testValue, trainingMode),
+        language,
+        modeLabel: getModeLabel(testType, testValue, trainingMode, language),
         speedHistory,
         targetText,
         testType,
@@ -362,7 +364,7 @@ function TypingTest({
         trainingMode
       };
     },
-    [targetText, testType, testValue, trainingMode]
+    [language, targetText, testType, testValue, trainingMode]
   );
 
   const pauseWordTimer = useCallback(() => {
@@ -384,6 +386,7 @@ function TypingTest({
       targetTextOverride ||
       buildTrainingTarget({
         customText,
+        language,
         testType,
         testValue,
         trainingMode
@@ -419,6 +422,7 @@ function TypingTest({
     focusInput,
     onActiveChange,
     customText,
+    language,
     targetTextOverride,
     trainingMode
   ]);
@@ -684,7 +688,13 @@ function TypingTest({
         isRunningRef.current = true;
         setIsRunning(true);
         onActiveChange(true);
-        onStart({ targetText: currentTargetText, testType, testValue, trainingMode });
+        onStart({
+          language,
+          targetText: currentTargetText,
+          testType,
+          testValue,
+          trainingMode
+        });
       } else if (
         testType === 'words' &&
         hasStartedRef.current &&
@@ -764,6 +774,7 @@ function TypingTest({
       onFinish,
       onStart,
       recordSpeedSnapshot,
+      language,
       testType,
       testValue,
       trainingMode

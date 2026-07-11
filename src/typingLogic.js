@@ -1,4 +1,5 @@
 import { words } from './words.js';
+import { getLanguageModeLabel } from './languages.js';
 
 export const DEFAULT_WORD_COUNT = 90;
 
@@ -100,13 +101,19 @@ export function getTargetWordCount(testType, testValue) {
   return testType === 'words' ? testValue : DEFAULT_WORD_COUNT;
 }
 
-export function getModeLabel(testType, testValue, trainingMode = 'standard') {
+export function getModeLabel(
+  testType,
+  testValue,
+  trainingMode = 'standard',
+  language = 'english'
+) {
   const baseLabel = testType === 'words' ? `${testValue} words` : `${testValue}s`;
-  const trainingLabel = trainingMode.replace(/-/g, ' ');
+  const modeLabel =
+    trainingMode === 'standard'
+      ? getLanguageModeLabel(language)
+      : trainingMode.replace(/-/g, ' ');
 
-  return trainingMode === 'standard'
-    ? baseLabel
-    : `${trainingLabel} ${baseLabel}`;
+  return modeLabel ? `${modeLabel} ${baseLabel}` : baseLabel;
 }
 
 export function getTimeLeft(testValue, elapsedSeconds) {

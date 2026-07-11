@@ -1,5 +1,5 @@
 import { shuffleWords } from './typingLogic.js';
-import { words } from './words.js';
+import { getWordListForLanguage } from './languages.js';
 
 export const TRAINING_MODES = [
   {
@@ -184,13 +184,19 @@ export function normalizeCustomText(customText) {
 
 export function buildCustomTarget({
   customText = '',
+  language = 'english',
   testType = 'time',
   testValue = 30
 } = {}) {
   const normalizedText = normalizeCustomText(customText);
 
   if (!normalizedText) {
-    return buildTrainingTarget({ testType, testValue, trainingMode: 'standard' });
+    return buildTrainingTarget({
+      language,
+      testType,
+      testValue,
+      trainingMode: 'standard'
+    });
   }
 
   return normalizedText;
@@ -213,6 +219,7 @@ export function getTrainingModeLabel(modeId) {
 
 export function buildTrainingTarget({
   customText = '',
+  language = 'english',
   random = Math.random,
   testType = 'time',
   testValue = 30,
@@ -221,7 +228,7 @@ export function buildTrainingTarget({
   const wordCount = testType === 'words' ? testValue : 90;
 
   if (trainingMode === 'custom') {
-    return buildCustomTarget({ customText, testType, testValue });
+    return buildCustomTarget({ customText, language, testType, testValue });
   }
 
   if (trainingMode === 'weak') {
@@ -240,5 +247,5 @@ export function buildTrainingTarget({
     return shuffleWords(wordCount, NUMBER_TOKENS, random);
   }
 
-  return shuffleWords(wordCount, words, random);
+  return shuffleWords(wordCount, getWordListForLanguage(language), random);
 }

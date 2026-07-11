@@ -179,6 +179,7 @@ function App() {
   const {
     effectiveSoundStyle,
     handleCustomTextChange,
+    handleLanguageChange,
     handlePreferencesChange,
     handleSettingsChange,
     handleSoundToggle,
@@ -196,6 +197,7 @@ function App() {
   const {
     accentColor,
     customText,
+    language,
     mistakeMode,
     reducedMotion,
     showKeyboard,
@@ -323,7 +325,8 @@ function App() {
       const modeLabel = getModeLabel(
         startedTest.testType,
         startedTest.testValue,
-        startedTest.trainingMode
+        startedTest.trainingMode,
+        startedTest.language
       );
       const attempt = {
         id: createId(),
@@ -331,6 +334,7 @@ function App() {
         targetText: startedTest.targetText || '',
         testType: startedTest.testType,
         testValue: startedTest.testValue,
+        language: startedTest.language || 'english',
         trainingMode: startedTest.trainingMode || 'standard'
       };
 
@@ -638,6 +642,7 @@ function App() {
               effectiveSoundStyle,
               finishTest,
               handleCustomTextChange,
+              handleLanguageChange,
               handleSettingsChange,
               handleTestStart,
               handleTrainingModeChange,
@@ -654,6 +659,7 @@ function App() {
               soundVolume,
               testType,
               timeMode,
+              language,
               trainingMode,
               tryAgain,
               wordMode

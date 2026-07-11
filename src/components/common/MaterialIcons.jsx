@@ -14,6 +14,14 @@ export function KeyboardIcon() {
   );
 }
 
+export function GlobeIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.93 9h-3.04a15.64 15.64 0 0 0-1.15-5.16A8.03 8.03 0 0 1 18.93 11ZM12 4.04c.83 1.2 1.54 3.1 1.84 5.04H10.16C10.46 7.14 11.17 5.24 12 4.04ZM4.26 13h3.85c.12 1.53.46 3.02.98 4.25A8.03 8.03 0 0 1 4.26 13Zm3.85-2H4.26a8.03 8.03 0 0 1 4.83-4.25A15.3 15.3 0 0 0 8.11 11ZM12 19.96c-.83-1.2-1.54-3.1-1.84-5.04h3.68C13.54 16.86 12.83 18.76 12 19.96Zm2.25-7.04h-4.5a13.76 13.76 0 0 1 0-1.84h4.5a13.76 13.76 0 0 1 0 1.84Zm.66 4.33c.52-1.23.86-2.72.98-4.25h3.85a8.03 8.03 0 0 1-4.83 4.25Z" />
+    </MaterialIcon>
+  );
+}
+
 export function DashboardIcon() {
   return (
     <MaterialIcon>

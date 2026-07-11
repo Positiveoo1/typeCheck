@@ -948,6 +948,130 @@ h2 {
   cursor: default;
 }
 
+.test-runner {
+  display: grid;
+  gap: 12px;
+}
+
+.language-picker {
+  width: min(100%, 980px);
+  position: relative;
+  top: 50px;
+  display: flex;
+  justify-content: center;
+}
+
+.language-trigger {
+  min-height: 38px;
+  padding: 0 13px 0 11px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.026);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+.language-trigger:hover:not(:disabled),
+.language-trigger:focus-visible {
+  border-color: rgba(var(--caret-rgb), 0.32);
+  color: var(--accent-2);
+  transform: translateY(-1px);
+}
+
+.language-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
+
+.language-trigger .material-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: currentColor;
+}
+
+.language-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 82;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.language-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.language-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: min(340px, 100%);
+  padding: 8px;
+  border: 1px solid rgba(var(--caret-rgb), 0.14);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  background: color-mix(in srgb, var(--bg-soft) 96%, black);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(var(--caret-rgb), 0.08);
+}
+
+.language-option {
+  min-height: 46px;
+  padding: 0 11px 0 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  text-align: left;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.language-option:hover,
+.language-option:focus-visible,
+.language-option.active {
+  border-color: rgba(var(--caret-rgb), 0.2);
+  color: var(--accent-2);
+  background: rgba(var(--caret-rgb), 0.08);
+}
+
+.language-option strong {
+  color: var(--subtle);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .settings-primary {
   display: flex;
   align-items: center;
