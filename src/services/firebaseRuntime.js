@@ -20,4 +20,5 @@ export {
   setDoc,
   where
 } from 'firebase/firestore';
-export { auth, db, isFirebaseConfigured } from './firebase.js';
+export { httpsCallable } from 'firebase/functions';
+export { auth, db, functions, isFirebaseConfigured } from './firebase.js';

@@ -34,10 +34,8 @@ import { isFirebaseConfigured } from './services/firebaseConfig.js';
 import {
   getAuthActionErrorMessage,
   getFirebaseRuntime,
-  getLeaderboardCollectionRef,
   getPasswordResetActionSettings,
   getPublicPlayerDocRef,
-  getResultsCollectionRef,
   getUserDocRef,
   isCloudResultEligible,
   serializePublicPlayer
@@ -120,27 +118,25 @@ function App() {
       const canSaveCloudResult = isCloudResultEligible(completedResult);
 
       if (canSaveCloudResult) {
-        firebase
-          .addDoc(getResultsCollectionRef(firebase, user.uid), {
-            accuracy: completedResult.accuracy,
-            correctChars: completedResult.correctChars,
-            elapsedSeconds: completedResult.elapsedSeconds,
-            endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
-            modeLabel: completedResult.modeLabel,
-            testType: completedResult.testType,
-            trainingMode: completedResult.trainingMode || 'standard',
-            wpm: completedResult.wpm,
-            wrongChars: completedResult.wrongChars,
-            createdAt: firebase.serverTimestamp()
-          })
-          .catch((error) => {
-            console.error('Failed to save result:', error);
-            notify({
-              title: 'Result not saved',
-              message: 'Your local result is visible, but syncing failed.',
-              type: 'error'
-            });
+        const submitResult = firebase.httpsCallable(firebase.functions, 'submitResult');
+        submitResult({
+          targetText: completedResult.targetText,
+          typedText: completedResult.typedText,
+          testType: completedResult.testType,
+          testValue: completedResult.testValue,
+          trainingMode: completedResult.trainingMode || 'standard',
+          modeLabel: completedResult.modeLabel,
+          language: completedResult.language,
+          keystrokeLog: completedResult.keystrokeLog || [],
+          endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock)
+        }).catch((error) => {
+          console.error('Failed to save result:', error);
+          notify({
+            title: 'Result not saved',
+            message: 'Your local result is visible, but syncing failed.',
+            type: 'error'
           });
+        });
       } else {
         console.warn(
           'Skipped Firebase result save because the result is outside Firestore rule bounds.'
@@ -156,22 +152,6 @@ function App() {
         .catch((error) => {
           console.error('Failed to update public player profile:', error);
         });
-
-      if (canSaveCloudResult && completedResult.trainingMode !== 'custom') {
-        firebase
-          .addDoc(getLeaderboardCollectionRef(firebase), {
-            accuracy: completedResult.accuracy,
-            createdAt: firebase.serverTimestamp(),
-            modeLabel: completedResult.modeLabel,
-            testType: completedResult.testType,
-            trainingMode: completedResult.trainingMode || 'standard',
-            userId: user.uid,
-            wpm: completedResult.wpm
-          })
-          .catch((error) => {
-            console.error('Failed to save public leaderboard result:', error);
-          });
-      }
     },
     [notify, updateDashboard, user, userProfile]
   );

@@ -241,7 +241,6 @@ function TypingTest({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
-  const [isWarmStarting, setIsWarmStarting] = useState(false);
   const [pressedKeys, setPressedKeys] = useState(() => new Set());
   const [pressedKeyStates, setPressedKeyStates] = useState({});
   const [caretPosition, setCaretPosition] = useState({
@@ -268,6 +267,7 @@ function TypingTest({
   const hasFinishedRef = useRef(false);
   const tabArmedRef = useRef(false);
   const speedHistoryRef = useRef([]);
+  const keystrokeLogRef = useRef([]);
 
   const focusInput = useCallback(() => {
     isTypingFocusedRef.current = true;
@@ -356,6 +356,7 @@ function TypingTest({
       return {
         ...finalStats,
         endedByAccuracyLock: Boolean(options.endedByAccuracyLock),
+        keystrokeLog: [...keystrokeLogRef.current],
         language,
         modeLabel: getModeLabel(testType, testValue, trainingMode, language),
         speedHistory,
@@ -407,22 +408,16 @@ function TypingTest({
     accumulatedElapsedRef.current = 0;
     hasStartedRef.current = false;
     hasFinishedRef.current = false;
-    setIsWarmStarting(true);
     isTypingFocusedRef.current = true;
     setIsTypingFocused(true);
     typedTextRef.current = '';
     speedHistoryRef.current = [];
+    keystrokeLogRef.current = [];
     onActiveChange(false);
 
     window.requestAnimationFrame(() => {
       focusInput();
     });
-
-    const warmStartTimeout = window.setTimeout(() => {
-      setIsWarmStarting(false);
-    }, 1100);
-
-    return () => window.clearTimeout(warmStartTimeout);
   }, [
     testType,
     testValue,
@@ -693,6 +688,7 @@ function TypingTest({
         startedAtRef.current = performance.now();
         hasStartedRef.current = true;
         speedHistoryRef.current = [{ elapsedSeconds: 0, wpm: 0 }];
+        keystrokeLogRef.current = [{ t: 0, len: 0 }];
         isRunningRef.current = true;
         setIsRunning(true);
         onActiveChange(true);
@@ -723,6 +719,14 @@ function TypingTest({
       );
       typedTextRef.current = nextTypedText;
       setTypedText(nextTypedText);
+
+      if (startedAtRef.current !== null && nextTypedText.length !== currentTypedText.length) {
+        const elapsedMs = performance.now() - startedAtRef.current + accumulatedElapsedRef.current * 1000;
+        keystrokeLogRef.current = [
+          ...keystrokeLogRef.current,
+          { t: Math.round(elapsedMs), len: nextTypedText.length }
+        ].slice(-4000);
+      }
 
       const nextStats = calculateStats(
         currentTargetText,
@@ -863,7 +867,6 @@ function TypingTest({
         className={[
           'word-display',
           isIdle ? 'idle' : '',
-          isWarmStarting ? 'warm-start' : '',
           isTypingFocused ? 'typing-focused' : '',
           !isTypingFocused ? 'typing-unfocused' : '',
           isRunning ? 'caret-active' : 'caret-idle'
