@@ -9,7 +9,10 @@ import {
   getTimeLeft,
   shuffleWords
 } from './typingLogic.js';
-import { uzbekWords } from './languages.js';
+import { polishWords } from './languages/polish.js';
+import { russianWords } from './languages/russian.js';
+import { spanishWords } from './languages/spanish.js';
+import { uzbekWords } from './languages/uzbek.js';
 import { buildCustomTarget, buildTrainingTarget } from './trainingModes.js';
 
 describe('calculateStats', () => {
@@ -189,6 +192,48 @@ describe('training modes', () => {
     assert.equal(uzbekTarget.split(/\s+/).length, 8);
     assert.equal(
       uzbekTarget.split(/\s+/).every((word) => uzbekWords.includes(word)),
+      true
+    );
+
+    const polishTarget = buildTrainingTarget({
+      language: 'polish',
+      random: () => 0,
+      testType: 'words',
+      testValue: 8,
+      trainingMode: 'standard'
+    });
+
+    assert.equal(polishTarget.split(/\s+/).length, 8);
+    assert.equal(
+      polishTarget.split(/\s+/).every((word) => polishWords.includes(word)),
+      true
+    );
+
+    const spanishTarget = buildTrainingTarget({
+      language: 'spanish',
+      random: () => 0,
+      testType: 'words',
+      testValue: 8,
+      trainingMode: 'standard'
+    });
+
+    assert.equal(spanishTarget.split(/\s+/).length, 8);
+    assert.equal(
+      spanishTarget.split(/\s+/).every((word) => spanishWords.includes(word)),
+      true
+    );
+
+    const russianTarget = buildTrainingTarget({
+      language: 'russian',
+      random: () => 0,
+      testType: 'words',
+      testValue: 8,
+      trainingMode: 'standard'
+    });
+
+    assert.equal(russianTarget.split(/\s+/).length, 8);
+    assert.equal(
+      russianTarget.split(/\s+/).every((word) => russianWords.includes(word)),
       true
     );
   });

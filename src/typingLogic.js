@@ -1,11 +1,11 @@
-import { words } from './words.js';
+import { englishWords } from './languages/english.js';
 import { getLanguageModeLabel } from './languages.js';
 
 export const DEFAULT_WORD_COUNT = 90;
 
 export function shuffleWords(
   wordCount = DEFAULT_WORD_COUNT,
-  wordList = words,
+  wordList = englishWords,
   random = Math.random
 ) {
   const uniqueWords = [...new Set(wordList)];

@@ -168,7 +168,7 @@ src/
   trainingModes.js  Training mode definitions and target text generation
   typingLogic.js    Core typing helpers and stats calculations
   typingLogic.test.js
-  words.js          Default word list
+  languages/        Language-specific word lists
 
   components/       UI components for typing, auth, dashboard, profile, etc.
   services/         Firebase config and runtime exports
