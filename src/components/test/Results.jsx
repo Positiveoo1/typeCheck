@@ -1,6 +1,7 @@
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useEffect } from 'react';
 import { getTypingStyle } from '../../typingIdentity.js';
+import { ArrowForwardIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
 
 function AnimatedNumber({ value }) {
   const count = useMotionValue(0);
@@ -436,7 +437,8 @@ function Results({ stats, onNextGame, onTryAgain }) {
           whileHover={{ y: -2, scale: 1.04 }}
           whileTap={{ scale: 0.93, rotate: -3 }}
         >
-          Try again
+          <ReplayIcon />
+          <span>Try again</span>
         </motion.button>
         <motion.button
           className="secondary-action"
@@ -445,7 +447,8 @@ function Results({ stats, onNextGame, onTryAgain }) {
           whileHover={{ y: -2, scale: 1.04 }}
           whileTap={{ scale: 0.93, rotate: 3 }}
         >
-          Next game
+          <ArrowForwardIcon />
+          <span>Next game</span>
         </motion.button>
       </div>
     </motion.section>

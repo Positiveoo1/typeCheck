@@ -22,6 +22,110 @@ export function GlobeIcon({ className = 'material-icon' } = {}) {
   );
 }
 
+export function ReplayIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M12 5V2L7 7l5 5V8c2.76 0 5 2.24 5 5a5 5 0 0 1-8.66 3.4l-1.42 1.42A7 7 0 1 0 12 5Z" />
+    </MaterialIcon>
+  );
+}
+
+export function ArrowForwardIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="m12 4-1.41 1.41L15.17 10H4v2h11.17l-4.58 4.59L12 18l7-7-7-7Z" />
+    </MaterialIcon>
+  );
+}
+
+export function CloseIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M18.3 5.71 16.89 4.3 12 9.17 7.11 4.3 5.7 5.71 10.59 10.6 5.7 15.49l1.41 1.41L12 12.01l4.89 4.89 1.41-1.41-4.89-4.89 4.89-4.89Z" />
+    </MaterialIcon>
+  );
+}
+
+export function LoginIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M10.09 15.59 11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59ZM19 3H5c-1.1 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2Z" />
+    </MaterialIcon>
+  );
+}
+
+export function PersonAddIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm-8-2V7H4V5h3V2h2v3h3v2H9v3H7Zm8 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
+    </MaterialIcon>
+  );
+}
+
+export function TimerIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M15 1H9v2h6V1Zm-2 13h-2V8h2v6Zm-1-10a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 16a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" />
+    </MaterialIcon>
+  );
+}
+
+export function TextFieldsIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M2.5 4v3h5v13h3V7h5V4h-13Zm19 5h-9v3h3v8h3v-8h3V9Z" />
+    </MaterialIcon>
+  );
+}
+
+export function TuneIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M3 17v2h6v-2H3Zm0-12v2h10V5H3Zm10 16v-2h8v-2h-8v-2h-2v6h2ZM7 9v2H3v2h4v2h2V9H7Zm14 4v-2H11v2h10Zm-6-4h2V7h4V5h-4V3h-2v6Z" />
+    </MaterialIcon>
+  );
+}
+
+export function LockIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V7Zm3 9.73V18h-2v-1.27A2 2 0 1 1 13 16.73Z" />
+    </MaterialIcon>
+  );
+}
+
+export function CodeIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4Zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4Z" />
+    </MaterialIcon>
+  );
+}
+
+export function NumbersIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="m20 10 .5-2H17l.75-3H15.7l-.75 3h-4l.75-3H9.65L8.9 8H5l-.5 2h3.9l-1 4H4l-.5 2h3.4l-.75 3H8.2l.75-3h4l-.75 3h2.05l.75-3H19l.5-2h-4l1-4H20Zm-6.55 4h-4l1-4h4l-1 4Z" />
+    </MaterialIcon>
+  );
+}
+
+export function QuoteIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M7.17 6C4.74 7.38 3.5 9.04 3.5 11.35V18h7v-7h-4c0-1.31.74-2.42 2.5-3.44L7.17 6Zm10 0c-2.43 1.38-3.67 3.04-3.67 5.35V18h7v-7h-4c0-1.31.74-2.42 2.5-3.44L17.17 6Z" />
+    </MaterialIcon>
+  );
+}
+
+export function StarIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="m12 17.27 6.18 3.73-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27Z" />
+    </MaterialIcon>
+  );
+}
+
 export function DashboardIcon() {
   return (
     <MaterialIcon>

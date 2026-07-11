@@ -1,6 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { TRAINING_MODES } from '../../trainingModes.js';
+import {
+  CodeIcon,
+  KeyboardIcon,
+  LockIcon,
+  NumbersIcon,
+  QuoteIcon,
+  StarIcon,
+  TextFieldsIcon,
+  TimerIcon,
+  TuneIcon
+} from '../common/MaterialIcons.jsx';
 
 const TIME_MODES = [15, 30, 60];
 const WORD_MODES = [10, 30, 60];
@@ -14,6 +25,15 @@ const TRAINING_LABELS = {
   quotes: 'quote',
   standard: 'standard',
   weak: 'weak'
+};
+const TRAINING_ICONS = {
+  'accuracy-lock': LockIcon,
+  code: CodeIcon,
+  custom: TextFieldsIcon,
+  numbers: NumbersIcon,
+  quotes: QuoteIcon,
+  standard: KeyboardIcon,
+  weak: StarIcon
 };
 
 function TestSettings({
@@ -75,22 +95,28 @@ function TestSettings({
             title="Standard mode"
             type="button"
           >
-            standard
+            <KeyboardIcon />
+            <span>standard</span>
           </button>
-          {TRAINING_CARD_MODES.map((mode) => (
-            <button
-              className={
-                selectedTrainingMode === mode.id ? 'inline-mode active' : 'inline-mode'
-              }
-              disabled={disabled}
-              key={mode.id}
-              onClick={() => selectTrainingMode(mode.id)}
-              title={mode.label}
-              type="button"
-            >
-              {TRAINING_LABELS[mode.id] || mode.shortLabel}
-            </button>
-          ))}
+          {TRAINING_CARD_MODES.map((mode) => {
+            const ModeIcon = TRAINING_ICONS[mode.id] || TuneIcon;
+
+            return (
+              <button
+                className={
+                  selectedTrainingMode === mode.id ? 'inline-mode active' : 'inline-mode'
+                }
+                disabled={disabled}
+                key={mode.id}
+                onClick={() => selectTrainingMode(mode.id)}
+                title={mode.label}
+                type="button"
+              >
+                <ModeIcon />
+                <span>{TRAINING_LABELS[mode.id] || mode.shortLabel}</span>
+              </button>
+            );
+          })}
         </div>
 
         <span className="inline-divider" aria-hidden="true" />
@@ -109,7 +135,8 @@ function TestSettings({
             title="Timed test"
             type="button"
           >
-            time
+            <TimerIcon />
+            <span>time</span>
           </button>
           <button
             className={selectedType === 'words' ? 'inline-mode active' : 'inline-mode'}
@@ -123,7 +150,8 @@ function TestSettings({
             title="Word-count test"
             type="button"
           >
-            words
+            <TextFieldsIcon />
+            <span>words</span>
           </button>
         </div>
 
@@ -140,13 +168,15 @@ function TestSettings({
               title={selectedType === 'time' ? `${mode} seconds` : `${mode} words`}
               type="button"
             >
-              {selectedType === 'time' ? `${mode}s` : mode}
+              {selectedType === 'time' ? <TimerIcon /> : <TextFieldsIcon />}
+              <span>{selectedType === 'time' ? `${mode}s` : mode}</span>
             </button>
           ))}
 
           {isCustomTimeSelected && (
             <span className="inline-mode inline-mode-static active" title="Custom time">
-              {selectedValue}s
+              <TimerIcon />
+              <span>{selectedValue}s</span>
             </span>
           )}
         </div>

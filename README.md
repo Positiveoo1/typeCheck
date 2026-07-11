@@ -1,6 +1,6 @@
 # TypeCheck
 
-TypeCheck v1.6.0 is a beginner-friendly typing speed test built with Next.js, React, and Firebase. It measures typing speed, accuracy, mistakes, and progress over time, with training modes, theme unlocks, keyboard feedback, profile pages, and a leaderboard.
+TypeCheck v1.6.3 is a beginner-friendly typing speed test built with Next.js, React, and Firebase. It measures typing speed, accuracy, mistakes, and progress over time, with training modes, theme unlocks, keyboard feedback, profile pages, and a leaderboard.
 
 ## Features
 
@@ -96,6 +96,7 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 

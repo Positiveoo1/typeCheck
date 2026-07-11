@@ -14,7 +14,11 @@ const nextConfig = {
       process.env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
       '',
     NEXT_PUBLIC_FIREBASE_APP_ID:
-      process.env.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID || ''
+      process.env.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID || '',
+    NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY:
+      process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY ||
+      process.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY ||
+      ''
   }
 };
 

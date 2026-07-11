@@ -241,6 +241,7 @@ function TypingTest({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
+  const [isWarmStarting, setIsWarmStarting] = useState(false);
   const [pressedKeys, setPressedKeys] = useState(() => new Set());
   const [pressedKeyStates, setPressedKeyStates] = useState({});
   const [caretPosition, setCaretPosition] = useState({
@@ -406,6 +407,7 @@ function TypingTest({
     accumulatedElapsedRef.current = 0;
     hasStartedRef.current = false;
     hasFinishedRef.current = false;
+    setIsWarmStarting(true);
     isTypingFocusedRef.current = true;
     setIsTypingFocused(true);
     typedTextRef.current = '';
@@ -415,6 +417,12 @@ function TypingTest({
     window.requestAnimationFrame(() => {
       focusInput();
     });
+
+    const warmStartTimeout = window.setTimeout(() => {
+      setIsWarmStarting(false);
+    }, 1100);
+
+    return () => window.clearTimeout(warmStartTimeout);
   }, [
     testType,
     testValue,
@@ -855,6 +863,7 @@ function TypingTest({
         className={[
           'word-display',
           isIdle ? 'idle' : '',
+          isWarmStarting ? 'warm-start' : '',
           isTypingFocused ? 'typing-focused' : '',
           !isTypingFocused ? 'typing-unfocused' : '',
           isRunning ? 'caret-active' : 'caret-idle'

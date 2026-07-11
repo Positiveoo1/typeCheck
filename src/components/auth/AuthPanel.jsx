@@ -10,7 +10,14 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { LEGAL_VERSION } from '../../legal.js';
 import { auth, db, isFirebaseConfigured } from '../../services/firebase.js';
-import { VisibilityIcon, VisibilityOffIcon } from '../common/MaterialIcons.jsx';
+import {
+  CloseIcon,
+  GlobeIcon,
+  LoginIcon,
+  PersonAddIcon,
+  VisibilityIcon,
+  VisibilityOffIcon
+} from '../common/MaterialIcons.jsx';
 
 function getFriendlyError(error) {
   if (!error?.code) return 'Something went wrong. Try again.';
@@ -243,7 +250,8 @@ function AuthPanel({
                 }}
                 type="button"
               >
-                Sign in
+                <LoginIcon />
+                <span>Sign in</span>
               </button>
               <button
                 className={mode === 'register' ? 'auth-tab active' : 'auth-tab'}
@@ -253,7 +261,8 @@ function AuthPanel({
                 }}
                 type="button"
               >
-                Register
+                <PersonAddIcon />
+                <span>Register</span>
               </button>
             </div>
             <button
@@ -262,7 +271,7 @@ function AuthPanel({
               onClick={onClose}
               type="button"
             >
-              x
+              <CloseIcon />
             </button>
           </div>
 
@@ -328,7 +337,8 @@ function AuthPanel({
                 : { scale: 0.95 }
             }
           >
-            {isLoading ? 'Working...' : mode === 'register' ? 'Create' : 'Enter'}
+            {mode === 'register' ? <PersonAddIcon /> : <LoginIcon />}
+            <span>{isLoading ? 'Working...' : mode === 'register' ? 'Create' : 'Enter'}</span>
           </motion.button>
 
           <div className="auth-divider">
@@ -351,7 +361,8 @@ function AuthPanel({
                 : { scale: 0.95 }
             }
           >
-            Continue with Google
+            <GlobeIcon />
+            <span>Continue with Google</span>
           </motion.button>
 
           {error && <p className="auth-error">{error}</p>}
