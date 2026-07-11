@@ -10,7 +10,7 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "start": "next start",
-    "test": "node --test \"src/*.test.js\""
+    "test": "node --test src/*.test.js"
   },
   "dependencies": {
     "firebase": "^11.10.0",

@@ -8,7 +8,7 @@ TypeCheck v1.6.3 is a beginner-friendly typing speed test built with Next.js, Re
 
 ## Demo
 
-![TypeCheck demo](public/social-preview.png)
+![TypeCheck demo](public/social-preview2.png)
 
 **[Try it live →](https://type-check-taupe.vercel.app)**
 
