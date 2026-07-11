@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
@@ -18,66 +17,13 @@ service cloud.firestore {
       return value is number && value >= min && value <= max;
     }
 
-    function isValidResult() {
-      return hasOnlyFields([
-          'accuracy',
-          'correctChars',
-          'createdAt',
-          'elapsedSeconds',
-          'endedByAccuracyLock',
-          'modeLabel',
-          'testType',
-          'trainingMode',
-          'wpm',
-          'wrongChars'
-        ]) &&
-        isValidNumber(request.resource.data.accuracy, 0, 100) &&
-        isValidNumber(request.resource.data.correctChars, 0, 20000) &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.elapsedSeconds is number &&
-        request.resource.data.elapsedSeconds >= 0 &&
-        request.resource.data.endedByAccuracyLock is bool &&
-        request.resource.data.modeLabel is string &&
-        request.resource.data.modeLabel.size() > 0 &&
-        request.resource.data.modeLabel.size() <= 80 &&
-        request.resource.data.testType in ['time', 'words'] &&
-        request.resource.data.trainingMode is string &&
-        request.resource.data.trainingMode.size() > 0 &&
-        request.resource.data.trainingMode.size() <= 40 &&
-        isValidNumber(request.resource.data.wpm, 0, 400) &&
-        isValidNumber(request.resource.data.wrongChars, 0, 20000);
-    }
-
-    function isValidLeaderboardResult() {
-      return hasOnlyFields([
-          'accuracy',
-          'createdAt',
-          'modeLabel',
-          'testType',
-          'trainingMode',
-          'userId',
-          'wpm'
-        ]) &&
-        request.resource.data.userId == request.auth.uid &&
-        isValidNumber(request.resource.data.accuracy, 0, 100) &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.modeLabel is string &&
-        request.resource.data.modeLabel.size() > 0 &&
-        request.resource.data.modeLabel.size() <= 80 &&
-        request.resource.data.testType in ['time', 'words'] &&
-        request.resource.data.trainingMode is string &&
-        request.resource.data.trainingMode.size() > 0 &&
-        request.resource.data.trainingMode.size() <= 40 &&
-        isValidNumber(request.resource.data.wpm, 0, 400);
-    }
-
     function isValidPublicPlayer(userId) {
       return hasOnlyFields([
-          'displayName',
-          'fallbackName',
-          'username',
-          'updatedAt'
-        ]) &&
+        'displayName',
+        'fallbackName',
+        'username',
+        'updatedAt'
+      ]) &&
         userId == request.auth.uid &&
         (!('displayName' in request.resource.data) ||
           request.resource.data.displayName == null ||
@@ -99,8 +45,10 @@ service cloud.firestore {
 
       match /results/{resultId} {
         allow read: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidResult();
-        allow update, delete: if false;
+        // Writes now happen only via the submitResult Cloud Function (Admin
+        // SDK), which recomputes stats from a server-validated keystroke
+        // timeline. Direct client writes are no longer trusted.
+        allow create, update, delete: if false;
       }
     }
 
@@ -112,8 +60,12 @@ service cloud.firestore {
 
     match /leaderboardResults/{resultId} {
       allow read: if true;
-      allow create: if isSignedIn() && isValidLeaderboardResult();
-      allow update, delete: if false;
+      // Writes now happen only via the submitResult Cloud Function (Admin
+      // SDK), which recomputes WPM/accuracy from a server-validated
+      // keystroke timeline before writing. Direct client writes are no
+      // longer trusted, since a client could otherwise submit any wpm
+      // value within the old range/shape checks.
+      allow create, update, delete: if false;
     }
 
     match /{document=**} {
