@@ -17,14 +17,39 @@ service cloud.firestore {
       return value is number && value >= min && value <= max;
     }
 
-    function isValidPublicPlayer(userId) {
+    function hasValidPublicPlayerFields() {
       return hasOnlyFields([
         'displayName',
         'fallbackName',
         'username',
         'updatedAt'
       ]) &&
-        userId == request.auth.uid &&
+        (!('displayName' in request.resource.data) ||
+          request.resource.data.displayName == null ||
+          request.resource.data.displayName is string) &&
+        request.resource.data.fallbackName is string &&
+        request.resource.data.fallbackName.size() > 0 &&
+        request.resource.data.fallbackName.size() <= 80 &&
+        request.resource.data.username is string &&
+        request.resource.data.username.size() <= 32 &&
+        request.resource.data.updatedAt == request.time;
+    }
+
+    function isValidPublicPlayerCreate(userId) {
+      return userId == request.auth.uid && hasValidPublicPlayerFields();
+    }
+
+    function isValidPublicPlayerUpdate(userId) {
+      return userId == request.auth.uid &&
+        // Older player documents can contain fields that are no longer public.
+        // A merge write may keep those fields, but it must not add, remove, or
+        // change them.
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName',
+          'fallbackName',
+          'username',
+          'updatedAt'
+        ]) &&
         (!('displayName' in request.resource.data) ||
           request.resource.data.displayName == null ||
           request.resource.data.displayName is string) &&
@@ -54,7 +79,8 @@ service cloud.firestore {
 
     match /publicPlayers/{userId} {
       allow read: if true;
-      allow create, update: if isOwner(userId) && isValidPublicPlayer(userId);
+      allow create: if isOwner(userId) && isValidPublicPlayerCreate(userId);
+      allow update: if isOwner(userId) && isValidPublicPlayerUpdate(userId);
       allow delete: if false;
     }
 
