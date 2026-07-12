@@ -100,6 +100,33 @@ export function isCloudResultEligible(result) {
   );
 }
 
+export function serializeResult(firebase, completedResult) {
+  return {
+    accuracy: completedResult.accuracy,
+    correctChars: completedResult.correctChars,
+    createdAt: firebase.serverTimestamp(),
+    elapsedSeconds: completedResult.elapsedSeconds,
+    endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
+    modeLabel: completedResult.modeLabel,
+    testType: completedResult.testType,
+    trainingMode: completedResult.trainingMode || 'standard',
+    wpm: completedResult.wpm,
+    wrongChars: completedResult.wrongChars
+  };
+}
+
+export function serializeLeaderboardResult(firebase, completedResult, userId) {
+  return {
+    accuracy: completedResult.accuracy,
+    createdAt: firebase.serverTimestamp(),
+    modeLabel: completedResult.modeLabel,
+    testType: completedResult.testType,
+    trainingMode: completedResult.trainingMode || 'standard',
+    userId,
+    wpm: completedResult.wpm
+  };
+}
+
 export function serializePublicPlayer(firebase, profile, user) {
   return {
     displayName: user?.displayName || null,

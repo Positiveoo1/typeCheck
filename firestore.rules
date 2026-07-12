@@ -17,39 +17,67 @@ service cloud.firestore {
       return value is number && value >= min && value <= max;
     }
 
-    function hasValidPublicPlayerFields() {
+    function isValidResult() {
+      return hasOnlyFields([
+          'accuracy',
+          'correctChars',
+          'createdAt',
+          'elapsedSeconds',
+          'endedByAccuracyLock',
+          'modeLabel',
+          'testType',
+          'trainingMode',
+          'wpm',
+          'wrongChars'
+        ]) &&
+        isValidNumber(request.resource.data.accuracy, 0, 100) &&
+        isValidNumber(request.resource.data.correctChars, 0, 20000) &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.elapsedSeconds is number &&
+        request.resource.data.elapsedSeconds >= 0 &&
+        request.resource.data.endedByAccuracyLock is bool &&
+        request.resource.data.modeLabel is string &&
+        request.resource.data.modeLabel.size() > 0 &&
+        request.resource.data.modeLabel.size() <= 80 &&
+        request.resource.data.testType in ['time', 'words'] &&
+        request.resource.data.trainingMode is string &&
+        request.resource.data.trainingMode.size() > 0 &&
+        request.resource.data.trainingMode.size() <= 40 &&
+        isValidNumber(request.resource.data.wpm, 0, 400) &&
+        isValidNumber(request.resource.data.wrongChars, 0, 20000);
+    }
+
+    function isValidLeaderboardResult() {
+      return hasOnlyFields([
+          'accuracy',
+          'createdAt',
+          'modeLabel',
+          'testType',
+          'trainingMode',
+          'userId',
+          'wpm'
+        ]) &&
+        request.resource.data.userId == request.auth.uid &&
+        isValidNumber(request.resource.data.accuracy, 0, 100) &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.modeLabel is string &&
+        request.resource.data.modeLabel.size() > 0 &&
+        request.resource.data.modeLabel.size() <= 80 &&
+        request.resource.data.testType in ['time', 'words'] &&
+        request.resource.data.trainingMode is string &&
+        request.resource.data.trainingMode.size() > 0 &&
+        request.resource.data.trainingMode.size() <= 40 &&
+        isValidNumber(request.resource.data.wpm, 0, 400);
+    }
+
+    function isValidPublicPlayer(userId) {
       return hasOnlyFields([
         'displayName',
         'fallbackName',
         'username',
         'updatedAt'
       ]) &&
-        (!('displayName' in request.resource.data) ||
-          request.resource.data.displayName == null ||
-          request.resource.data.displayName is string) &&
-        request.resource.data.fallbackName is string &&
-        request.resource.data.fallbackName.size() > 0 &&
-        request.resource.data.fallbackName.size() <= 80 &&
-        request.resource.data.username is string &&
-        request.resource.data.username.size() <= 32 &&
-        request.resource.data.updatedAt == request.time;
-    }
-
-    function isValidPublicPlayerCreate(userId) {
-      return userId == request.auth.uid && hasValidPublicPlayerFields();
-    }
-
-    function isValidPublicPlayerUpdate(userId) {
-      return userId == request.auth.uid &&
-        // Older player documents can contain fields that are no longer public.
-        // A merge write may keep those fields, but it must not add, remove, or
-        // change them.
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName',
-          'fallbackName',
-          'username',
-          'updatedAt'
-        ]) &&
+        userId == request.auth.uid &&
         (!('displayName' in request.resource.data) ||
           request.resource.data.displayName == null ||
           request.resource.data.displayName is string) &&
@@ -70,28 +98,30 @@ service cloud.firestore {
 
       match /results/{resultId} {
         allow read: if isOwner(userId);
-        // Writes now happen only via the submitResult Cloud Function (Admin
-        // SDK), which recomputes stats from a server-validated keystroke
-        // timeline. Direct client writes are no longer trusted.
-        allow create, update, delete: if false;
+        // No Cloud Functions on the Spark plan, so results are written
+        // directly by the client and validated here instead of by an
+        // Admin SDK function. Revisit isValidResult() if the client
+        // payload shape changes.
+        allow create: if isOwner(userId) && isValidResult();
+        allow update, delete: if false;
       }
     }
 
     match /publicPlayers/{userId} {
       allow read: if true;
-      allow create: if isOwner(userId) && isValidPublicPlayerCreate(userId);
-      allow update: if isOwner(userId) && isValidPublicPlayerUpdate(userId);
+      allow create, update: if isOwner(userId) && isValidPublicPlayer(userId);
       allow delete: if false;
     }
 
     match /leaderboardResults/{resultId} {
       allow read: if true;
-      // Writes now happen only via the submitResult Cloud Function (Admin
-      // SDK), which recomputes WPM/accuracy from a server-validated
-      // keystroke timeline before writing. Direct client writes are no
-      // longer trusted, since a client could otherwise submit any wpm
-      // value within the old range/shape checks.
-      allow create, update, delete: if false;
+      // No Cloud Functions on the Spark plan, so leaderboard entries are
+      // written directly by the client. This trusts the client's
+      // self-reported wpm/accuracy within range checks only -- it's not
+      // tamper-proof the way the Cloud Function version was. Worth
+      // revisiting if leaderboard integrity becomes a concern.
+      allow create: if isSignedIn() && isValidLeaderboardResult();
+      allow update, delete: if false;
     }
 
     match /{document=**} {

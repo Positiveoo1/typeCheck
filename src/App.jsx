@@ -34,11 +34,15 @@ import { isFirebaseConfigured } from './services/firebaseConfig.js';
 import {
   getAuthActionErrorMessage,
   getFirebaseRuntime,
+  getLeaderboardCollectionRef,
   getPasswordResetActionSettings,
   getPublicPlayerDocRef,
+  getResultsCollectionRef,
   getUserDocRef,
   isCloudResultEligible,
-  serializePublicPlayer
+  serializeLeaderboardResult,
+  serializePublicPlayer,
+  serializeResult
 } from './services/typecheckData.js';
 import { getModeLabel } from './typingLogic.js';
 
@@ -118,25 +122,32 @@ function App() {
       const canSaveCloudResult = isCloudResultEligible(completedResult);
 
       if (canSaveCloudResult) {
-        const submitResult = firebase.httpsCallable(firebase.functions, 'submitResult');
-        submitResult({
-          targetText: completedResult.targetText,
-          typedText: completedResult.typedText,
-          testType: completedResult.testType,
-          testValue: completedResult.testValue,
-          trainingMode: completedResult.trainingMode || 'standard',
-          modeLabel: completedResult.modeLabel,
-          language: completedResult.language,
-          keystrokeLog: completedResult.keystrokeLog || [],
-          endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock)
-        }).catch((error) => {
-          console.error('Failed to save result:', error);
-          notify({
-            title: 'Result not saved',
-            message: 'Your local result is visible, but syncing failed.',
-            type: 'error'
+        // Written directly by the client and validated in firestore.rules,
+        // since Cloud Functions (submitResult) require the Blaze plan.
+        firebase
+          .addDoc(
+            getResultsCollectionRef(firebase, user.uid),
+            serializeResult(firebase, completedResult)
+          )
+          .catch((error) => {
+            console.error('Failed to save result:', error);
+            notify({
+              title: 'Result not saved',
+              message: 'Your local result is visible, but syncing failed.',
+              type: 'error'
+            });
           });
-        });
+
+        if ((completedResult.trainingMode || 'standard') !== 'custom') {
+          firebase
+            .addDoc(
+              getLeaderboardCollectionRef(firebase),
+              serializeLeaderboardResult(firebase, completedResult, user.uid)
+            )
+            .catch((error) => {
+              console.error('Failed to save public leaderboard result:', error);
+            });
+        }
       } else {
         console.warn(
           'Skipped Firebase result save because the result is outside Firestore rule bounds.'
