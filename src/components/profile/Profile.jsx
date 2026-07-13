@@ -55,7 +55,7 @@ function normalizeUrl(value) {
 }
 
 function normalizeUsername(value) {
-  return value
+  return String(value || '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_-]/g, '');
