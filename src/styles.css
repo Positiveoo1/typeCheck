@@ -561,6 +561,7 @@ button {
   padding: 34px 0 42px;
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
   color: var(--text);
 }
 
@@ -956,6 +957,38 @@ h2 {
   width: 17px;
   height: 17px;
   fill: currentColor;
+}
+
+/* Keep every test control visible on standard laptop-sized viewports.  The
+ * settings rail used to need more space than the app container, leaving the
+ * final length choices behind an invisible horizontal scrollbar. */
+@container (max-width: 1100px) {
+  .settings-inline {
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 4px 14px;
+  }
+
+  .inline-mode-group {
+    gap: 10px;
+  }
+
+  .inline-mode-title {
+    font-size: 0.62rem;
+  }
+
+  .inline-mode {
+    gap: 5px;
+    font-size: 0.82rem;
+  }
+
+  .inline-mode .material-icon {
+    width: 15px;
+    height: 15px;
+  }
 }
 
 .test-runner {
