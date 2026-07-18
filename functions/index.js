@@ -146,6 +146,8 @@ exports.submitResult = onCall({ region: 'us-central1' }, async (request) => {
     elapsedSeconds: stats.elapsedSeconds,
     endedByAccuracyLock: Boolean(endedByAccuracyLock),
     modeLabel,
+    netWpm: stats.wpm,
+    rawWpm: Math.round((typedText.length / 5) / (stats.elapsedSeconds / 60)),
     testType,
     trainingMode,
     wpm: stats.wpm,
@@ -179,6 +181,8 @@ exports.submitResult = onCall({ region: 'us-central1' }, async (request) => {
     correctChars: stats.correctChars,
     elapsedSeconds: stats.elapsedSeconds,
     leaderboardWritten,
+    netWpm: stats.wpm,
+    rawWpm: Math.round((typedText.length / 5) / (stats.elapsedSeconds / 60)),
     wpm: stats.wpm,
     wrongChars: stats.wrongChars
   };

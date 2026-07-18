@@ -15,42 +15,7 @@ import {
   getNextTypedText,
   getTimeLeft
 } from '../../typingLogic.js';
-
-const KEYBOARD_ROWS = [
-  [
-    { code: 'KeyQ', label: 'q' },
-    { code: 'KeyW', label: 'w' },
-    { code: 'KeyE', label: 'e' },
-    { code: 'KeyR', label: 'r' },
-    { code: 'KeyT', label: 't' },
-    { code: 'KeyY', label: 'y' },
-    { code: 'KeyU', label: 'u' },
-    { code: 'KeyI', label: 'i' },
-    { code: 'KeyO', label: 'o' },
-    { code: 'KeyP', label: 'p' },
-    { code: 'Backspace', label: 'backspace', size: 'wide' }
-  ],
-  [
-    { code: 'KeyA', label: 'a' },
-    { code: 'KeyS', label: 's' },
-    { code: 'KeyD', label: 'd' },
-    { code: 'KeyF', label: 'f' },
-    { code: 'KeyG', label: 'g' },
-    { code: 'KeyH', label: 'h' },
-    { code: 'KeyJ', label: 'j' },
-    { code: 'KeyK', label: 'k' },
-    { code: 'KeyL', label: 'l' }
-  ],
-  [
-    { code: 'KeyZ', label: 'z' },
-    { code: 'KeyX', label: 'x' },
-    { code: 'KeyC', label: 'c' },
-    { code: 'KeyV', label: 'v' },
-    { code: 'KeyB', label: 'b' },
-    { code: 'KeyN', label: 'n' },
-    { code: 'KeyM', label: 'm' }
-  ]
-];
+import KeyboardHeatmap from './KeyboardHeatmap.jsx';
 const KEY_SOUND_SRC = '/audio/kSound.mp3';
 const KEY_SOUND_POOL_SIZE = 8;
 const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
@@ -120,36 +85,6 @@ function playKeySound(audioPoolRef, audioContextRef, volume, style) {
   audio.volume = volume;
   audio.currentTime = 0;
   audio.play().catch(() => {});
-}
-
-function VisualKeyboard({ keyboardRef, pressedKeyStates, pressedKeys }) {
-  return (
-    <div className="visual-keyboard" aria-hidden="true" ref={keyboardRef}>
-      {KEYBOARD_ROWS.map((row, rowIndex) => (
-        <div className="keyboard-row" key={`row-${rowIndex}`}>
-          {row.map((key) => {
-            const keyState = pressedKeyStates[key.code];
-
-            return (
-              <span
-                className={[
-                  'keyboard-key',
-                  key.size ? `keyboard-key-${key.size}` : '',
-                  pressedKeys.has(key.code) ? 'pressed' : '',
-                  keyState ? `pressed-${keyState}` : ''
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                key={key.code}
-              >
-                {key.label}
-              </span>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function ShortcutHints() {
@@ -339,6 +274,9 @@ function TypingTest({
   const createResult = useCallback(
     (nextTypedText, elapsedSeconds, options = {}) => {
       const finalStats = calculateStats(targetText, nextTypedText, elapsedSeconds);
+      const normalizedElapsed = Math.max(0.1, Number(elapsedSeconds) || 0.1);
+      const rawWpm = Math.round(nextTypedText.length / 5 / (normalizedElapsed / 60));
+      const netWpm = finalStats.wpm;
       const speedHistory = [...speedHistoryRef.current];
       const lastSnapshot = speedHistory.at(-1);
 
@@ -359,6 +297,8 @@ function TypingTest({
         keystrokeLog: [...keystrokeLogRef.current],
         language,
         modeLabel: getModeLabel(testType, testValue, trainingMode, language),
+        netWpm,
+        rawWpm,
         speedHistory,
         targetText,
         testType,
@@ -1010,8 +950,9 @@ function TypingTest({
       />
 
       {showKeyboard && (
-        <VisualKeyboard
+        <KeyboardHeatmap
           keyboardRef={keyboardRef}
+          mode="live"
           pressedKeyStates={pressedKeyStates}
           pressedKeys={pressedKeys}
         />

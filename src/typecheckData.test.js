@@ -207,6 +207,8 @@ describe('Firebase dashboard loading', () => {
       elapsedSeconds: 30,
       endedByAccuracyLock: false,
       modeLabel: '30s',
+      netWpm: 48,
+      rawWpm: 48,
       testType: 'time',
       trainingMode: 'standard',
       wpm: 48,

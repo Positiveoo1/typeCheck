@@ -6,6 +6,7 @@ import TypingTest from './TypingTest.jsx';
 
 function TestPage({
   customText,
+  dashboardResults,
   effectiveSoundStyle,
   finishTest,
   handleCustomTextChange,
@@ -66,6 +67,7 @@ function TestPage({
       <AnimatePresence mode="wait">
         {result ? (
           <Results
+            historyResults={dashboardResults}
             key="results"
             onNextGame={restart}
             onTryAgain={tryAgain}

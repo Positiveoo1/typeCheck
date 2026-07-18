@@ -4201,6 +4201,7 @@ h2 {
   border-radius: 7px;
   display: grid;
   place-items: center;
+  position: relative;
   color: var(--muted);
   background: rgba(255, 255, 255, 0.032);
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.16);
@@ -4215,6 +4216,22 @@ h2 {
     box-shadow 90ms ease,
     color 90ms ease,
     transform 90ms ease;
+}
+
+.keyboard-key small {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  color: var(--bg);
+  background: var(--wrong);
+  font-size: 0.55rem;
+  font-weight: 900;
+  line-height: 14px;
+  text-align: center;
 }
 
 .keyboard-key-medium {
@@ -4250,6 +4267,41 @@ h2 {
   box-shadow:
     0 0 18px color-mix(in srgb, var(--wrong) 32%, transparent),
     inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.visual-keyboard-results {
+  width: min(640px, 100%);
+  margin: 0;
+}
+
+.visual-keyboard-results .keyboard-key {
+  color: var(--heading);
+}
+
+.visual-keyboard-results .keyboard-key-mistake {
+  border-color: color-mix(in srgb, var(--accent-rgb) 35%, transparent);
+  background: rgba(var(--accent-rgb), 0.09);
+}
+
+.visual-keyboard-results .keyboard-key-mistake.mistake-level-1 {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+.visual-keyboard-results .keyboard-key-mistake.mistake-level-2 {
+  border-color: rgba(255, 95, 87, 0.36);
+  background: rgba(255, 95, 87, 0.16);
+}
+
+.visual-keyboard-results .keyboard-key-mistake.mistake-level-3 {
+  border-color: rgba(255, 95, 87, 0.52);
+  background: rgba(255, 95, 87, 0.24);
+}
+
+.visual-keyboard-results .keyboard-key-mistake.mistake-level-4 {
+  border-color: rgba(255, 95, 87, 0.72);
+  background: rgba(255, 95, 87, 0.34);
+  box-shadow: 0 0 16px rgba(255, 95, 87, 0.24);
 }
 
 .word-display::-webkit-scrollbar {
@@ -4978,6 +5030,116 @@ h2 {
   margin: 10px 0 0;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+.wpm-history,
+.result-key-heatmap {
+  width: min(640px, 100%);
+  margin: 0 auto 16px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.026);
+  text-align: left;
+}
+
+.history-toolbar {
+  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-toolbar button {
+  min-width: 52px;
+  height: 28px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.history-toolbar button.active {
+  color: var(--bg);
+  border-color: rgba(var(--accent-2-rgb), 0.72);
+  background: var(--accent-2);
+}
+
+.history-chart {
+  width: 100%;
+  height: 188px;
+  display: block;
+  overflow: visible;
+}
+
+.history-baseline {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1;
+}
+
+.history-line-raw,
+.history-line-net {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.history-line-raw {
+  stroke: rgba(255, 95, 87, 0.85);
+}
+
+.history-line-net {
+  stroke: rgba(var(--accent-2-rgb), 0.92);
+}
+
+.history-dot-raw {
+  fill: rgba(255, 95, 87, 0.78);
+}
+
+.history-dot-net {
+  fill: var(--accent-2);
+}
+
+.history-legend {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.history-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-legend i {
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.history-legend .line-raw {
+  background: rgba(255, 95, 87, 0.85);
+}
+
+.history-legend .line-net {
+  background: rgba(var(--accent-2-rgb), 0.92);
+}
+
+.history-legend strong {
+  color: var(--accent-3);
+  font-size: 0.74rem;
 }
 
 .result-insights {

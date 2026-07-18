@@ -278,6 +278,8 @@ export function addCompletedResultToDashboard(dashboard, completedResult, option
         elapsedSeconds: completedResult.elapsedSeconds,
         endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
         modeLabel: completedResult.modeLabel,
+        netWpm: Number(completedResult.netWpm) || Number(completedResult.wpm) || 0,
+        rawWpm: Number(completedResult.rawWpm) || Number(completedResult.wpm) || 0,
         testType: completedResult.testType,
         trainingMode: completedResult.trainingMode || 'standard',
         wpm: completedResult.wpm,

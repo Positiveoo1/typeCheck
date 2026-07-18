@@ -25,6 +25,8 @@ service cloud.firestore {
           'elapsedSeconds',
           'endedByAccuracyLock',
           'modeLabel',
+          'netWpm',
+          'rawWpm',
           'testType',
           'trainingMode',
           'wpm',
@@ -43,6 +45,10 @@ service cloud.firestore {
         request.resource.data.trainingMode is string &&
         request.resource.data.trainingMode.size() > 0 &&
         request.resource.data.trainingMode.size() <= 40 &&
+        (!('netWpm' in request.resource.data) ||
+          isValidNumber(request.resource.data.netWpm, 0, 400)) &&
+        (!('rawWpm' in request.resource.data) ||
+          isValidNumber(request.resource.data.rawWpm, 0, 400)) &&
         isValidNumber(request.resource.data.wpm, 0, 400) &&
         isValidNumber(request.resource.data.wrongChars, 0, 20000);
     }

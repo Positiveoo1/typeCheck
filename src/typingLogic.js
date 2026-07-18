@@ -170,3 +170,50 @@ export function getNextTypedText(
 
   return nextTypedText;
 }
+
+const KEY_CODE_BY_CHAR = {
+  ' ': 'Space',
+  a: 'KeyA',
+  b: 'KeyB',
+  c: 'KeyC',
+  d: 'KeyD',
+  e: 'KeyE',
+  f: 'KeyF',
+  g: 'KeyG',
+  h: 'KeyH',
+  i: 'KeyI',
+  j: 'KeyJ',
+  k: 'KeyK',
+  l: 'KeyL',
+  m: 'KeyM',
+  n: 'KeyN',
+  o: 'KeyO',
+  p: 'KeyP',
+  q: 'KeyQ',
+  r: 'KeyR',
+  s: 'KeyS',
+  t: 'KeyT',
+  u: 'KeyU',
+  v: 'KeyV',
+  w: 'KeyW',
+  x: 'KeyX',
+  y: 'KeyY',
+  z: 'KeyZ'
+};
+
+export function buildMistakeKeyCounts(targetText = '', typedText = '') {
+  const counts = {};
+  const length = Math.min(targetText.length, typedText.length);
+
+  for (let index = 0; index < length; index += 1) {
+    if (typedText[index] === targetText[index]) continue;
+
+    const expectedChar = String(targetText[index] || '').toLowerCase();
+    const code = KEY_CODE_BY_CHAR[expectedChar];
+
+    if (!code) continue;
+    counts[code] = (counts[code] || 0) + 1;
+  }
+
+  return counts;
+}

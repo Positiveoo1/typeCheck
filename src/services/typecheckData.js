@@ -84,10 +84,17 @@ function isStringWithLength(value, min, max) {
 }
 
 export function isCloudResultEligible(result) {
+  const hasValidRawWpm =
+    result?.rawWpm === undefined || isNumberInRange(Number(result.rawWpm), 0, MAX_CLOUD_WPM);
+  const hasValidNetWpm =
+    result?.netWpm === undefined || isNumberInRange(Number(result.netWpm), 0, MAX_CLOUD_WPM);
+
   return (
     isNumberInRange(result?.accuracy, 0, 100) &&
     isNumberInRange(result?.correctChars, 0, MAX_RESULT_CHARS) &&
     isNumberInRange(result?.elapsedSeconds, 0, Number.MAX_SAFE_INTEGER) &&
+    hasValidNetWpm &&
+    hasValidRawWpm &&
     isNumberInRange(result?.wpm, 0, MAX_CLOUD_WPM) &&
     isNumberInRange(result?.wrongChars, 0, MAX_RESULT_CHARS) &&
     isStringWithLength(result?.modeLabel, 1, MAX_MODE_LABEL_LENGTH) &&
@@ -108,6 +115,8 @@ export function serializeResult(firebase, completedResult) {
     elapsedSeconds: completedResult.elapsedSeconds,
     endedByAccuracyLock: Boolean(completedResult.endedByAccuracyLock),
     modeLabel: completedResult.modeLabel,
+    netWpm: Number(completedResult.netWpm) || Number(completedResult.wpm) || 0,
+    rawWpm: Number(completedResult.rawWpm) || Number(completedResult.wpm) || 0,
     testType: completedResult.testType,
     trainingMode: completedResult.trainingMode || 'standard',
     wpm: completedResult.wpm,
@@ -210,6 +219,8 @@ export async function loadFirebaseDashboard(firebase, userId) {
       elapsedSeconds: Number(data.elapsedSeconds) || 0,
       endedByAccuracyLock: Boolean(data.endedByAccuracyLock),
       modeLabel: data.modeLabel || '',
+      netWpm: Number(data.netWpm ?? data.wpm) || 0,
+      rawWpm: Number(data.rawWpm ?? data.wpm) || 0,
       testType: data.testType || 'time',
       trainingMode: data.trainingMode || 'standard',
       wpm: Number(data.wpm) || 0,

@@ -630,6 +630,7 @@ function App() {
             }}
             testPage={{
               customText,
+              dashboardResults: dashboard.results || [],
               effectiveSoundStyle,
               finishTest,
               handleCustomTextChange,
