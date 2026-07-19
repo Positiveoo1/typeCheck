@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildTrainingTarget, getTrainingMode } from '../../trainingModes.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { buildTrainingTarget, getTrainingMode } from "../../trainingModes.js";
 import {
   buildWordTokens,
   calculateStats,
   getModeLabel,
   getNextTypedText,
-  getTimeLeft
-} from '../../typingLogic.js';
-import { useRestartShortcut } from './useRestartShortcut.js';
-import { isLastWordFullyCorrect } from './wordDisplayHelpers.js';
+  getTimeLeft,
+} from "../../typingLogic.js";
+import { useRestartShortcut } from "./useRestartShortcut.js";
+import { isLastWordFullyCorrect } from "./wordDisplayHelpers.js";
 
 const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
 
@@ -23,12 +23,12 @@ export function useTypingEngine({
   onActiveChange,
   mistakeMode,
   targetTextOverride,
-  language = 'english',
-  trainingMode = 'standard'
+  language = "english",
+  trainingMode = "standard",
 }) {
-  const [targetText, setTargetText] = useState('');
-  const [typedText, setTypedText] = useState('');
-  const [timeLeft, setTimeLeft] = useState(testType === 'time' ? testValue : 0);
+  const [targetText, setTargetText] = useState("");
+  const [typedText, setTypedText] = useState("");
+  const [timeLeft, setTimeLeft] = useState(testType === "time" ? testValue : 0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isTypingFocused, setIsTypingFocused] = useState(false);
@@ -39,9 +39,9 @@ export function useTypingEngine({
   const currentLetterRef = useRef(null);
   const elapsedTimeRef = useRef(0);
   const isRunningRef = useRef(false);
-  const targetTextRef = useRef('');
-  const timeLeftRef = useRef(testType === 'time' ? testValue : 0);
-  const typedTextRef = useRef('');
+  const targetTextRef = useRef("");
+  const timeLeftRef = useRef(testType === "time" ? testValue : 0);
+  const typedTextRef = useRef("");
   const startedAtRef = useRef(null);
   const accumulatedElapsedRef = useRef(0);
   const isTypingFocusedRef = useRef(false);
@@ -60,11 +60,11 @@ export function useTypingEngine({
   const isIdle = typedText.length === 0 && !isRunning;
   const isReplay = Boolean(targetTextOverride);
   const activeTrainingMode = getTrainingMode(trainingMode);
-  const isAccuracyLock = trainingMode === 'accuracy-lock';
+  const isAccuracyLock = trainingMode === "accuracy-lock";
   const currentMistakes = calculateStats(
     targetText,
     typedText,
-    Math.max(elapsedTime, 0.1)
+    Math.max(elapsedTime, 0.1),
   ).wrongChars;
 
   const recordSpeedSnapshot = useCallback(
@@ -73,7 +73,7 @@ export function useTypingEngine({
       const snapshot = calculateStats(
         targetText,
         nextTypedText,
-        normalizedElapsedSeconds
+        normalizedElapsedSeconds,
       );
       const lastSnapshot = speedHistoryRef.current.at(-1);
 
@@ -89,18 +89,24 @@ export function useTypingEngine({
         ...speedHistoryRef.current,
         {
           elapsedSeconds: normalizedElapsedSeconds,
-          wpm: snapshot.wpm
-        }
+          wpm: snapshot.wpm,
+        },
       ].slice(-90);
     },
-    [targetText]
+    [targetText],
   );
 
   const createResult = useCallback(
     (nextTypedText, elapsedSeconds, options = {}) => {
-      const finalStats = calculateStats(targetText, nextTypedText, elapsedSeconds);
+      const finalStats = calculateStats(
+        targetText,
+        nextTypedText,
+        Math.max(elapsedSeconds, 0.1),
+      );
       const normalizedElapsed = Math.max(0.1, Number(elapsedSeconds) || 0.1);
-      const rawWpm = Math.round(nextTypedText.length / 5 / (normalizedElapsed / 60));
+      const rawWpm = Math.round(
+        nextTypedText.length / 5 / (normalizedElapsed / 60),
+      );
       const netWpm = finalStats.wpm;
       const speedHistory = [...speedHistoryRef.current];
       const lastSnapshot = speedHistory.at(-1);
@@ -112,7 +118,7 @@ export function useTypingEngine({
       ) {
         speedHistory.push({
           elapsedSeconds: finalStats.elapsedSeconds,
-          wpm: finalStats.wpm
+          wpm: finalStats.wpm,
         });
       }
 
@@ -128,15 +134,20 @@ export function useTypingEngine({
         targetText,
         testType,
         typedText: nextTypedText,
-        trainingMode
+        trainingMode,
       };
     },
-    [language, targetText, testType, testValue, trainingMode]
+    [language, targetText, testType, testValue, trainingMode],
   );
 
   const pauseWordTimer = useCallback(() => {
-    if (testType !== 'words') return;
-    if (!isRunningRef.current || !startedAtRef.current || hasFinishedRef.current) return;
+    if (testType !== "words") return;
+    if (
+      !isRunningRef.current ||
+      !startedAtRef.current ||
+      hasFinishedRef.current
+    )
+      return;
 
     const elapsed = (performance.now() - startedAtRef.current) / 1000;
     accumulatedElapsedRef.current += elapsed;
@@ -157,14 +168,14 @@ export function useTypingEngine({
         language,
         testType,
         testValue,
-        trainingMode
+        trainingMode,
       });
 
     targetTextRef.current = nextTargetText;
     setTargetText(nextTargetText);
-    setTypedText('');
-    timeLeftRef.current = testType === 'time' ? testValue : 0;
-    setTimeLeft(testType === 'time' ? testValue : 0);
+    setTypedText("");
+    timeLeftRef.current = testType === "time" ? testValue : 0;
+    setTimeLeft(testType === "time" ? testValue : 0);
     elapsedTimeRef.current = 0;
     setElapsedTime(0);
     isRunningRef.current = false;
@@ -175,7 +186,7 @@ export function useTypingEngine({
     hasFinishedRef.current = false;
     isTypingFocusedRef.current = true;
     setIsTypingFocused(true);
-    typedTextRef.current = '';
+    typedTextRef.current = "";
     speedHistoryRef.current = [];
     keystrokeLogRef.current = [];
     onActiveChange(false);
@@ -192,7 +203,7 @@ export function useTypingEngine({
     customText,
     language,
     targetTextOverride,
-    trainingMode
+    trainingMode,
   ]);
 
   // Keep refs in sync with the corresponding state so effects/callbacks can
@@ -224,12 +235,14 @@ export function useTypingEngine({
     const interval = setInterval(() => {
       const elapsed = (performance.now() - startedAtRef.current) / 1000;
       const totalElapsed =
-        testType === 'words' ? accumulatedElapsedRef.current + elapsed : elapsed;
+        testType === "words"
+          ? accumulatedElapsedRef.current + elapsed
+          : elapsed;
       elapsedTimeRef.current = totalElapsed;
       setElapsedTime(totalElapsed);
       recordSpeedSnapshot(totalElapsed, typedTextRef.current);
 
-      if (testType !== 'time') return;
+      if (testType !== "time") return;
 
       const nextTimeLeft = getTimeLeft(testValue, totalElapsed);
       timeLeftRef.current = nextTimeLeft;
@@ -252,7 +265,7 @@ export function useTypingEngine({
     onFinish,
     recordSpeedSnapshot,
     testType,
-    testValue
+    testValue,
   ]);
 
   useRestartShortcut(onRestart);
@@ -261,7 +274,7 @@ export function useTypingEngine({
     (value) => {
       const currentTargetText = targetTextRef.current;
 
-      if (testType === 'time' && timeLeftRef.current === 0) return;
+      if (testType === "time" && timeLeftRef.current === 0) return;
       if (hasFinishedRef.current) return;
       if (!isTypingFocusedRef.current) {
         return;
@@ -282,10 +295,10 @@ export function useTypingEngine({
           targetText: currentTargetText,
           testType,
           testValue,
-          trainingMode
+          trainingMode,
         });
       } else if (
-        testType === 'words' &&
+        testType === "words" &&
         hasStartedRef.current &&
         !isRunningRef.current &&
         value !== currentTypedText
@@ -300,31 +313,40 @@ export function useTypingEngine({
         currentTargetText,
         currentTypedText,
         value,
-        mistakeMode !== 'strict'
+        mistakeMode !== "strict",
       );
       typedTextRef.current = nextTypedText;
       setTypedText(nextTypedText);
 
-      if (startedAtRef.current !== null && nextTypedText.length !== currentTypedText.length) {
-        const elapsedMs = performance.now() - startedAtRef.current + accumulatedElapsedRef.current * 1000;
+      if (
+        startedAtRef.current !== null &&
+        nextTypedText.length !== currentTypedText.length
+      ) {
+        const elapsedMs =
+          performance.now() -
+          startedAtRef.current +
+          accumulatedElapsedRef.current * 1000;
         keystrokeLogRef.current = [
           ...keystrokeLogRef.current,
-          { t: Math.round(elapsedMs), len: nextTypedText.length }
+          { t: Math.round(elapsedMs), len: nextTypedText.length },
         ].slice(-4000);
       }
 
       const nextStats = calculateStats(
         currentTargetText,
         nextTypedText,
-        Math.max(elapsedTimeRef.current, 0.1)
+        Math.max(elapsedTimeRef.current, 0.1),
       );
 
-      if (isAccuracyLock && nextStats.wrongChars >= ACCURACY_LOCK_MISTAKE_LIMIT) {
+      if (
+        isAccuracyLock &&
+        nextStats.wrongChars >= ACCURACY_LOCK_MISTAKE_LIMIT
+      ) {
         const currentRunElapsed = startedAtRef.current
           ? (performance.now() - startedAtRef.current) / 1000
           : 0;
         const elapsed =
-          testType === 'words'
+          testType === "words"
             ? accumulatedElapsedRef.current + currentRunElapsed
             : currentRunElapsed;
 
@@ -336,14 +358,16 @@ export function useTypingEngine({
         setIsRunning(false);
         onActiveChange(false);
         recordSpeedSnapshot(elapsed, nextTypedText);
-        onFinish(createResult(nextTypedText, elapsed, { endedByAccuracyLock: true }));
+        onFinish(
+          createResult(nextTypedText, elapsed, { endedByAccuracyLock: true }),
+        );
         return;
       }
 
       const isCustomComplete =
-        trainingMode === 'custom' && nextTypedText === currentTargetText;
+        trainingMode === "custom" && nextTypedText === currentTargetText;
       const isWordTestComplete =
-        testType === 'words' &&
+        testType === "words" &&
         nextTypedText.length === currentTargetText.length &&
         isLastWordFullyCorrect(currentTargetText, nextTypedText);
 
@@ -374,8 +398,8 @@ export function useTypingEngine({
       language,
       testType,
       testValue,
-      trainingMode
-    ]
+      trainingMode,
+    ],
   );
 
   // Focus the hidden input (and forward the keystroke) whenever the user
@@ -384,12 +408,12 @@ export function useTypingEngine({
     const focusTypingFromKey = (event) => {
       const tagName = event.target?.tagName?.toLowerCase();
       const isFormField =
-        tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+        tagName === "input" || tagName === "textarea" || tagName === "select";
 
       if (isTypingFocusedRef.current) return;
       if (isFormField || event.target?.isContentEditable) return;
       if (event.altKey || event.ctrlKey || event.metaKey) return;
-      if (event.key === 'Tab' || event.key === 'Escape') return;
+      if (event.key === "Tab" || event.key === "Escape") return;
 
       focusInput();
 
@@ -399,9 +423,11 @@ export function useTypingEngine({
       }
     };
 
-    window.addEventListener('keydown', focusTypingFromKey, { capture: true });
+    window.addEventListener("keydown", focusTypingFromKey, { capture: true });
     return () => {
-      window.removeEventListener('keydown', focusTypingFromKey, { capture: true });
+      window.removeEventListener("keydown", focusTypingFromKey, {
+        capture: true,
+      });
     };
   }, [focusInput, applyTypedValue]);
 
@@ -422,11 +448,11 @@ export function useTypingEngine({
       blurTypingArea();
     };
 
-    document.addEventListener('pointerdown', blurWhenClickingOutside);
-    window.addEventListener('blur', pauseWordTimer);
+    document.addEventListener("pointerdown", blurWhenClickingOutside);
+    window.addEventListener("blur", pauseWordTimer);
     return () => {
-      document.removeEventListener('pointerdown', blurWhenClickingOutside);
-      window.removeEventListener('blur', pauseWordTimer);
+      document.removeEventListener("pointerdown", blurWhenClickingOutside);
+      window.removeEventListener("blur", pauseWordTimer);
     };
   }, [blurTypingArea, pauseWordTimer]);
 
@@ -439,21 +465,21 @@ export function useTypingEngine({
 
       applyTypedValue(event.target.value);
     },
-    [applyTypedValue, typedText]
+    [applyTypedValue, typedText],
   );
 
   const handleWordDisplayKeyDown = useCallback(
     (event) => {
       if (
         [
-          ' ',
-          'ArrowDown',
-          'ArrowUp',
-          'End',
-          'Home',
-          'PageDown',
-          'PageUp',
-          'Spacebar'
+          " ",
+          "ArrowDown",
+          "ArrowUp",
+          "End",
+          "Home",
+          "PageDown",
+          "PageUp",
+          "Spacebar",
         ].includes(event.key)
       ) {
         event.preventDefault();
@@ -461,7 +487,7 @@ export function useTypingEngine({
 
       focusInput();
     },
-    [focusInput]
+    [focusInput],
   );
 
   const handleInputBlur = useCallback(() => {
@@ -494,6 +520,6 @@ export function useTypingEngine({
     typedText,
     typedTextRef,
     wordDisplayRef,
-    wordTokens
+    wordTokens,
   };
 }

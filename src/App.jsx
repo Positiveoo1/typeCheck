@@ -1,7 +1,12 @@
-'use client';
+"use client";
 
-import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'framer-motion';
-import { lazy, useCallback, useEffect, useState } from 'react';
+import {
+  AnimatePresence,
+  LayoutGroup,
+  MotionConfig,
+  motion,
+} from "framer-motion";
+import { lazy, useCallback, useEffect, useState } from "react";
 import {
   ACCOUNT_SECURITY_WINDOW_DAYS,
   addCompletedResultToDashboard,
@@ -13,24 +18,24 @@ import {
   MIN_CUSTOM_TEST_CHARACTERS,
   normalizeProfile,
   PASSWORD_RESET_EMAIL_LIMIT,
-  saveOnboardingComplete
-} from './appState.js';
-import AppPages from './components/app/AppPages.jsx';
-import MobileTip from './components/app/MobileTip.jsx';
-import Onboarding from './components/app/Onboarding.jsx';
-import AuthGateModal from './components/auth/AuthGateModal.jsx';
-import SignOutConfirmModal from './components/auth/SignOutConfirmModal.jsx';
-import Footer from './components/layout/Footer.jsx';
-import Header from './components/layout/Header.jsx';
-import { useAppKeyboardShortcuts } from './hooks/app/useAppKeyboardShortcuts.js';
-import { pushPageRoute, useAppRouting } from './hooks/app/useAppRouting.js';
-import { useAuthSync } from './hooks/auth/useAuthSync.js';
-import { useDashboardPersistence } from './hooks/data/useDashboardPersistence.js';
-import { useRemotePageData } from './hooks/data/useRemotePageData.js';
-import { useCapsLockIndicator } from './hooks/ui/useCapsLockIndicator.js';
-import { useThemeSettings } from './hooks/ui/useThemeSettings.js';
-import { ToastStack, useToasts } from './hooks/ui/useToasts.jsx';
-import { isFirebaseConfigured } from './services/firebaseConfig.js';
+  saveOnboardingComplete,
+} from "./appState.js";
+import AppPages from "./components/app/AppPages.jsx";
+import MobileTip from "./components/app/MobileTip.jsx";
+import Onboarding from "./components/app/Onboarding.jsx";
+import AuthGateModal from "./components/auth/AuthGateModal.jsx";
+import SignOutConfirmModal from "./components/auth/SignOutConfirmModal.jsx";
+import Footer from "./components/layout/Footer.jsx";
+import Header from "./components/layout/Header.jsx";
+import { useAppKeyboardShortcuts } from "./hooks/app/useAppKeyboardShortcuts.js";
+import { pushPageRoute, useAppRouting } from "./hooks/app/useAppRouting.js";
+import { useAuthSync } from "./hooks/auth/useAuthSync.js";
+import { useDashboardPersistence } from "./hooks/data/useDashboardPersistence.js";
+import { useRemotePageData } from "./hooks/data/useRemotePageData.js";
+import { useCapsLockIndicator } from "./hooks/ui/useCapsLockIndicator.js";
+import { useThemeSettings } from "./hooks/ui/useThemeSettings.js";
+import { ToastStack, useToasts } from "./hooks/ui/useToasts.jsx";
+import { isFirebaseConfigured } from "./services/firebaseConfig.js";
 import {
   getAuthActionErrorMessage,
   getFirebaseRuntime,
@@ -42,11 +47,11 @@ import {
   isCloudResultEligible,
   serializeLeaderboardResult,
   serializePublicPlayer,
-  serializeResult
-} from './services/typecheckData.js';
-import { getModeLabel } from './typingLogic.js';
+  serializeResult,
+} from "./services/typecheckData.js";
+import { getModeLabel } from "./typingLogic.js";
 
-const AuthPanel = lazy(() => import('./components/auth/AuthPanel.jsx'));
+const AuthPanel = lazy(() => import("./components/auth/AuthPanel.jsx"));
 
 function App() {
   const { currentPage, isPageLoading, setCurrentPage } = useAppRouting();
@@ -54,7 +59,9 @@ function App() {
   const [isActive, setIsActive] = useState(false);
   const [result, setResult] = useState(null);
   const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(() => normalizeProfile(null, null));
+  const [userProfile, setUserProfile] = useState(() =>
+    normalizeProfile(null, null),
+  );
   const [isAuthReady, setIsAuthReady] = useState(!isFirebaseConfigured);
   const [isAuthGateOpen, setIsAuthGateOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
@@ -69,9 +76,12 @@ function App() {
     dashboard,
     markIncompleteAttempt,
     setDashboard,
-    updateDashboard
+    updateDashboard,
   } = useDashboardPersistence({ notify, user });
-  const { leaderboard, publicProfile } = useRemotePageData({ currentPage, notify });
+  const { leaderboard, publicProfile } = useRemotePageData({
+    currentPage,
+    notify,
+  });
 
   useEffect(() => {
     setIsOnboardingOpen(!loadOnboardingComplete());
@@ -89,7 +99,7 @@ function App() {
       if (!user || !isFirebaseConfigured) {
         if (!isFirebaseConfigured) {
           console.error(
-            'Firebase is not configured. Add NEXT_PUBLIC_FIREBASE_* values before saving performance.'
+            "Firebase is not configured. Add NEXT_PUBLIC_FIREBASE_* values before saving performance.",
           );
         }
         return;
@@ -103,54 +113,55 @@ function App() {
           getUserDocRef(firebase, user.uid),
           {
             email: user.email || null,
-            lastActiveAt: firebase.serverTimestamp()
+            lastActiveAt: firebase.serverTimestamp(),
           },
-          { merge: true }
+          { merge: true },
         )
         .catch((error) => {
-          console.error('Failed to update user profile:', error);
+          console.error("Failed to update user profile:", error);
         });
 
       if (!options.skipDashboardUpdate) {
         updateDashboard((currentDashboard) =>
           addCompletedResultToDashboard(currentDashboard, completedResult, {
-            countStarted: options.countStarted
-          })
+            countStarted: options.countStarted,
+          }),
         );
       }
 
       const canSaveCloudResult = isCloudResultEligible(completedResult);
+     
 
       if (canSaveCloudResult) {
         // Written directly by the client and validated in firestore.rules,
-        // since Cloud Functions (submitResult) require the Blaze plan.
         firebase
+
           .addDoc(
             getResultsCollectionRef(firebase, user.uid),
-            serializeResult(firebase, completedResult)
+            serializeResult(firebase, completedResult),
           )
           .catch((error) => {
-            console.error('Failed to save result:', error);
+            console.error("Failed to save result:", error);
             notify({
-              title: 'Result not saved',
-              message: 'Your local result is visible, but syncing failed.',
-              type: 'error'
+              title: "Result not saved",
+              message: "Your local result is visible, but syncing failed.",
+              type: "error",
             });
           });
 
-        if ((completedResult.trainingMode || 'standard') !== 'custom') {
+        if ((completedResult.trainingMode || "standard") !== "custom") {
           firebase
             .addDoc(
               getLeaderboardCollectionRef(firebase),
-              serializeLeaderboardResult(firebase, completedResult, user.uid)
+              serializeLeaderboardResult(firebase, completedResult, user.uid),
             )
             .catch((error) => {
-              console.error('Failed to save public leaderboard result:', error);
+              console.error("Failed to save public leaderboard result:", error);
             });
         }
       } else {
         console.warn(
-          'Skipped Firebase result save because the result is outside Firestore rule bounds.'
+          "Skipped Firebase result save because the result is outside Firestore rule bounds.",
         );
       }
 
@@ -158,13 +169,13 @@ function App() {
         .setDoc(
           getPublicPlayerDocRef(firebase, user.uid),
           serializePublicPlayer(firebase, userProfile, user),
-          { merge: true }
+          { merge: true },
         )
         .catch((error) => {
-          console.error('Failed to update public player profile:', error);
+          console.error("Failed to update public player profile:", error);
         });
     },
-    [notify, updateDashboard, user, userProfile]
+    [notify, updateDashboard, user, userProfile],
   );
 
   const {
@@ -177,13 +188,13 @@ function App() {
     handleThemeChange,
     handleTrainingModeChange,
     settings,
-    theme
+    theme,
   } = useThemeSettings({
     dashboard,
     markIncompleteAttempt,
     setReplayTargetText,
     setRestartKey,
-    setResult
+    setResult,
   });
   const {
     accentColor,
@@ -198,7 +209,7 @@ function App() {
     testType,
     timeMode,
     trainingMode,
-    wordMode
+    wordMode,
   } = settings;
 
   useAuthSync({
@@ -211,14 +222,15 @@ function App() {
     setIsAuthReady,
     setPendingPage,
     setUser,
-    setUserProfile
+    setUserProfile,
   });
 
   useEffect(() => {
-    if (!isAuthReady || user || !['dashboard', 'profile'].includes(currentPage)) return;
+    if (!isAuthReady || user || !["dashboard", "profile"].includes(currentPage))
+      return;
 
-    pushPageRoute('test');
-    setCurrentPage('test');
+    pushPageRoute("test");
+    setCurrentPage("test");
     setPendingPage(currentPage);
     setIsAuthGateOpen(true);
   }, [currentPage, isAuthReady, user]);
@@ -227,46 +239,51 @@ function App() {
     if (!isAuthReady || !user || !pendingResultSave) return;
 
     saveCompletedResult(pendingResultSave.result, {
-      countStarted: pendingResultSave.countStarted
+      countStarted: pendingResultSave.countStarted,
     });
     setPendingResultSave(null);
   }, [isAuthReady, pendingResultSave, saveCompletedResult, user]);
 
   const finishTest = useCallback(
     (nextResult) => {
-      const previousBest = Number(dashboard.modes[nextResult.modeLabel]?.bestWpm) || 0;
+      const previousBest =
+        Number(dashboard.modes[nextResult.modeLabel]?.bestWpm) || 0;
       const comparableResults = (dashboard.results || []).filter(
-        (result) => result.modeLabel === nextResult.modeLabel
+        (result) => result.modeLabel === nextResult.modeLabel,
       );
       const personalAverageWpm = comparableResults.length
         ? Math.round(
             comparableResults.reduce(
               (total, result) => total + (Number(result.wpm) || 0),
-              0
-            ) / comparableResults.length
+              0,
+            ) / comparableResults.length,
           )
         : 0;
       const personalAverageAccuracy = comparableResults.length
         ? Math.round(
             comparableResults.reduce(
               (total, result) => total + (Number(result.accuracy) || 0),
-              0
-            ) / comparableResults.length
+              0,
+            ) / comparableResults.length,
           )
         : 0;
 
       const isInvalidShortCustomTest = isTooShortCustomTest(nextResult);
       const isPersonalBest =
-        !isInvalidShortCustomTest && Boolean(user) && nextResult.wpm > previousBest;
+        !isInvalidShortCustomTest &&
+        Boolean(user) &&
+        nextResult.wpm > previousBest;
 
       const completedResult = {
         ...nextResult,
         bestWpm:
-          user && !isInvalidShortCustomTest ? Math.max(previousBest, nextResult.wpm) : 0,
+          user && !isInvalidShortCustomTest
+            ? Math.max(previousBest, nextResult.wpm)
+            : 0,
         isInvalid: isInvalidShortCustomTest,
         isPersonalBest,
         personalAverageAccuracy,
-        personalAverageWpm
+        personalAverageWpm,
       };
 
       setResult(completedResult);
@@ -274,15 +291,15 @@ function App() {
 
       if (isInvalidShortCustomTest) {
         notify({
-          title: 'test invalid - too short',
+          title: "test invalid - too short",
           message: `Use at least ${MIN_CUSTOM_TEST_CHARACTERS} characters for custom tests.`,
-          type: 'warning'
+          type: "warning",
         });
         return;
       }
 
       updateDashboard((currentDashboard) =>
-        addCompletedResultToDashboard(currentDashboard, completedResult)
+        addCompletedResultToDashboard(currentDashboard, completedResult),
       );
 
       if (user && isFirebaseConfigured) {
@@ -290,12 +307,12 @@ function App() {
       } else if (isFirebaseConfigured) {
         setPendingResultSave({
           countStarted: true,
-          result: completedResult
+          result: completedResult,
         });
         setIsAuthGateOpen(true);
       } else {
         console.error(
-          'Typing performance was not saved because Firebase is not configured.'
+          "Typing performance was not saved because Firebase is not configured.",
         );
       }
     },
@@ -305,8 +322,8 @@ function App() {
       notify,
       saveCompletedResult,
       updateDashboard,
-      user
-    ]
+      user,
+    ],
   );
 
   const handleTestStart = useCallback(
@@ -317,16 +334,16 @@ function App() {
         startedTest.testType,
         startedTest.testValue,
         startedTest.trainingMode,
-        startedTest.language
+        startedTest.language,
       );
       const attempt = {
         id: createId(),
         modeLabel,
-        targetText: startedTest.targetText || '',
+        targetText: startedTest.targetText || "",
         testType: startedTest.testType,
         testValue: startedTest.testValue,
-        language: startedTest.language || 'english',
-        trainingMode: startedTest.trainingMode || 'standard'
+        language: startedTest.language || "english",
+        trainingMode: startedTest.trainingMode || "standard",
       };
 
       if (isTooShortCustomTest(attempt)) return;
@@ -343,13 +360,13 @@ function App() {
             ...currentDashboard.modes,
             [modeLabel]: {
               ...mode,
-              started: mode.started + 1
-            }
-          }
+              started: mode.started + 1,
+            },
+          },
         };
       });
     },
-    [updateDashboard, user]
+    [updateDashboard, user],
   );
 
   const resetTest = useCallback(
@@ -360,7 +377,7 @@ function App() {
       setIsActive(false);
       setRestartKey((key) => key + 1);
     },
-    [markIncompleteAttempt]
+    [markIncompleteAttempt],
   );
 
   const restart = useCallback(() => {
@@ -384,8 +401,8 @@ function App() {
     if (!isFirebaseConfigured) return;
     setPendingPage(null);
     setIsAuthGateOpen(false);
-    pushPageRoute('test');
-    setCurrentPage('test');
+    pushPageRoute("test");
+    setCurrentPage("test");
 
     try {
       const firebase = await getFirebaseRuntime();
@@ -394,11 +411,11 @@ function App() {
       await firebase.signOut(firebase.auth);
       setIsSignOutConfirmOpen(false);
     } catch (error) {
-      console.error('Sign out failed:', error);
+      console.error("Sign out failed:", error);
       notify({
-        title: 'Sign out failed',
-        message: 'Try again in a moment.',
-        type: 'error'
+        title: "Sign out failed",
+        message: "Try again in a moment.",
+        type: "error",
       });
     }
   };
@@ -411,50 +428,50 @@ function App() {
       if (!firebase.db) return;
 
       const profilePayload = {
-        city: nextProfile.city || '',
+        city: nextProfile.city || "",
         displayName: user.displayName || null,
         email: user.email || null,
-        github: nextProfile.github || '',
-        occupation: nextProfile.occupation || '',
+        github: nextProfile.github || "",
+        occupation: nextProfile.occupation || "",
         photoURL: user.photoURL || null,
         updatedAt: firebase.serverTimestamp(),
-        username: nextProfile.username || '',
-        website: nextProfile.website || ''
+        username: nextProfile.username || "",
+        website: nextProfile.website || "",
       };
 
       await firebase.setDoc(getUserDocRef(firebase, user.uid), profilePayload, {
-        merge: true
+        merge: true,
       });
       await firebase.setDoc(
         getPublicPlayerDocRef(firebase, user.uid),
         serializePublicPlayer(firebase, nextProfile, user),
-        { merge: true }
+        { merge: true },
       );
       setUserProfile((currentProfile) => ({
         ...currentProfile,
-        ...nextProfile
+        ...nextProfile,
       }));
     },
-    [user]
+    [user],
   );
 
   const requestPasswordReset = useCallback(async () => {
     if (!user?.email || !isFirebaseConfigured) {
-      throw new Error('Password reset is only available for email accounts.');
+      throw new Error("Password reset is only available for email accounts.");
     }
 
     const firebase = await getFirebaseRuntime();
     if (!firebase.auth || !firebase.db) {
-      throw new Error('Password reset is only available for email accounts.');
+      throw new Error("Password reset is only available for email accounts.");
     }
 
     const recentResetEmails = getRecentAccountEvents(
-      userProfile.accountSecurity?.resetEmailSentAt
+      userProfile.accountSecurity?.resetEmailSentAt,
     );
 
     if (recentResetEmails.length >= PASSWORD_RESET_EMAIL_LIMIT) {
       throw new Error(
-        `You can send ${PASSWORD_RESET_EMAIL_LIMIT} reset emails every ${ACCOUNT_SECURITY_WINDOW_DAYS} days.`
+        `You can send ${PASSWORD_RESET_EMAIL_LIMIT} reset emails every ${ACCOUNT_SECURITY_WINDOW_DAYS} days.`,
       );
     }
 
@@ -462,7 +479,7 @@ function App() {
       await firebase.sendPasswordResetEmail(
         firebase.auth,
         user.email,
-        getPasswordResetActionSettings()
+        getPasswordResetActionSettings(),
       );
 
       const nextResetEmailDates = [new Date(), ...recentResetEmails];
@@ -470,23 +487,23 @@ function App() {
         getUserDocRef(firebase, user.uid),
         {
           accountSecurity: {
-            resetEmailSentAt: nextResetEmailDates
+            resetEmailSentAt: nextResetEmailDates,
           },
           email: user.email || null,
-          updatedAt: firebase.serverTimestamp()
+          updatedAt: firebase.serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       setUserProfile((currentProfile) => ({
         ...currentProfile,
         accountSecurity: {
           ...(currentProfile.accountSecurity || {}),
-          resetEmailSentAt: nextResetEmailDates
-        }
+          resetEmailSentAt: nextResetEmailDates,
+        },
       }));
     } catch (error) {
-      if (error?.message?.startsWith('You can send')) {
+      if (error?.message?.startsWith("You can send")) {
         throw error;
       }
 
@@ -499,14 +516,14 @@ function App() {
   };
 
   const navigate = (nextPage, options = {}) => {
-    if (['dashboard', 'profile'].includes(nextPage) && isAuthReady && !user) {
+    if (["dashboard", "profile"].includes(nextPage) && isAuthReady && !user) {
       setPendingPage(nextPage);
       setIsAuthGateOpen(true);
       return;
     }
 
     if (nextPage === currentPage) {
-      if (nextPage === 'test' && options.restart) {
+      if (nextPage === "test" && options.restart) {
         restart();
       }
 
@@ -514,13 +531,13 @@ function App() {
     }
 
     if (
-      nextPage === 'dashboard' ||
-      nextPage === 'profile' ||
-      nextPage === 'leaderboard' ||
-      nextPage === 'public-profile' ||
-      nextPage === 'settings' ||
-      nextPage === 'privacy' ||
-      nextPage === 'terms'
+      nextPage === "dashboard" ||
+      nextPage === "profile" ||
+      nextPage === "leaderboard" ||
+      nextPage === "public-profile" ||
+      nextPage === "settings" ||
+      nextPage === "privacy" ||
+      nextPage === "terms"
     ) {
       markIncompleteAttempt();
       setReplayTargetText(null);
@@ -543,8 +560,8 @@ function App() {
     setResult(null);
     setIsActive(false);
     setRestartKey((key) => key + 1);
-    pushPageRoute('public-profile', { userId });
-    setCurrentPage('public-profile');
+    pushPageRoute("public-profile", { userId });
+    setCurrentPage("public-profile");
   };
 
   const closeModals = useCallback(() => {
@@ -564,11 +581,11 @@ function App() {
     onCloseModals: closeModals,
     restart,
     result,
-    tryAgain
+    tryAgain,
   });
 
   return (
-    <MotionConfig reducedMotion={reducedMotion ? 'always' : 'never'}>
+    <MotionConfig reducedMotion={reducedMotion ? "always" : "never"}>
       <LayoutGroup>
         <motion.div className="app" data-theme={theme} layout>
           <AnimatePresence>
@@ -578,7 +595,7 @@ function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 <span />
               </motion.div>
@@ -626,7 +643,7 @@ function App() {
               showKeyboard,
               soundEnabled,
               soundStyle,
-              soundVolume
+              soundVolume,
             }}
             testPage={{
               customText,
@@ -654,7 +671,7 @@ function App() {
               language,
               trainingMode,
               tryAgain,
-              wordMode
+              wordMode,
             }}
             theme={theme}
             user={user}

@@ -1,4 +1,5 @@
 import { englishWords } from './languages/english.js';
+import { frenchWords } from './languages/french.js';
 import { polishWords } from './languages/polish.js';
 import { russianWords } from './languages/russian.js';
 import { spanishWords } from './languages/spanish.js';
@@ -34,6 +35,12 @@ export const LANGUAGES = [
     label: 'Russian',
     shortLabel: 'ru',
     words: russianWords
+  },
+  {
+    id: 'french',
+    label: 'French',
+    shortLabel: 'fr',
+    words: frenchWords
   }
 ];
 

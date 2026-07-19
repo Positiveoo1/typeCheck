@@ -9,6 +9,7 @@ import {
   getTimeLeft,
   shuffleWords
 } from './typingLogic.js';
+import { frenchWords } from './languages/french.js';
 import { polishWords } from './languages/polish.js';
 import { russianWords } from './languages/russian.js';
 import { spanishWords } from './languages/spanish.js';
@@ -234,6 +235,20 @@ describe('training modes', () => {
     assert.equal(russianTarget.split(/\s+/).length, 8);
     assert.equal(
       russianTarget.split(/\s+/).every((word) => russianWords.includes(word)),
+      true
+    );
+
+    const frenchTarget = buildTrainingTarget({
+      language: 'french',
+      random: () => 0,
+      testType: 'words',
+      testValue: 8,
+      trainingMode: 'standard'
+    });
+
+    assert.equal(frenchTarget.split(/\s+/).length, 8);
+    assert.equal(
+      frenchTarget.split(/\s+/).every((word) => frenchWords.includes(word)),
       true
     );
   });
