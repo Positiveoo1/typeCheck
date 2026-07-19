@@ -1,7 +1,7 @@
 import {
   getUnresolvedSpaceMistakeIndex,
   getWordStateClassName
-} from './wordDisplayHelpers.js';
+} from '../utils/wordDisplayHelpers.js';
 
 function WordDisplay({
   activeTrainingMode,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { playKeySound } from './keySound.js';
+import { playKeySound } from '../utils/keySound.js';
 
 export function usePressedKeys({
   isTypingFocusedRef,

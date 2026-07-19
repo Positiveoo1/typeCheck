@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
 import KeyboardHeatmap from './KeyboardHeatmap.jsx';
-import ShortcutHints from './ShortcutHints.js';
-import WordDisplay from './WordDisplay.jsx';
-import { useCaretPosition } from './useCaretPosition.js';
-import { usePressedKeys } from './usePressedKeys.js';
-import { useTypingEngine } from './useTypingEngine.js';
+import ShortcutHints from '../test/components/ShortcutHints.jsx';
+import WordDisplay from '../test/components/WordDisplay.jsx';
+import { useCaretPosition } from '../test/hooks/useCaretPosition.js';
+import { usePressedKeys } from '../test/hooks/usePressedKeys.js';
+import { useTypingEngine } from '../test/hooks/useTypingEngine.js';
 
 const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
 

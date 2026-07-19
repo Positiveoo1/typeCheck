@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildTrainingTarget, getTrainingMode } from "../../trainingModes.js";
+import { buildTrainingTarget, getTrainingMode } from "../../../trainingModes.js";
 import {
   buildWordTokens,
   calculateStats,
   getModeLabel,
   getNextTypedText,
   getTimeLeft,
-} from "../../typingLogic.js";
+} from "../../../typingLogic.js";
 import { useRestartShortcut } from "./useRestartShortcut.js";
-import { isLastWordFullyCorrect } from "./wordDisplayHelpers.js";
+import { isLastWordFullyCorrect } from "../utils/wordDisplayHelpers.js";
 
 const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
 
