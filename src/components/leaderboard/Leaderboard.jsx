@@ -39,9 +39,16 @@ function Podium({ entries, onOpenProfile, currentUserId }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.22, delay: index * 0.05, ease: 'easeOut' }}
           >
-            <span className="podium-rank">
-              {rank === 1 && <EmojiEventsIcon />}#{rank}
-            </span>
+            {/* rank badge is now unconditional and structurally identical
+                across all three cards — no CSS path should be able to hide
+                it only for .current-user anymore since markup no longer
+                varies by that class */}
+            <div className="podium-top-row">
+              <span className="podium-rank">
+                {rank === 1 && <EmojiEventsIcon />}#{rank}
+              </span>
+              {isCurrentUser && <span className="podium-you-tag">you</span>}
+            </div>
             <span className="podium-avatar" aria-hidden="true">
               {getPlayerInitials(entry.playerName)}
             </span>
@@ -50,7 +57,6 @@ function Podium({ entries, onOpenProfile, currentUserId }) {
             <small>
               {entry.accuracy}% accuracy &middot; {entry.modeLabel}
             </small>
-            {isCurrentUser && <em>you</em>}
           </motion.button>
         );
       })}
@@ -89,10 +95,16 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
     effectiveModeFilter === 'all'
       ? `${categoryFilter === 'all' ? 'all modes' : `${categoryFilter} modes`}`
       : effectiveModeFilter;
+  const activeCategoryLabel =
+    CATEGORY_FILTERS.find((filter) => filter.id === categoryFilter)?.label ?? 'all';
   const summary = useMemo(
     () => getLeaderboardSummary(filteredEntries),
     [filteredEntries]
   );
+
+  // table now only renders entries beyond the podium, so nobody appears twice
+  const podiumEntries = filteredEntries.slice(0, 3);
+  const tableEntries = filteredEntries.slice(3);
 
   return (
     <motion.main
@@ -108,25 +120,27 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
           <p className="eyebrow">leaderboard</p>
           <h2>{activeFilterLabel} rankings</h2>
           <p>Fast scores, clean comparisons, and the best public runs from every mode.</p>
-          <div className="leaderboard-summary-grid" aria-label="Leaderboard summary">
-            <span>
-              <strong>{summary.topWpm}</strong>
-              <small>top wpm</small>
-            </span>
-            <span>
-              <strong>{summary.averageAccuracy}%</strong>
-              <small>avg accuracy</small>
-            </span>
-            <span>
-              <strong>{summary.modeCount}</strong>
-              <small>modes</small>
-            </span>
-          </div>
         </div>
-        <div className="leaderboard-ring">
-          <EmojiEventsIcon />
-          <strong>{summary.totalEntries}</strong>
-          <span>entries</span>
+        {/* entries ring folded into the same summary grid as the other stats,
+            instead of floating separately with empty space around it */}
+        <div className="leaderboard-summary-grid" aria-label="Leaderboard summary">
+          <span>
+            <strong>{summary.topWpm}</strong>
+            <small>top wpm</small>
+          </span>
+          <span>
+            <strong>{summary.averageAccuracy}%</strong>
+            <small>avg accuracy</small>
+          </span>
+          <span>
+            <strong>{summary.modeCount}</strong>
+            <small>modes played</small>
+          </span>
+          <span className="leaderboard-summary-entries">
+            <EmojiEventsIcon />
+            <strong>{summary.totalEntries}</strong>
+            <small>entries</small>
+          </span>
         </div>
       </section>
 
@@ -136,6 +150,9 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
           <strong>Ranked by WPM, accuracy, then date</strong>
         </div>
 
+        {/* Type and Mode are now one visual unit: Mode is nested under Type
+            with a connecting label, making the parent/child relationship
+            explicit instead of two flat, unrelated-looking button rows */}
         <div className="leaderboard-filters" aria-label="Leaderboard filters">
           <div className="leaderboard-filter-card">
             <span>type</span>
@@ -159,8 +176,10 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
               ))}
             </div>
           </div>
-          <div className="leaderboard-filter-card mode-filter-card">
-            <span>mode</span>
+          <div className="leaderboard-filter-card mode-filter-card nested-filter">
+            <span>
+              mode <small className="filter-scope-hint">for {activeCategoryLabel}</small>
+            </span>
             <div
               className="leaderboard-filter-group mode-filter-group"
               role="group"
@@ -207,68 +226,72 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
           <>
             <Podium
               currentUserId={currentUserId}
-              entries={filteredEntries}
+              entries={podiumEntries}
               onOpenProfile={onOpenProfile}
             />
-            <div
-              className="leaderboard-table"
-              role="table"
-              aria-label="Global typing leaderboard"
-            >
-              <div className="leaderboard-row leaderboard-head" role="row">
-                <span role="columnheader">rank</span>
-                <span role="columnheader">player</span>
-                <span role="columnheader">wpm</span>
-                <span role="columnheader">accuracy</span>
-                <span role="columnheader">mode</span>
-                <span role="columnheader">date</span>
-              </div>
-              {filteredEntries.map((entry, index) => {
-                const isCurrentUser = currentUserId && entry.userId === currentUserId;
+            {tableEntries.length > 0 && (
+              <div
+                className="leaderboard-table"
+                role="table"
+                aria-label="Global typing leaderboard"
+              >
+                <div className="leaderboard-row leaderboard-head" role="row">
+                  <span role="columnheader">rank</span>
+                  <span role="columnheader">player</span>
+                  <span role="columnheader">wpm</span>
+                  <span role="columnheader">accuracy</span>
+                  <span role="columnheader">mode</span>
+                  <span role="columnheader">date</span>
+                </div>
+                {tableEntries.map((entry, index) => {
+                  const isCurrentUser = currentUserId && entry.userId === currentUserId;
+                  // rank continues from where the podium left off (starts at 4)
+                  const rank = index + 4;
 
-                return (
-                  <motion.button
-                    className={
-                      isCurrentUser
-                        ? 'leaderboard-row leaderboard-row-button current-user'
-                        : 'leaderboard-row leaderboard-row-button'
-                    }
-                    key={`${entry.id}-${index}`}
-                    onClick={() => onOpenProfile(entry.userId)}
-                    role="row"
-                    type="button"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.24) }}
-                  >
-                    <span className="leaderboard-rank" data-label="rank" role="cell">
-                      #{index + 1}
-                    </span>
-                    <strong data-label="player" role="cell">
-                      <span className="leaderboard-avatar" aria-hidden="true">
-                        {getPlayerInitials(entry.playerName)}
+                  return (
+                    <motion.button
+                      className={
+                        isCurrentUser
+                          ? 'leaderboard-row leaderboard-row-button current-user'
+                          : 'leaderboard-row leaderboard-row-button'
+                      }
+                      key={`${entry.id}-${rank}`}
+                      onClick={() => onOpenProfile(entry.userId)}
+                      role="row"
+                      type="button"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.24) }}
+                    >
+                      <span className="leaderboard-rank" data-label="rank" role="cell">
+                        #{rank}
                       </span>
-                      <span className="leaderboard-player-name">
-                        {entry.playerName}
-                        {isCurrentUser && <span className="leaderboard-you">you</span>}
+                      <strong data-label="player" role="cell">
+                        <span className="leaderboard-avatar" aria-hidden="true">
+                          {getPlayerInitials(entry.playerName)}
+                        </span>
+                        <span className="leaderboard-player-name">
+                          {entry.playerName}
+                          {isCurrentUser && <span className="leaderboard-you">you</span>}
+                        </span>
+                      </strong>
+                      <span className="leaderboard-wpm" data-label="wpm" role="cell">
+                        {entry.wpm}
                       </span>
-                    </strong>
-                    <span className="leaderboard-wpm" data-label="wpm" role="cell">
-                      {entry.wpm}
-                    </span>
-                    <span data-label="accuracy" role="cell">
-                      {entry.accuracy}%
-                    </span>
-                    <span className="leaderboard-mode" data-label="mode" role="cell">
-                      {entry.modeLabel}
-                    </span>
-                    <span data-label="date" role="cell">
-                      {formatLeaderboardDate(entry.createdAt)}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
+                      <span data-label="accuracy" role="cell">
+                        {entry.accuracy}%
+                      </span>
+                      <span className="leaderboard-mode" data-label="mode" role="cell">
+                        {entry.modeLabel}
+                      </span>
+                      <span data-label="date" role="cell">
+                        {formatLeaderboardDate(entry.createdAt)}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </section>

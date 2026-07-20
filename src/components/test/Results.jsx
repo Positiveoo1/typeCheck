@@ -1,8 +1,8 @@
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getTypingStyle } from '../../typingIdentity.js';
 import { buildMistakeKeyCounts } from '../../typingLogic.js';
-import { ArrowForwardIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
+import { ArrowForwardIcon, CloseIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
 import KeyboardHeatmap from './KeyboardHeatmap.jsx';
 
 function AnimatedNumber({ value }) {
@@ -28,6 +28,133 @@ const cardVariants = {
 
 function formatSeconds(seconds) {
   return seconds < 10 ? seconds.toFixed(1) : Math.round(seconds);
+}
+
+function TypingReplay({ stats, onClose }) {
+  const events = useMemo(() => {
+    const log = Array.isArray(stats.keystrokeLog) ? stats.keystrokeLog : [];
+    return log
+      .filter((event) => Number.isFinite(Number(event.t)) && typeof event.text === 'string')
+      .sort((first, second) => Number(first.t) - Number(second.t));
+  }, [stats.keystrokeLog]);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
+  const [playbackMs, setPlaybackMs] = useState(0);
+  const startedAtRef = useRef(null);
+  const accumulatedMsRef = useRef(0);
+  const frameRef = useRef(null);
+  const durationMs = Math.max(events.at(-1)?.t || 0, Number(stats.elapsedSeconds || 0) * 1000);
+  const replayText = useMemo(() => {
+    const activeEvent = events.findLast((event) => Number(event.t) <= playbackMs);
+    return activeEvent?.text || '';
+  }, [events, playbackMs]);
+
+  useEffect(() => {
+    if (!isPlaying || durationMs === 0) return undefined;
+
+    startedAtRef.current = performance.now();
+    frameRef.current = window.requestAnimationFrame(function tick(now) {
+      const nextMs = Math.min(
+        durationMs,
+        accumulatedMsRef.current + (now - startedAtRef.current) * speed
+      );
+      setPlaybackMs(nextMs);
+
+      if (nextMs >= durationMs) {
+        accumulatedMsRef.current = durationMs;
+        setIsPlaying(false);
+        return;
+      }
+
+      frameRef.current = window.requestAnimationFrame(tick);
+    });
+
+    return () => window.cancelAnimationFrame(frameRef.current);
+  }, [durationMs, isPlaying, speed]);
+
+  const togglePlayback = () => {
+    if (playbackMs >= durationMs) {
+      accumulatedMsRef.current = 0;
+      setPlaybackMs(0);
+    } else {
+      accumulatedMsRef.current = playbackMs;
+    }
+    setIsPlaying((playing) => !playing);
+  };
+
+  const restartPlayback = () => {
+    accumulatedMsRef.current = 0;
+    setPlaybackMs(0);
+    setIsPlaying(true);
+  };
+
+  const setPlaybackSpeed = (nextSpeed) => {
+    accumulatedMsRef.current = playbackMs;
+    setSpeed(nextSpeed);
+  };
+
+  return (
+    <div className="typing-replay-backdrop">
+      <button
+        aria-label="Close typing replay"
+        className="typing-replay-dismiss"
+        onClick={onClose}
+        type="button"
+      />
+      <motion.section
+        aria-label="Typing replay"
+        aria-modal="true"
+        className="typing-replay-modal"
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        role="dialog"
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+      >
+        <div className="typing-replay-header">
+          <div>
+            <span>typing replay</span>
+            <strong>{formatSeconds(playbackMs / 1000)}s / {formatSeconds(durationMs / 1000)}s</strong>
+          </div>
+          <button aria-label="Close typing replay" className="replay-close" onClick={onClose} type="button">
+            <CloseIcon />
+          </button>
+        </div>
+
+        <div className="typing-replay-text" aria-live="off">
+          {Array.from(stats.targetText || '').map((character, index) => {
+            const typedCharacter = replayText[index];
+            const state = typedCharacter === undefined ? 'pending' : typedCharacter === character ? 'correct' : 'wrong';
+            return <span className={`replay-character ${state}`} key={index}>{character === ' ' ? '\u00a0' : character}</span>;
+          })}
+        </div>
+
+        <input
+          aria-label="Replay position"
+          className="replay-scrubber"
+          max={durationMs}
+          min="0"
+          onChange={(event) => {
+            const nextMs = Number(event.target.value);
+            accumulatedMsRef.current = nextMs;
+            setPlaybackMs(nextMs);
+          }}
+          step="10"
+          type="range"
+          value={playbackMs}
+        />
+        <div className="typing-replay-controls">
+          <button className="primary-action" onClick={togglePlayback} type="button">
+            <span>{isPlaying ? 'Pause' : playbackMs >= durationMs ? 'Play again' : 'Play'}</span>
+          </button>
+          <button className="secondary-action" onClick={restartPlayback} type="button">Restart</button>
+          <div className="replay-speed" aria-label="Replay speed">
+            {[1, 2].map((value) => <button className={speed === value ? 'active' : ''} key={value} onClick={() => setPlaybackSpeed(value)} type="button">{value}×</button>)}
+          </div>
+        </div>
+        {events.length === 0 && <p className="replay-unavailable">This test was completed before detailed replay data was available.</p>}
+      </motion.section>
+    </div>
+  );
 }
 
 function SpeedReplay({ history = [] }) {
@@ -367,8 +494,8 @@ function WpmHistoryChart({ historyResults, stats }) {
 
 function ErrorProneKeys({ stats }) {
   const keyMistakeCounts = useMemo(
-    () => buildMistakeKeyCounts(stats.targetText, stats.typedText),
-    [stats.targetText, stats.typedText]
+    () => buildMistakeKeyCounts(stats.targetText, stats.typedText, stats.keystrokeLog),
+    [stats.keystrokeLog, stats.targetText, stats.typedText]
   );
   const totalTrackedMistakes = Object.values(keyMistakeCounts)
     .reduce((total, count) => total + (Number(count) || 0), 0);
@@ -578,6 +705,7 @@ function Results({ historyResults = [], stats, onNextGame, onTryAgain }) {
   const typingStyle = getTypingStyle(stats);
   const isInvalid = Boolean(stats.isInvalid);
   const [isSharing, setIsSharing] = useState(false);
+  const [isReplayOpen, setIsReplayOpen] = useState(false);
   const resultsRef = useRef(null);
 
   const handleShare = async () => {
@@ -731,6 +859,17 @@ function Results({ historyResults = [], stats, onNextGame, onTryAgain }) {
 
       <div className="result-actions">
         <motion.button
+          className="secondary-action"
+          disabled={!stats.keystrokeLog?.some((event) => typeof event.text === 'string')}
+          onClick={() => setIsReplayOpen(true)}
+          type="button"
+          whileHover={{ y: -2, scale: 1.04 }}
+          whileTap={{ scale: 0.93, rotate: -2 }}
+        >
+          <ReplayIcon />
+          <span>Watch replay</span>
+        </motion.button>
+        <motion.button
           className="primary-action"
           onClick={onTryAgain}
           type="button"
@@ -761,6 +900,9 @@ function Results({ historyResults = [], stats, onNextGame, onTryAgain }) {
           <span>{isSharing ? 'Preparing...' : 'Share card'}</span>
         </motion.button>
       </div>
+      <AnimatePresence>
+        {isReplayOpen && <TypingReplay stats={stats} onClose={() => setIsReplayOpen(false)} />}
+      </AnimatePresence>
     </motion.section>
   );
 }

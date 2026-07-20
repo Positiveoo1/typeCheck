@@ -33,7 +33,7 @@ function AppPages({
       <Suspense fallback={null}>
         <AnimatePresence mode="wait">
           {currentPage === 'dashboard' && user ? (
-            <Dashboard key="dashboard" dashboard={dashboard} />
+            <Dashboard key="dashboard" dashboard={dashboard} onNavigate={navigate} />
           ) : currentPage === 'leaderboard' ? (
             <Leaderboard
               key="leaderboard"

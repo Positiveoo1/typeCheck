@@ -328,7 +328,9 @@ export function useTypingEngine({
           accumulatedElapsedRef.current * 1000;
         keystrokeLogRef.current = [
           ...keystrokeLogRef.current,
-          { t: Math.round(elapsedMs), len: nextTypedText.length },
+          // Store the accepted value, rather than just its length, so the
+          // completed result can faithfully replay mistakes and corrections.
+          { t: Math.round(elapsedMs), text: nextTypedText },
         ].slice(-4000);
       }
 

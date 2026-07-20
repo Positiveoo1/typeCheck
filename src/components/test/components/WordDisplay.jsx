@@ -139,7 +139,7 @@ function WordDisplay({
                   className={[
                     'word-space',
                     isWrongSpace ? 'wrong current' : '',
-                    !isWrongSpace && isCurrent ? 'current' : ''
+                    !isWrongSpace && isCurrent ? 'current' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}

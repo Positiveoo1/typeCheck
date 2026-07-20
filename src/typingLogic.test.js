@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildWordTokens,
+  buildMistakeKeyCounts,
   calculateStats,
   getModeLabel,
   getNextTypedText,
@@ -95,6 +96,24 @@ describe('getNextTypedText', () => {
 
   it('never lets typed text grow beyond the target text', () => {
     assert.equal(getNextTypedText('hello', 'hell', 'hello!!!'), 'hello');
+  });
+});
+
+describe('buildMistakeKeyCounts', () => {
+  it('keeps corrected mistakes so completed tests show error-prone keys', () => {
+    const counts = buildMistakeKeyCounts('cat', 'cat', [
+      { t: 10, text: 'c' },
+      { t: 20, text: 'cx' },
+      { t: 30, text: 'c' },
+      { t: 40, text: 'ca' },
+      { t: 50, text: 'cat' }
+    ]);
+
+    assert.deepEqual(counts, { KeyX: 1 });
+  });
+
+  it('falls back to the completed text when detailed keystrokes are unavailable', () => {
+    assert.deepEqual(buildMistakeKeyCounts('cat', 'car'), { KeyR: 1 });
   });
 });
 

@@ -201,18 +201,49 @@ const KEY_CODE_BY_CHAR = {
   z: 'KeyZ'
 };
 
-export function buildMistakeKeyCounts(targetText = '', typedText = '') {
+export function buildMistakeKeyCounts(targetText = '', typedText = '', keystrokeLog = []) {
   const counts = {};
+
+  const recordMistake = (character, index) => {
+    if (character === targetText[index]) return;
+
+    const code = KEY_CODE_BY_CHAR[String(character || '').toLowerCase()];
+    if (!code) return;
+    counts[code] = (counts[code] || 0) + 1;
+  };
+
+  const snapshots = Array.isArray(keystrokeLog)
+    ? keystrokeLog.filter((event) => typeof event?.text === 'string')
+    : [];
+
+  if (snapshots.length) {
+    let previousText = '';
+
+    snapshots.forEach(({ text }) => {
+      let sharedLength = 0;
+      const comparableLength = Math.min(previousText.length, text.length);
+
+      while (
+        sharedLength < comparableLength &&
+        previousText[sharedLength] === text[sharedLength]
+      ) {
+        sharedLength += 1;
+      }
+
+      for (let index = sharedLength; index < text.length; index += 1) {
+        recordMistake(text[index], index);
+      }
+
+      previousText = text;
+    });
+
+    return counts;
+  }
+
   const length = Math.min(targetText.length, typedText.length);
 
   for (let index = 0; index < length; index += 1) {
-    if (typedText[index] === targetText[index]) continue;
-
-    const expectedChar = String(targetText[index] || '').toLowerCase();
-    const code = KEY_CODE_BY_CHAR[expectedChar];
-
-    if (!code) continue;
-    counts[code] = (counts[code] || 0) + 1;
+    recordMistake(typedText[index], index);
   }
 
   return counts;
