@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { playKeySound } from '../utils/keySound.js';
+import { useEffect, useRef, useState } from "react";
+import { playKeySound } from "../utils/keySound.js";
 
 export function usePressedKeys({
   isTypingFocusedRef,
@@ -8,22 +8,22 @@ export function usePressedKeys({
   typedTextRef,
   soundEnabled,
   soundStyle,
-  soundVolume
+  soundVolume,
 }) {
   const [pressedKeys, setPressedKeys] = useState(() => new Set());
   const [pressedKeyStates, setPressedKeyStates] = useState({});
-  const keySoundPoolRef = useRef([]);
+const keySoundPoolRef = useRef([]);
   const audioContextRef = useRef(null);
 
   useEffect(() => {
     const getKeyState = (event) => {
-      if (!isTypingFocusedRef.current) return '';
-      if (event.key.length !== 1) return '';
+      if (!isTypingFocusedRef.current) return "";
+      if (event.key.length !== 1) return "";
 
       const expectedChar = targetText[typedTextRef.current.length];
-      if (expectedChar === undefined) return '';
+      if (expectedChar === undefined) return "";
 
-      return event.key === expectedChar ? 'correct' : 'wrong';
+      return event.key === expectedChar ? "correct" : "wrong";
     };
 
     const isTypingInputEvent = (event) =>
@@ -33,7 +33,13 @@ export function usePressedKeys({
       if (!isTypingInputEvent(event)) return;
 
       if (soundEnabled && !event.repeat) {
-        playKeySound(keySoundPoolRef, audioContextRef, soundVolume, soundStyle);
+        playKeySound(
+          keySoundPoolRef,
+          audioContextRef,
+          soundVolume,
+          soundStyle,
+          event,
+        );
       }
 
       const keyState = getKeyState(event);
@@ -49,7 +55,7 @@ export function usePressedKeys({
       if (keyState) {
         setPressedKeyStates((currentStates) => ({
           ...currentStates,
-          [event.code]: keyState
+          [event.code]: keyState,
         }));
       }
     };
@@ -79,14 +85,14 @@ export function usePressedKeys({
       setPressedKeyStates({});
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', clearPressedKeys);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", clearPressedKeys);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', clearPressedKeys);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", clearPressedKeys);
       keySoundPoolRef.current.forEach((audio) => {
         audio.pause();
         audio.currentTime = 0;
@@ -102,8 +108,12 @@ export function usePressedKeys({
     soundStyle,
     soundVolume,
     targetText,
-    typedTextRef
+    typedTextRef,
   ]);
 
-  return { pressedKeys, pressedKeyStates, resetPressedKeyStates: setPressedKeyStates };
+  return {
+    pressedKeys,
+    pressedKeyStates,
+    resetPressedKeyStates: setPressedKeyStates,
+  };
 }

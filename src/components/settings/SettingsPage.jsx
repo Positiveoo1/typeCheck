@@ -26,6 +26,11 @@ const SOUND_STYLES = [
     id: 'bright',
     label: 'Bright',
     description: 'Sharper tone with faster feedback.'
+  },
+  {
+    id: 'cream',
+    label: 'Cream',
+    description: 'NK Cream soundpack with per-key audio clips.'
   }
 ];
 const MISTAKE_MODES = [
