@@ -30,7 +30,7 @@ const SOUND_STYLES = [
   {
     id: 'cream',
     label: 'Cream',
-    description: 'NK Cream soundpack with per-key audio clips.'
+    description: 'NK Cream soundpack with per-key audio clips.',
   }
 ];
 const MISTAKE_MODES = [
