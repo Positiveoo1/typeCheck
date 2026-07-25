@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { EditIcon } from "../common/MaterialIcons.jsx";
+
 import {
   getAchievementBadges,
   getAverageWpm,
@@ -205,7 +207,22 @@ function Profile({
   const [resetStatus, setResetStatus] = useState("idle");
   const [resetMessage, setResetMessage] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false); // new
   const [saveStatus, setSaveStatus] = useState("idle");
+
+  useEffect(() => {
+    if (!isEditOpen && !isAvatarPreviewOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsEditOpen(false);
+        setIsAvatarPreviewOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isEditOpen, isAvatarPreviewOpen]);
 
   useEffect(() => {
     setFormValues({
@@ -356,13 +373,18 @@ function Profile({
     >
       <section className="profile-hero">
         <div className="profile-identity">
-          <div className="profile-avatar" aria-hidden="true">
+          <button
+            aria-label="View profile photo"
+            className="profile-avatar"
+            onClick={() => setIsAvatarPreviewOpen(true)}
+            type="button"
+          >
             {user.photoURL ? (
               <img alt="" src={user.photoURL} />
             ) : (
-              <span>{avatarInitial}</span>
+              <span aria-hidden="true">{avatarInitial}</span>
             )}
-          </div>
+          </button>
           <div className="profile-identity-text">
             <p className="eyebrow">profile</p>
             <h2
@@ -382,7 +404,7 @@ function Profile({
             onClick={openEditProfile}
             type="button"
           >
-            <span className="pencil-icon" aria-hidden="true" />
+            <EditIcon className="material-icon edit-profile-icon" />
           </button>
           <button className="sign-out" onClick={onSignOut} type="button">
             Sign out
@@ -554,6 +576,45 @@ function Profile({
                 <p className="profile-status error">Could not save profile.</p>
               )}
             </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isAvatarPreviewOpen && (
+          <motion.div
+            className="avatar-preview-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <button
+              aria-label="Close photo preview"
+              className="auth-gate-backdrop"
+              onClick={() => setIsAvatarPreviewOpen(false)}
+              type="button"
+            />
+            <motion.div
+              className="avatar-preview-card"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <button
+                aria-label="Close photo preview"
+                className="auth-close avatar-preview-close"
+                onClick={() => setIsAvatarPreviewOpen(false)}
+                type="button"
+              >
+                x
+              </button>
+              {user.photoURL ? (
+                <img alt="Profile photo" src={user.photoURL} />
+              ) : (
+                <span aria-hidden="true">{avatarInitial}</span>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
