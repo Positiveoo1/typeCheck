@@ -2788,11 +2788,7 @@ h2 {
   gap: 18px;
 }
 
-.profile-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+
 
 .profile-edit-button {
   width: 40px;
@@ -2854,10 +2850,6 @@ h2 {
   object-fit: cover;
 }
 
-.profile-hero h2 {
-  font-size: clamp(2rem, 6vw, 4.2rem);
-  line-height: 0.95;
-}
 
 .profile-hero p:not(.eyebrow) {
   margin: 10px 0 0;
@@ -2870,15 +2862,13 @@ h2 {
   grid-template-columns: 1fr;
   gap: 14px;
 }
-
 .profile-form,
 .profile-stats-panel {
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--panel-strong);
+  background: var(--panel-strong); /* only ~48–58% opacity */
 }
-
 .profile-form {
   display: grid;
   gap: 12px;
@@ -2893,13 +2883,13 @@ h2 {
   min-height: 100dvh;
   padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
 }
-
 .profile-form-modal {
   position: relative;
   z-index: 1;
   width: min(460px, calc(100vw - 36px));
   max-height: calc(100dvh - 36px);
   overflow-y: auto;
+  background: color-mix(in srgb, var(--bg-soft) 96%, black);
   box-shadow:
     0 30px 90px rgba(0, 0, 0, 0.48),
     0 0 0 1px rgba(var(--caret-rgb), 0.06);
@@ -3018,6 +3008,30 @@ h2 {
   color: var(--muted);
   font-size: 0.78rem;
   line-height: 1.35;
+}
+.profile-identity-text {
+  min-width: 0;
+}
+
+.profile-hero h2 {
+  font-size: clamp(2rem, 6vw, 4.2rem);
+  line-height: 0.95;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Falling back to a raw email shouldn't be a giant heading */
+.profile-hero h2.profile-name-fallback {
+  font-size: clamp(1.05rem, 3vw, 1.6rem);
+}
+
+.profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0; /* never let the buttons get squeezed */
 }
 
 .achievement-grid {
@@ -5411,6 +5425,8 @@ h2 {
     top: auto;
     width: min(390px, calc(100vw - 28px));
     max-height: calc(100dvh - 28px);
+    background: color-mix(in srgb, var(--bg-soft) 96%, black);
+
   }
 
   .confirm-panel {

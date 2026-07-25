@@ -1,36 +1,40 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import {
   getAchievementBadges,
   getAverageWpm,
   getConsistencyScore,
   getRankTier,
-  getTypingStyle
-} from '../../typingIdentity.js';
+  getTypingStyle,
+} from "../../typingIdentity.js";
 
 const PROFILE_FIELDS = [
-  { id: 'username', label: 'Username', placeholder: 'typechecker' },
-  { id: 'city', label: 'City', placeholder: 'Warsaw' },
-  { id: 'occupation', label: 'What you do', placeholder: 'Frontend developer' },
-  { id: 'github', label: 'GitHub profile', placeholder: 'https://github.com/you' },
-  { id: 'website', label: 'Website', placeholder: 'https://example.com' }
+  { id: "username", label: "Username", placeholder: "typechecker" },
+  { id: "city", label: "City", placeholder: "Warsaw" },
+  { id: "occupation", label: "What you do", placeholder: "Frontend developer" },
+  {
+    id: "github",
+    label: "GitHub profile",
+    placeholder: "https://github.com/you",
+  },
+  { id: "website", label: "Website", placeholder: "https://example.com" },
 ];
 const CONTRIBUTION_WEEKS = 53;
-const DAY_LABELS = ['', 'monday', '', 'wednesday', '', 'friday', ''];
+const DAY_LABELS = ["", "monday", "", "wednesday", "", "friday", ""];
 const ACCOUNT_SECURITY_WINDOW_DAYS = 30;
 const PASSWORD_RESET_EMAIL_LIMIT = 4;
 
 function formatDate(value) {
-  if (!value) return 'Unknown';
+  if (!value) return "Unknown";
 
   const date = value instanceof Date ? value : new Date(value);
 
-  if (Number.isNaN(date.getTime())) return 'Unknown';
+  if (Number.isNaN(date.getTime())) return "Unknown";
 
   return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   }).format(date);
 }
 
@@ -41,32 +45,32 @@ function formatDuration(seconds) {
   const remainingSeconds = safeSeconds % 60;
 
   return [hours, minutes, remainingSeconds]
-    .map((part) => String(part).padStart(2, '0'))
-    .join(':');
+    .map((part) => String(part).padStart(2, "0"))
+    .join(":");
 }
 
 function normalizeUrl(value) {
   const trimmedValue = value.trim();
 
-  if (!trimmedValue) return '';
+  if (!trimmedValue) return "";
   if (/^https?:\/\//i.test(trimmedValue)) return trimmedValue;
 
   return `https://${trimmedValue}`;
 }
 
 function normalizeUsername(value) {
-  return String(value || '')
+  return String(value || "")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9_-]/g, '');
+    .replace(/[^a-z0-9_-]/g, "");
 }
 
 function getUtcDayKey(value) {
-  if (!value) return '';
+  if (!value) return "";
 
   const date = value instanceof Date ? value : new Date(value);
 
-  if (Number.isNaN(date.getTime())) return '';
+  if (Number.isNaN(date.getTime())) return "";
 
   return date.toISOString().slice(0, 10);
 }
@@ -75,7 +79,7 @@ function getRecentEvents(events) {
   if (!Array.isArray(events)) return [];
 
   const windowStart = new Date(
-    Date.now() - ACCOUNT_SECURITY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+    Date.now() - ACCOUNT_SECURITY_WINDOW_DAYS * 24 * 60 * 60 * 1000,
   );
 
   return events
@@ -101,7 +105,9 @@ function BadgeShelf({ badges }) {
       {badges.map((badge) => (
         <div
           className={
-            badge.isUnlocked ? 'achievement-badge unlocked' : 'achievement-badge'
+            badge.isUnlocked
+              ? "achievement-badge unlocked"
+              : "achievement-badge"
           }
           key={badge.id}
         >
@@ -117,11 +123,11 @@ function BadgeShelf({ badges }) {
 function ActivityGrid({ results }) {
   const today = new Date();
   const todayUtc = new Date(
-    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
   );
   const startDate = new Date(todayUtc);
   startDate.setUTCDate(
-    todayUtc.getUTCDate() - (CONTRIBUTION_WEEKS - 1) * 7 - todayUtc.getUTCDay()
+    todayUtc.getUTCDate() - (CONTRIBUTION_WEEKS - 1) * 7 - todayUtc.getUTCDay(),
   );
   const countsByDay = results.reduce((counts, result) => {
     const key = getUtcDayKey(result.createdAt);
@@ -144,7 +150,10 @@ function ActivityGrid({ results }) {
   const testsInRange = days.reduce((total, day) => total + day.count, 0);
 
   return (
-    <div className="profile-contrib" aria-label="Typing activity in the last 12 months">
+    <div
+      className="profile-contrib"
+      aria-label="Typing activity in the last 12 months"
+    >
       <div className="profile-contrib-top">
         <button type="button">last 12 months</button>
         <strong>{testsInRange} tests</strong>
@@ -184,27 +193,27 @@ function Profile({
   onSaveProfile,
   onSignOut,
   profile,
-  user
+  user,
 }) {
   const [formValues, setFormValues] = useState({
-    city: profile.city || '',
-    github: profile.github || '',
-    occupation: profile.occupation || '',
-    username: profile.username || '',
-    website: profile.website || ''
+    city: profile.city || "",
+    github: profile.github || "",
+    occupation: profile.occupation || "",
+    username: profile.username || "",
+    website: profile.website || "",
   });
-  const [resetStatus, setResetStatus] = useState('idle');
-  const [resetMessage, setResetMessage] = useState('');
+  const [resetStatus, setResetStatus] = useState("idle");
+  const [resetMessage, setResetMessage] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [saveStatus, setSaveStatus] = useState('idle');
+  const [saveStatus, setSaveStatus] = useState("idle");
 
   useEffect(() => {
     setFormValues({
-      city: profile.city || '',
-      github: profile.github || '',
-      occupation: profile.occupation || '',
-      username: profile.username || '',
-      website: profile.website || ''
+      city: profile.city || "",
+      github: profile.github || "",
+      occupation: profile.occupation || "",
+      username: profile.username || "",
+      website: profile.website || "",
     });
   }, [profile]);
 
@@ -212,21 +221,24 @@ function Profile({
     if (!isEditOpen) return undefined;
 
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setIsEditOpen(false);
       }
     };
 
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
   }, [isEditOpen]);
 
   const stats = useMemo(() => {
     const modes = Object.values(dashboard.modes || {});
-    const bestWpm = Math.max(...modes.map((mode) => Number(mode.bestWpm) || 0), 0);
+    const bestWpm = Math.max(
+      ...modes.map((mode) => Number(mode.bestWpm) || 0),
+      0,
+    );
     const bestAccuracy = Math.max(
       ...modes.map((mode) => Number(mode.bestAccuracy) || 0),
-      0
+      0,
     );
     const results = dashboard.results || [];
     const consistency = getConsistencyScore(results);
@@ -238,11 +250,14 @@ function Profile({
       consistency,
       estimatedWords: Math.round(Number(dashboard.estimatedWordsTyped) || 0),
       rank: getRankTier(bestWpm),
-      style: getTypingStyle(results[0] || { accuracy: bestAccuracy, wpm: bestWpm }, {
-        consistency,
-        previousAverageWpm: getAverageWpm(results.slice(1))
-      }),
-      totalTypingSeconds: Number(dashboard.totalTypingSeconds) || 0
+      style: getTypingStyle(
+        results[0] || { accuracy: bestAccuracy, wpm: bestWpm },
+        {
+          consistency,
+          previousAverageWpm: getAverageWpm(results.slice(1)),
+        },
+      ),
+      totalTypingSeconds: Number(dashboard.totalTypingSeconds) || 0,
     };
   }, [dashboard]);
   const achievementBadges = getAchievementBadges({
@@ -252,40 +267,44 @@ function Profile({
     consistency: stats.consistency,
     estimatedWords: stats.estimatedWords,
     results: dashboard.results || [],
-    totalTypingSeconds: stats.totalTypingSeconds
+    totalTypingSeconds: stats.totalTypingSeconds,
   });
 
   const profileName = profile.username
     ? `@${profile.username}`
     : user.displayName || user.email;
-  const avatarInitial = (profile.username || user.displayName || user.email || 'U').slice(
-    0,
-    1
+  const avatarInitial = (
+    profile.username ||
+    user.displayName ||
+    user.email ||
+    "U"
+  ).slice(0, 1);
+  const recentResetEmails = getRecentEvents(
+    profile.accountSecurity?.resetEmailSentAt,
   );
-  const recentResetEmails = getRecentEvents(profile.accountSecurity?.resetEmailSentAt);
   const isPasswordProvider = user.providerData?.some(
-    (provider) => provider.providerId === 'password'
+    (provider) => provider.providerId === "password",
   );
   const resetEmailsRemaining = Math.max(
     0,
-    PASSWORD_RESET_EMAIL_LIMIT - recentResetEmails.length
+    PASSWORD_RESET_EMAIL_LIMIT - recentResetEmails.length,
   );
 
   const openEditProfile = () => {
     setFormValues({
-      city: profile.city || '',
-      github: profile.github || '',
-      occupation: profile.occupation || '',
-      username: profile.username || '',
-      website: profile.website || ''
+      city: profile.city || "",
+      github: profile.github || "",
+      occupation: profile.occupation || "",
+      username: profile.username || "",
+      website: profile.website || "",
     });
-    setSaveStatus('idle');
+    setSaveStatus("idle");
     setIsEditOpen(true);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSaveStatus('saving');
+    setSaveStatus("saving");
 
     try {
       await onSaveProfile({
@@ -293,35 +312,35 @@ function Profile({
         github: normalizeUrl(formValues.github),
         occupation: formValues.occupation.trim(),
         username: normalizeUsername(formValues.username),
-        website: normalizeUrl(formValues.website)
+        website: normalizeUrl(formValues.website),
       });
-      setSaveStatus('saved');
+      setSaveStatus("saved");
       setIsEditOpen(false);
     } catch {
-      setSaveStatus('error');
+      setSaveStatus("error");
       onNotify?.({
-        title: 'Profile not saved',
-        message: 'Could not update your public details.',
-        type: 'error'
+        title: "Profile not saved",
+        message: "Could not update your public details.",
+        type: "error",
       });
     }
   };
 
   const requestResetEmail = async () => {
-    setResetStatus('sending');
-    setResetMessage('');
+    setResetStatus("sending");
+    setResetMessage("");
 
     try {
       await onRequestPasswordReset();
-      setResetStatus('sent');
+      setResetStatus("sent");
       setResetMessage(`Reset email sent to ${user.email}.`);
     } catch (error) {
-      setResetStatus('error');
-      setResetMessage(error.message || 'Could not send reset email.');
+      setResetStatus("error");
+      setResetMessage(error.message || "Could not send reset email.");
       onNotify?.({
-        title: 'Reset email failed',
-        message: error.message || 'Could not send reset email.',
-        type: 'error'
+        title: "Reset email failed",
+        message: error.message || "Could not send reset email.",
+        type: "error",
       });
     }
   };
@@ -333,7 +352,7 @@ function Profile({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.24, ease: 'easeOut' }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
     >
       <section className="profile-hero">
         <div className="profile-identity">
@@ -344,9 +363,14 @@ function Profile({
               <span>{avatarInitial}</span>
             )}
           </div>
-          <div>
+          <div className="profile-identity-text">
             <p className="eyebrow">profile</p>
-            <h2>{profileName}</h2>
+            <h2
+              className={!profile.username ? "profile-name-fallback" : ""}
+              title={!profile.username ? profileName : undefined}
+            >
+              {profileName}
+            </h2>
             {profile.username && user.displayName && <p>{user.displayName}</p>}
             <p>Joined {formatDate(profile.joinedAt)}</p>
           </div>
@@ -435,19 +459,21 @@ function Profile({
             <button
               className="secondary-action"
               disabled={
-                resetStatus === 'sending' ||
+                resetStatus === "sending" ||
                 resetEmailsRemaining === 0 ||
                 !isPasswordProvider
               }
               onClick={requestResetEmail}
               type="button"
             >
-              {resetStatus === 'sending' ? 'Sending' : 'Send reset email'}
+              {resetStatus === "sending" ? "Sending" : "Send reset email"}
             </button>
             {resetMessage && (
               <p
                 className={
-                  resetStatus === 'error' ? 'profile-status error' : 'profile-status'
+                  resetStatus === "error"
+                    ? "profile-status error"
+                    : "profile-status"
                 }
               >
                 {resetMessage}
@@ -464,7 +490,7 @@ function Profile({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
           >
             <button
               aria-label="Close profile editor"
@@ -478,7 +504,7 @@ function Profile({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.96 }}
               onSubmit={handleSubmit}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <div className="profile-modal-top">
                 <div className="section-heading">
@@ -501,13 +527,13 @@ function Profile({
                     <input
                       onChange={(event) => {
                         const nextValue =
-                          field.id === 'username'
+                          field.id === "username"
                             ? normalizeUsername(event.target.value)
                             : event.target.value;
 
                         setFormValues((currentValues) => ({
                           ...currentValues,
-                          [field.id]: nextValue
+                          [field.id]: nextValue,
                         }));
                       }}
                       placeholder={field.placeholder}
@@ -519,12 +545,12 @@ function Profile({
               ))}
               <button
                 className="primary-action"
-                disabled={saveStatus === 'saving'}
+                disabled={saveStatus === "saving"}
                 type="submit"
               >
-                {saveStatus === 'saving' ? 'Saving' : 'Save profile'}
+                {saveStatus === "saving" ? "Saving" : "Save profile"}
               </button>
-              {saveStatus === 'error' && (
+              {saveStatus === "error" && (
                 <p className="profile-status error">Could not save profile.</p>
               )}
             </motion.form>

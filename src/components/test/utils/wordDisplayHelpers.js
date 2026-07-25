@@ -13,7 +13,6 @@ export function getUnresolvedSpaceMistakeIndex(targetText, typedText) {
 
   return -1;
 }
-
 export function getWordStateClassName(
   word,
   typedLength,
@@ -35,7 +34,8 @@ export function getWordStateClassName(
     return 'word word-future';
   }
 
-  if (typedLength < firstLetterIndex) return 'word word-future';
+
+  if (typedLength <= firstLetterIndex) return 'word word-future';
   if (hasWrongSpace) return 'word word-active';
   if (typedLength > wordEndIndex) return 'word word-past';
 
