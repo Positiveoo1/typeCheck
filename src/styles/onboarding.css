@@ -1,0 +1,162 @@
+.toast-region {
+  position: fixed;
+  right: 18px;
+  bottom: 24px;
+  z-index: 120;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+  pointer-events: none;
+}
+
+.toast {
+  --toast-accent: var(--accent-2);
+  --toast-accent-rgb: var(--accent-2-rgb);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 12px;
+  align-items: start;
+  padding: 13px 12px 13px 14px;
+  border: 1px solid rgba(var(--toast-accent-rgb), 0.2);
+  border-left: 3px solid var(--toast-accent);
+  border-radius: 8px;
+  color: var(--text);
+  background:
+    linear-gradient(135deg, rgba(var(--toast-accent-rgb), 0.11), transparent 58%),
+    color-mix(in srgb, var(--bg-soft) 94%, black);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.035);
+  pointer-events: auto;
+}
+
+.toast-success {
+  --toast-accent: var(--accent-2);
+  --toast-accent-rgb: var(--accent-2-rgb);
+}
+
+.toast-error {
+  --toast-accent: var(--wrong);
+  --toast-accent-rgb: 255, 95, 87;
+}
+
+.toast-warning {
+  --toast-accent: var(--accent-3);
+  --toast-accent-rgb: var(--accent-rgb);
+}
+
+.toast-info {
+  --toast-accent: var(--accent);
+  --toast-accent-rgb: var(--accent-rgb);
+}
+
+.toast div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.toast strong {
+  color: var(--heading);
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.toast span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.toast button {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--panel);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.toast button:hover {
+  color: var(--heading);
+  background: rgba(var(--toast-accent-rgb), 0.16);
+}
+
+.onboarding-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.onboarding-spotlight {
+  position: fixed;
+  border: 2px solid rgba(var(--accent-2-rgb), 0.88);
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.5),
+    0 0 34px rgba(var(--accent-2-rgb), 0.28),
+    inset 0 0 28px rgba(var(--accent-2-rgb), 0.06);
+}
+
+.onboarding-panel {
+  position: fixed;
+  z-index: 2;
+  width: min(320px, calc(100vw - 28px));
+  padding: 14px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.24);
+  border-radius: 8px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg-soft) 96%, black);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+  pointer-events: auto;
+}
+
+.onboarding-panel h2 {
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+
+.onboarding-panel p:not(.eyebrow) {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.onboarding-progress {
+  margin-top: 14px;
+  display: flex;
+  gap: 5px;
+}
+
+.onboarding-progress span {
+  width: 20px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.onboarding-progress span.active {
+  background: var(--accent-2);
+}
+
+.onboarding-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.onboarding-actions button {
+  min-width: auto;
+  padding: 0 12px;
+}
+
+.onboarding-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}

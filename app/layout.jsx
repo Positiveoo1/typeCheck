@@ -1,4 +1,15 @@
-import '../src/styles.css';
+import '../src/styles/base.css';
+import '../src/styles/animations.css';
+import '../src/styles/shared.css';
+import '../src/styles/layout.css';
+import '../src/styles/typing-test.css';
+import '../src/styles/results.css';
+import '../src/styles/dashboard.css';
+import '../src/styles/leaderboard.css';
+import '../src/styles/profile.css';
+import '../src/styles/settings.css';
+import '../src/styles/auth.css';
+import '../src/styles/onboarding.css';
 
 export const metadata = {
   title: 'TypeCheck',
