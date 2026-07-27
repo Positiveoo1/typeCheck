@@ -16,6 +16,8 @@ function WordDisplay({
   onFocus,
   onKeyDown,
   targetText,
+  testType,
+  testValue,
   trainingMode,
   typedText,
   wordDisplayRef,
@@ -26,6 +28,16 @@ function WordDisplay({
     targetText,
     typedText
   );
+
+  // Count of word tokens whose word-space has already been passed (i.e.
+  // typedText already extends beyond that word's space index), plus 1 if
+  // we're partway through typing the current (not-yet-finished) word.
+  const finishedWords = wordTokens.filter(
+    (word) => word.space && typedText.length > word.space.index
+  ).length;
+  const isTypingCurrentWord =
+    typedText.length > 0 && finishedWords < wordTokens.length;
+  const liveWordCount = isTypingCurrentWord ? finishedWords + 1 : finishedWords;
 
   return (
     <div
@@ -52,6 +64,14 @@ function WordDisplay({
       <span className="typing-caps-lock" aria-live="polite">
         Caps Lock is on
       </span>
+
+      {testType === 'words' && !isReplay && typedText.length > 0 && (
+        <div className="word-count-badge" aria-label="Words typed">
+          <span>
+            {Math.min(liveWordCount, testValue)}/{testValue}
+          </span>
+        </div>
+      )}
 
       {trainingMode !== 'standard' && !isReplay && (
         <div

@@ -49,6 +49,10 @@ export function useTypingEngine({
   const hasFinishedRef = useRef(false);
   const speedHistoryRef = useRef([]);
   const keystrokeLogRef = useRef([]);
+  // Tracks every character position that was ever typed incorrectly during
+  // this run, even if the user later backspaced and fixed it. Used so the
+  // final accuracy reflects mistakes-made rather than just mistakes-left.
+  const historicalMistakeIndicesRef = useRef(new Set());
 
   const focusInput = useCallback(() => {
     isTypingFocusedRef.current = true;
@@ -102,6 +106,7 @@ export function useTypingEngine({
         targetText,
         nextTypedText,
         Math.max(elapsedSeconds, 0.1),
+        historicalMistakeIndicesRef.current.size,
       );
       const normalizedElapsed = Math.max(0.1, Number(elapsedSeconds) || 0.1);
       const rawWpm = Math.round(
@@ -189,6 +194,7 @@ export function useTypingEngine({
     typedTextRef.current = "";
     speedHistoryRef.current = [];
     keystrokeLogRef.current = [];
+    historicalMistakeIndicesRef.current = new Set();
     onActiveChange(false);
 
     window.requestAnimationFrame(() => {
@@ -315,6 +321,24 @@ export function useTypingEngine({
         value,
         mistakeMode !== "strict",
       );
+
+      // Record mistakes as they happen: for every newly-added character
+      // (i.e. the text grew rather than being backspaced), check it against
+      // the target and remember the position if it was wrong. This persists
+      // even after the user corrects it, so accuracy isn't wiped clean by a
+      // later fix.
+      if (nextTypedText.length > currentTypedText.length) {
+        for (
+          let index = currentTypedText.length;
+          index < nextTypedText.length;
+          index += 1
+        ) {
+          if (nextTypedText[index] !== currentTargetText[index]) {
+            historicalMistakeIndicesRef.current.add(index);
+          }
+        }
+      }
+
       typedTextRef.current = nextTypedText;
       setTypedText(nextTypedText);
 

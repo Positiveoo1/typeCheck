@@ -38,7 +38,12 @@ export function shuffleWords(
   return generatedWords.slice(0, wordCount).join(' ');
 }
 
-export function calculateStats(targetText, typedText, elapsedSeconds) {
+export function calculateStats(
+  targetText,
+  typedText,
+  elapsedSeconds,
+  historicalMistakeCount
+) {
   let correctChars = 0;
   let wrongChars = 0;
 
@@ -55,10 +60,22 @@ export function calculateStats(targetText, typedText, elapsedSeconds) {
     : 0;
   const safeElapsedSeconds = Math.max(0.1, normalizedElapsedSeconds);
   const wpm = Math.round(correctChars / 5 / (safeElapsedSeconds / 60));
+
+  // By default accuracy only reflects the *current* diff between typedText
+  // and targetText, so a mistake that was later corrected disappears
+  // entirely. When historicalMistakeCount is provided (the count of
+  // character positions that were ever mistyped during the run, even if
+  // fixed afterwards), use that instead so corrected mistakes still count
+  // against accuracy.
+  const effectiveWrongForAccuracy = Number.isFinite(historicalMistakeCount)
+    ? Math.max(wrongChars, Math.min(historicalMistakeCount, typedText.length))
+    : wrongChars;
   const accuracy =
     typedText.length === 0
       ? 100
-      : Math.round((correctChars / typedText.length) * 100);
+      : Math.round(
+          ((typedText.length - effectiveWrongForAccuracy) / typedText.length) * 100
+        );
 
   return {
     accuracy,

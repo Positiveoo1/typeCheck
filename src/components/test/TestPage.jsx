@@ -42,7 +42,7 @@ function TestPage({
       transition={{ duration: 0.22, ease: 'easeOut' }}
     >
       <AnimatePresence initial={false}>
-        {!result && (
+        {!result && !isActive && (
           <motion.div
             data-onboarding-target="settings"
             initial={{ opacity: 0, y: -8 }}

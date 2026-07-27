@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS = {
   reducedMotion: false,
   showKeyboard: true,
   soundEnabled: true,
-  soundStyle: 'theme',
+  soundStyle: 'cream',
   soundVolume: 0.9,
   testType: 'time',
   timeMode: 30,

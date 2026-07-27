@@ -1,10 +1,10 @@
-import { motion } from 'framer-motion';
-import KeyboardHeatmap from './KeyboardHeatmap.jsx';
-import ShortcutHints from '../test/components/ShortcutHints.jsx';
-import WordDisplay from '../test/components/WordDisplay.jsx';
-import { useCaretPosition } from '../test/hooks/useCaretPosition.js';
-import { usePressedKeys } from '../test/hooks/usePressedKeys.js';
-import { useTypingEngine } from '../test/hooks/useTypingEngine.js';
+import { motion } from "framer-motion";
+import KeyboardHeatmap from "./KeyboardHeatmap.jsx";
+import ShortcutHints from "../test/components/ShortcutHints.jsx";
+import WordDisplay from "../test/components/WordDisplay.jsx";
+import { useCaretPosition } from "../test/hooks/useCaretPosition.js";
+import { usePressedKeys } from "../test/hooks/usePressedKeys.js";
+import { useTypingEngine } from "../test/hooks/useTypingEngine.js";
 
 const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
 
@@ -23,8 +23,8 @@ function TypingTest({
   soundStyle,
   soundVolume,
   targetTextOverride,
-  language = 'english',
-  trainingMode = 'standard'
+  language = "english",
+  trainingMode = "standard",
 }) {
   const engine = useTypingEngine({
     customText,
@@ -38,13 +38,14 @@ function TypingTest({
     targetTextOverride,
     testType,
     testValue,
-    trainingMode
+    trainingMode,
   });
 
-  const caretPosition = useCaretPosition(engine.currentLetterRef, engine.wordDisplayRef, [
-    engine.targetText,
-    engine.typedText
-  ]);
+  const caretPosition = useCaretPosition(
+    engine.currentLetterRef,
+    engine.wordDisplayRef,
+    [engine.targetText, engine.typedText],
+  );
 
   const { pressedKeys, pressedKeyStates } = usePressedKeys({
     inputRef: engine.inputRef,
@@ -53,7 +54,7 @@ function TypingTest({
     soundStyle,
     soundVolume,
     targetText: engine.targetText,
-    typedTextRef: engine.typedTextRef
+    typedTextRef: engine.typedTextRef,
   });
 
   return (
@@ -64,7 +65,7 @@ function TypingTest({
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -14 }}
-      transition={{ duration: 0.24, ease: 'easeOut' }}
+      transition={{ duration: 0.24, ease: "easeOut" }}
     >
       {engine.isReplay && (
         <div className="replay-badge" aria-label="Repeated game">
@@ -87,6 +88,8 @@ function TypingTest({
         onFocus={engine.focusInput}
         onKeyDown={engine.handleWordDisplayKeyDown}
         targetText={engine.targetText}
+        testType={testType}
+        testValue={testValue}
         trainingMode={trainingMode}
         typedText={engine.typedText}
         wordDisplayRef={engine.wordDisplayRef}

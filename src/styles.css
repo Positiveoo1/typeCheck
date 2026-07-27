@@ -4215,7 +4215,26 @@ h2 {
     transparent 100%
   );
 }
-
+.word-count-badge {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  width: fit-content;
+  margin: 0 auto 4px 0;
+  padding: 5px 8px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.24);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-3);
+  background: color-mix(in srgb, var(--bg-soft) 90%, black);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
 .typing-caret {
   position: absolute;
   z-index: 2;
