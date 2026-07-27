@@ -1,8 +1,6 @@
 import { animate, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 
-const MAX_CHART_RESULTS = 30;
-
 function toTimestamp(value) {
   const date = value?.toDate?.() || value;
   const timestamp = date instanceof Date ? date.getTime() : new Date(date).getTime();
@@ -97,36 +95,193 @@ function buildSmoothPath(points) {
   return d;
 }
 
+const CHART_TIMEFRAMES = [
+  { id: '7d', label: '7 Days' },
+  { id: 'weekly', label: 'Weekly' },
+  { id: 'monthly', label: 'Monthly' },
+  { id: 'yearly', label: 'Yearly' },
+  { id: 'custom', label: 'Custom' }
+];
+const WEEKLY_BUCKET_COUNT = 12;
+const MONTHLY_BUCKET_COUNT = 12;
+const YEARLY_BUCKET_COUNT = 8;
+const CUSTOM_RANGE_MAX_POINTS = 90;
+
+function startOfDay(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function endOfDay(date) {
+  const next = new Date(date);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
+function startOfWeek(date) {
+  const next = startOfDay(date);
+  const day = next.getDay();
+  const diffToMonday = (day + 6) % 7;
+  next.setDate(next.getDate() - diffToMonday);
+  return next;
+}
+
+function startOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function startOfYear(date) {
+  return new Date(date.getFullYear(), 0, 1);
+}
+
+function formatShortDate(date) {
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date);
+}
+
+function formatMonthLabel(date) {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(date);
+}
+
+function formatYearLabel(date) {
+  return new Intl.DateTimeFormat(undefined, { year: 'numeric' }).format(date);
+}
+
+function toInputDateValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Groups results into date buckets (week/month/year) and averages wpm/accuracy
+// per bucket, keeping only the most recent `bucketCount` buckets that actually
+// have data.
+function buildAggregatedChartData(results, bucketStartFn, labelFn, bucketCount) {
+  const buckets = new Map();
+
+  results.forEach((result) => {
+    const timestamp = toTimestamp(result.createdAt);
+    if (!timestamp) return;
+
+    const bucketDate = bucketStartFn(new Date(timestamp));
+    const key = bucketDate.getTime();
+
+    if (!buckets.has(key)) {
+      buckets.set(key, { date: bucketDate, wpmSum: 0, accuracySum: 0, count: 0 });
+    }
+
+    const bucket = buckets.get(key);
+    bucket.wpmSum += Number(result.wpm) || 0;
+    bucket.accuracySum += Number(result.accuracy) || 0;
+    bucket.count += 1;
+  });
+
+  return [...buckets.values()]
+    .sort((a, b) => a.date - b.date)
+    .slice(-bucketCount)
+    .map((bucket) => ({
+      label: labelFn(bucket.date),
+      wpm: Math.round(bucket.wpmSum / bucket.count),
+      accuracy: Math.round(bucket.accuracySum / bucket.count),
+      testCount: bucket.count
+    }));
+}
+
+// Raw (non-aggregated) points for a bounded date range, used by "7 Days" and
+// "Custom" — each test is its own point rather than an average.
+function buildRawChartData(results, startTime, endTime) {
+  return results
+    .filter((result) => {
+      const timestamp = toTimestamp(result.createdAt);
+      return timestamp >= startTime && timestamp <= endTime;
+    })
+    .sort((a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt))
+    .slice(-CUSTOM_RANGE_MAX_POINTS)
+    .map((result) => ({
+      label: formatShortDate(new Date(toTimestamp(result.createdAt))),
+      wpm: Number(result.wpm) || 0,
+      accuracy: Number(result.accuracy) || 0,
+      testCount: 1
+    }));
+}
+
 function ProgressChart({ results }) {
   const [metric, setMetric] = useState('wpm');
-  const prefersReducedMotion = useReducedMotion();
-  const chartResults = useMemo(
-    () =>
-      results
-        .slice(0, MAX_CHART_RESULTS)
-        .reverse()
-        .map((result, index) => ({
-          index: index + 1,
-          wpm: Number(result.wpm) || 0,
-          accuracy: Number(result.accuracy) || 0
-        })),
-    [results]
+  const [timeframe, setTimeframe] = useState('7d');
+  const [customStart, setCustomStart] = useState(() =>
+    toInputDateValue(startOfDay(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)))
   );
+  const [customEnd, setCustomEnd] = useState(() => toInputDateValue(new Date()));
+  const prefersReducedMotion = useReducedMotion();
+
+  const chartResults = useMemo(() => {
+    const now = new Date();
+
+    if (timeframe === '7d') {
+      const start = startOfDay(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000));
+      return buildRawChartData(results, start.getTime(), now.getTime());
+    }
+
+    if (timeframe === 'weekly') {
+      return buildAggregatedChartData(
+        results,
+        startOfWeek,
+        (date) => `Wk of ${formatShortDate(date)}`,
+        WEEKLY_BUCKET_COUNT
+      );
+    }
+
+    if (timeframe === 'monthly') {
+      return buildAggregatedChartData(
+        results,
+        startOfMonth,
+        formatMonthLabel,
+        MONTHLY_BUCKET_COUNT
+      );
+    }
+
+    if (timeframe === 'yearly') {
+      return buildAggregatedChartData(
+        results,
+        startOfYear,
+        formatYearLabel,
+        YEARLY_BUCKET_COUNT
+      );
+    }
+
+    // custom
+    const start = customStart ? startOfDay(new Date(customStart)) : startOfDay(now);
+    const end = customEnd ? endOfDay(new Date(customEnd)) : endOfDay(now);
+    return buildRawChartData(results, start.getTime(), end.getTime());
+  }, [results, timeframe, customStart, customEnd]);
+
   const values = chartResults.map((point) => point[metric]);
   const min =
     metric === 'accuracy'
-      ? Math.min(80, ...values)
-      : Math.max(0, Math.min(...values) - 10);
-  const max = metric === 'accuracy' ? 100 : Math.max(...values, min + 10) + 5;
+      ? Math.min(80, ...(values.length ? values : [80]))
+      : Math.max(0, Math.min(...(values.length ? values : [0])) - 10);
+  const max =
+    metric === 'accuracy' ? 100 : Math.max(...(values.length ? values : [0]), min + 10) + 5;
   const range = max - min || 1;
   const points = chartResults.map((point, index) => {
-    const x = chartResults.length === 1 ? 50 : (index / (chartResults.length - 1)) * 100;
+    const x = chartResults.length === 1 ? 50 : (index / (chartResults.length - 1 || 1)) * 100;
     const y = 92 - ((point[metric] - min) / range) * 78;
     return [x, y];
   });
   const line = buildSmoothPath(points);
   const area = `${line} L 100 100 L 0 100 Z`;
   const latestValue = values.at(-1) || 0;
+  const rangeSummaryLabel =
+    timeframe === '7d'
+      ? 'last 7 days'
+      : timeframe === 'weekly'
+        ? `last ${chartResults.length} weeks`
+        : timeframe === 'monthly'
+          ? `last ${chartResults.length} months`
+          : timeframe === 'yearly'
+            ? `last ${chartResults.length} years`
+            : 'custom range';
 
   return (
     <section className="dashboard-chart-section" aria-labelledby="progress-heading">
@@ -148,68 +303,118 @@ function ProgressChart({ results }) {
           ))}
         </div>
       </div>
+
+      <div className="dashboard-chart-timeframe-row">
+        <div
+          className="dashboard-chart-controls"
+          role="group"
+          aria-label="Chart timeframe"
+        >
+          {CHART_TIMEFRAMES.map((option) => (
+            <button
+              className={timeframe === option.id ? 'active' : ''}
+              key={option.id}
+              onClick={() => setTimeframe(option.id)}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {timeframe === 'custom' && (
+          <div className="dashboard-chart-custom-range">
+            <label>
+              <span>From</span>
+              <input
+                type="date"
+                value={customStart}
+                max={customEnd}
+                onChange={(event) => setCustomStart(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>To</span>
+              <input
+                type="date"
+                value={customEnd}
+                min={customStart}
+                max={toInputDateValue(new Date())}
+                onChange={(event) => setCustomEnd(event.target.value)}
+              />
+            </label>
+          </div>
+        )}
+      </div>
+
       <div className="dashboard-chart-summary">
         <strong>
           <AnimatedNumber value={latestValue} suffix={metric === 'wpm' ? ' WPM' : '%'} />
         </strong>
-        <span>latest result · last {chartResults.length} tests</span>
+        <span>latest result · {rangeSummaryLabel}</span>
       </div>
-      <div
-        className="dashboard-chart"
-        aria-label={`${metric} over the last ${chartResults.length} tests`}
-      >
-        <span className="dashboard-chart-bound top">
-          {Math.round(max)}
-          {metric === 'accuracy' ? '%' : ''}
-        </span>
-        <span className="dashboard-chart-bound bottom">
-          {Math.round(min)}
-          {metric === 'accuracy' ? '%' : ''}
-        </span>
-        {/* svg handles line + fill only — no circles here anymore */}
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img">
-          <title>{`${metric} over the last ${chartResults.length} tests`}</title>
-          <defs>
-            <linearGradient id="dashboard-chart-fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent-2)" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            className="dashboard-chart-grid"
-            d="M 0 14 H 100 M 0 53 H 100 M 0 92 H 100"
-          />
-          <motion.path
-            animate={{ pathLength: 1, opacity: 1 }}
-            className="dashboard-chart-area"
-            d={area}
-            fill="url(#dashboard-chart-fill)"
-            initial={{ opacity: 0, pathLength: prefersReducedMotion ? 1 : 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.8, ease: 'easeOut' }}
-          />
-          <motion.path
-            animate={{ pathLength: 1 }}
-            className="dashboard-chart-line"
-            d={line}
-            fill="none"
-            stroke="var(--accent-2)"
-            initial={{ pathLength: prefersReducedMotion ? 1 : 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.9, ease: 'easeOut' }}
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-        {/* dots rendered as HTML overlay so they stay perfect circles
-            regardless of the SVG's non-uniform stretch */}
-        <div className="dashboard-chart-dots">
-          {points.map(([x, y], index) => (
-            <span
-              className="dashboard-chart-dot"
-              key={index}
-              style={{ left: `${x}%`, top: `${y}%` }}
+
+      {chartResults.length === 0 ? (
+        <p className="dashboard-chart-empty">No tests in this range yet.</p>
+      ) : (
+        <div
+          className="dashboard-chart"
+          aria-label={`${metric} over ${rangeSummaryLabel}`}
+        >
+          <span className="dashboard-chart-bound top">
+            {Math.round(max)}
+            {metric === 'accuracy' ? '%' : ''}
+          </span>
+          <span className="dashboard-chart-bound bottom">
+            {Math.round(min)}
+            {metric === 'accuracy' ? '%' : ''}
+          </span>
+          {/* svg handles line + fill only — no circles here anymore */}
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img">
+            <title>{`${metric} over ${rangeSummaryLabel}`}</title>
+            <defs>
+              <linearGradient id="dashboard-chart-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--accent-2)" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="var(--accent-2)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              className="dashboard-chart-grid"
+              d="M 0 14 H 100 M 0 53 H 100 M 0 92 H 100"
             />
-          ))}
+            <motion.path
+              animate={{ pathLength: 1, opacity: 1 }}
+              className="dashboard-chart-area"
+              d={area}
+              fill="url(#dashboard-chart-fill)"
+              initial={{ opacity: 0, pathLength: prefersReducedMotion ? 1 : 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.8, ease: 'easeOut' }}
+            />
+            <motion.path
+              animate={{ pathLength: 1 }}
+              className="dashboard-chart-line"
+              d={line}
+              fill="none"
+              stroke="var(--accent-2)"
+              initial={{ pathLength: prefersReducedMotion ? 1 : 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.9, ease: 'easeOut' }}
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+          {/* dots rendered as HTML overlay so they stay perfect circles
+              regardless of the SVG's non-uniform stretch */}
+          <div className="dashboard-chart-dots">
+            {points.map(([x, y], index) => (
+              <span
+                aria-label={`${chartResults[index].label}: ${chartResults[index][metric]}${metric === 'accuracy' ? '%' : ' WPM'}`}
+                className="dashboard-chart-dot"
+                key={index}
+                style={{ left: `${x}%`, top: `${y}%` }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
