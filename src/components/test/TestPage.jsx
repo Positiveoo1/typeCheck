@@ -71,6 +71,9 @@ function TestPage({
             key="results"
             onNextGame={restart}
             onTryAgain={tryAgain}
+            soundEnabled={soundEnabled}
+            soundStyle={effectiveSoundStyle}
+            soundVolume={soundVolume}
             stats={result}
           />
         ) : (
@@ -82,11 +85,19 @@ function TestPage({
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
-            <LanguagePicker
-              disabled={isActive}
-              onLanguageChange={handleLanguageChange}
-              selectedLanguage={language}
-            />
+            <div className="test-topbar">
+              {Boolean(replayTargetText) && (
+                <div className="replay-badge" aria-label="Repeated game">
+                  <span className="replay-icon" aria-hidden="true" />
+                  <span>Repeated</span>
+                </div>
+              )}
+              <LanguagePicker
+                disabled={isActive}
+                onLanguageChange={handleLanguageChange}
+                selectedLanguage={language}
+              />
+            </div>
             <TypingTest
               onActiveChange={onActiveChange}
               onFinish={finishTest}

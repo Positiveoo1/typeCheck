@@ -59,10 +59,10 @@
 
 .language-picker {
   width: min(100%, 980px);
-  position: relative;
-  top: 50px;
   display: flex;
   justify-content: center;
+  transform: translateY(50px);
+  transition: transform 180ms ease;
 }
 
 .footer-legal-version {

@@ -1,9 +1,10 @@
 import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getTypingStyle } from '../../typingIdentity.js';
-import { buildMistakeKeyCounts } from '../../typingLogic.js';
+import { buildMistakeKeyCounts, calculateStats } from '../../typingLogic.js';
 import { ArrowForwardIcon, CloseIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
 import KeyboardHeatmap from './KeyboardHeatmap.jsx';
+import { playKeySound } from './utils/keySound.js';
 
 function AnimatedNumber({ value }) {
   const count = useMotionValue(0);
@@ -30,7 +31,15 @@ function formatSeconds(seconds) {
   return seconds < 10 ? seconds.toFixed(1) : Math.round(seconds);
 }
 
-function TypingReplay({ stats, onClose }) {
+function TypingReplay({
+  stats,
+  onClose,
+  soundEnabled,
+  soundStyle,
+  soundVolume,
+  keySoundPoolRef,
+  audioContextRef
+}) {
   const events = useMemo(() => {
     const log = Array.isArray(stats.keystrokeLog) ? stats.keystrokeLog : [];
     return log
@@ -43,11 +52,20 @@ function TypingReplay({ stats, onClose }) {
   const startedAtRef = useRef(null);
   const accumulatedMsRef = useRef(0);
   const frameRef = useRef(null);
+  const lastSoundEventIndexRef = useRef(-1);
   const durationMs = Math.max(events.at(-1)?.t || 0, Number(stats.elapsedSeconds || 0) * 1000);
   const replayText = useMemo(() => {
     const activeEvent = events.findLast((event) => Number(event.t) <= playbackMs);
     return activeEvent?.text || '';
   }, [events, playbackMs]);
+  const liveWpm = useMemo(
+    () => calculateStats(
+      stats.targetText || '',
+      replayText,
+      Math.max(playbackMs / 1000, 0.1)
+    ).wpm,
+    [playbackMs, replayText, stats.targetText]
+  );
 
   useEffect(() => {
     if (!isPlaying || durationMs === 0) return undefined;
@@ -72,9 +90,35 @@ function TypingReplay({ stats, onClose }) {
     return () => window.cancelAnimationFrame(frameRef.current);
   }, [durationMs, isPlaying, speed]);
 
+  useEffect(() => {
+    if (!soundEnabled) return;
+
+    const lastEventIndex = events.findLastIndex(
+      (event) => Number(event.t) <= playbackMs
+    );
+
+    for (
+      let index = lastSoundEventIndexRef.current + 1;
+      index <= lastEventIndex;
+      index += 1
+    ) {
+      if (events[index]?.text.length > 0) {
+        playKeySound(
+          keySoundPoolRef,
+          audioContextRef,
+          soundVolume,
+          soundStyle
+        );
+      }
+    }
+
+    lastSoundEventIndexRef.current = lastEventIndex;
+  }, [events, playbackMs, soundEnabled, soundStyle, soundVolume]);
+
   const togglePlayback = () => {
     if (playbackMs >= durationMs) {
       accumulatedMsRef.current = 0;
+      lastSoundEventIndexRef.current = -1;
       setPlaybackMs(0);
     } else {
       accumulatedMsRef.current = playbackMs;
@@ -84,6 +128,7 @@ function TypingReplay({ stats, onClose }) {
 
   const restartPlayback = () => {
     accumulatedMsRef.current = 0;
+    lastSoundEventIndexRef.current = -1;
     setPlaybackMs(0);
     setIsPlaying(true);
   };
@@ -113,7 +158,9 @@ function TypingReplay({ stats, onClose }) {
         <div className="typing-replay-header">
           <div>
             <span>typing replay</span>
-            <strong>{formatSeconds(playbackMs / 1000)}s / {formatSeconds(durationMs / 1000)}s</strong>
+            <strong>
+              {formatSeconds(playbackMs / 1000)}s / {formatSeconds(durationMs / 1000)}s · {liveWpm} WPM
+            </strong>
           </div>
           <button aria-label="Close typing replay" className="replay-close" onClick={onClose} type="button">
             <CloseIcon />
@@ -701,12 +748,40 @@ function RecordCelebration() {
   );
 }
 
-function Results({ historyResults = [], stats, onNextGame, onTryAgain }) {
+function Results({
+  historyResults = [],
+  stats,
+  onNextGame,
+  onTryAgain,
+  soundEnabled,
+  soundStyle,
+  soundVolume
+}) {
   const typingStyle = getTypingStyle(stats);
   const isInvalid = Boolean(stats.isInvalid);
   const [isSharing, setIsSharing] = useState(false);
   const [isReplayOpen, setIsReplayOpen] = useState(false);
   const resultsRef = useRef(null);
+  const keySoundPoolRef = useRef([]);
+  const audioContextRef = useRef(null);
+
+  useEffect(
+    () => () => {
+      Object.values(keySoundPoolRef.current).flat().forEach((audio) => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
+      audioContextRef.current?.close?.();
+    },
+    []
+  );
+
+  const openReplay = () => {
+    if (soundEnabled) {
+      playKeySound(keySoundPoolRef, audioContextRef, soundVolume, soundStyle);
+    }
+    setIsReplayOpen(true);
+  };
 
   const handleShare = async () => {
     if (isSharing) return;
@@ -861,7 +936,7 @@ function Results({ historyResults = [], stats, onNextGame, onTryAgain }) {
         <motion.button
           className="secondary-action"
           disabled={!stats.keystrokeLog?.some((event) => typeof event.text === 'string')}
-          onClick={() => setIsReplayOpen(true)}
+          onClick={openReplay}
           type="button"
           whileHover={{ y: -2, scale: 1.04 }}
           whileTap={{ scale: 0.93, rotate: -2 }}
@@ -901,7 +976,17 @@ function Results({ historyResults = [], stats, onNextGame, onTryAgain }) {
         </motion.button>
       </div>
       <AnimatePresence>
-        {isReplayOpen && <TypingReplay stats={stats} onClose={() => setIsReplayOpen(false)} />}
+        {isReplayOpen && (
+          <TypingReplay
+            audioContextRef={audioContextRef}
+            keySoundPoolRef={keySoundPoolRef}
+            onClose={() => setIsReplayOpen(false)}
+            soundEnabled={soundEnabled}
+            soundStyle={soundStyle}
+            soundVolume={soundVolume}
+            stats={stats}
+          />
+        )}
       </AnimatePresence>
     </motion.section>
   );

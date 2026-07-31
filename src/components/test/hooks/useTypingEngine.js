@@ -65,11 +65,12 @@ export function useTypingEngine({
   const isReplay = Boolean(targetTextOverride);
   const activeTrainingMode = getTrainingMode(trainingMode);
   const isAccuracyLock = trainingMode === "accuracy-lock";
-  const currentMistakes = calculateStats(
+  const liveStats = calculateStats(
     targetText,
     typedText,
     Math.max(elapsedTime, 0.1),
-  ).wrongChars;
+  );
+  const currentMistakes = liveStats.wrongChars;
 
   const recordSpeedSnapshot = useCallback(
     (elapsedSeconds, nextTypedText) => {
@@ -540,6 +541,7 @@ export function useTypingEngine({
     isTypingFocusedRef,
     keyboardRef,
     currentLetterRef,
+    liveWpm: liveStats.wpm,
     targetText,
     testType,
     timeLeft,

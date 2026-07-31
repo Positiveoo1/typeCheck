@@ -56,6 +56,13 @@ function TypingTest({
     targetText: engine.targetText,
     typedTextRef: engine.typedTextRef,
   });
+  const finishedWords = engine.wordTokens.filter(
+    (word) => word.space && engine.typedText.length > word.space.index
+  ).length;
+  const isTypingCurrentWord =
+    engine.typedText.length > 0 && finishedWords < engine.wordTokens.length;
+  const liveWordCount = isTypingCurrentWord ? finishedWords + 1 : finishedWords;
+  const showLiveStats = !engine.isReplay && engine.typedText.length > 0;
 
   return (
     <motion.main
@@ -67,13 +74,29 @@ function TypingTest({
       exit={{ opacity: 0, y: -14 }}
       transition={{ duration: 0.24, ease: "easeOut" }}
     >
-      {engine.isReplay && (
-        <div className="replay-badge" aria-label="Repeated game">
-          <span className="replay-icon" aria-hidden="true" />
-          <span>Repeated</span>
-        </div>
-      )}
-
+      <div
+        aria-label="Live typing statistics"
+        className="typing-live-stats"
+        data-visible={showLiveStats}
+      >
+        {showLiveStats && (
+          <>
+            {testType === 'words' && (
+              <>
+                <span>{Math.min(liveWordCount, testValue)}/{testValue}</span>
+                <span aria-hidden="true"> · </span>
+              </>
+            )}
+            {testType === 'time' && (
+              <>
+                <span>{Math.ceil(engine.timeLeft)}s</span>
+                <span aria-hidden="true"> · </span>
+              </>
+            )}
+            <strong>{engine.liveWpm} WPM</strong>
+          </>
+        )}
+      </div>
       <WordDisplay
         activeTrainingMode={engine.activeTrainingMode}
         accuracyLockMistakeLimit={ACCURACY_LOCK_MISTAKE_LIMIT}
@@ -88,8 +111,6 @@ function TypingTest({
         onFocus={engine.focusInput}
         onKeyDown={engine.handleWordDisplayKeyDown}
         targetText={engine.targetText}
-        testType={testType}
-        testValue={testValue}
         trainingMode={trainingMode}
         typedText={engine.typedText}
         wordDisplayRef={engine.wordDisplayRef}
