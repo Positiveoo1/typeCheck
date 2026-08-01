@@ -49,6 +49,11 @@ export function useTypingEngine({
   const hasFinishedRef = useRef(false);
   const speedHistoryRef = useRef([]);
   const keystrokeLogRef = useRef([]);
+  // Set by usePressedKeys on every keydown (event.code), so keystrokeLog
+  // entries can remember which physical key produced each change. Needed to
+  // replay the "cream" sound style later, since it looks up per-key audio
+  // clips by scancode rather than by character.
+  const lastKeyCodeRef = useRef(null);
   // Tracks every character position that was ever typed incorrectly during
   // this run, even if the user later backspaced and fixed it. Used so the
   // final accuracy reflects mistakes-made rather than just mistakes-left.
@@ -355,7 +360,9 @@ export function useTypingEngine({
           ...keystrokeLogRef.current,
           // Store the accepted value, rather than just its length, so the
           // completed result can faithfully replay mistakes and corrections.
-          { t: Math.round(elapsedMs), text: nextTypedText },
+          // Also store the physical key code so cream-style replay sound
+          // can look up the right per-key audio clip.
+          { t: Math.round(elapsedMs), text: nextTypedText, code: lastKeyCodeRef.current },
         ].slice(-4000);
       }
 
@@ -536,6 +543,7 @@ export function useTypingEngine({
     isAccuracyLock,
     isIdle,
     isReplay,
+    lastKeyCodeRef,
     isRunning,
     isTypingFocused,
     isTypingFocusedRef,

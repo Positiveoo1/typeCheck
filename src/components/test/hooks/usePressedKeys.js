@@ -9,6 +9,7 @@ export function usePressedKeys({
   soundEnabled,
   soundStyle,
   soundVolume,
+  lastKeyCodeRef,
 }) {
   const [pressedKeys, setPressedKeys] = useState(() => new Set());
   const [pressedKeyStates, setPressedKeyStates] = useState({});
@@ -31,6 +32,10 @@ const keySoundPoolRef = useRef([]);
 
     const handleKeyDown = (event) => {
       if (!isTypingInputEvent(event)) return;
+
+      if (lastKeyCodeRef) {
+        lastKeyCodeRef.current = event.code;
+      }
 
       if (soundEnabled && !event.repeat) {
         playKeySound(

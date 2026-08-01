@@ -107,7 +107,8 @@ function TypingReplay({
           keySoundPoolRef,
           audioContextRef,
           soundVolume,
-          soundStyle
+          soundStyle,
+          events[index]?.code ? { code: events[index].code } : undefined
         );
       }
     }
