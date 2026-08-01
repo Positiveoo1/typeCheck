@@ -50,6 +50,7 @@ function TypingTest({
   const { pressedKeys, pressedKeyStates } = usePressedKeys({
     inputRef: engine.inputRef,
     isTypingFocusedRef: engine.isTypingFocusedRef,
+    lastKeyCodeRef: engine.lastKeyCodeRef,
     soundEnabled,
     soundStyle,
     soundVolume,

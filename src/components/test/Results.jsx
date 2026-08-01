@@ -129,6 +129,7 @@ function TypingReplay({
 
   const restartPlayback = () => {
     accumulatedMsRef.current = 0;
+    startedAtRef.current = performance.now(); 
     lastSoundEventIndexRef.current = -1;
     setPlaybackMs(0);
     setIsPlaying(true);
