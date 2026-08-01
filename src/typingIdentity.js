@@ -109,15 +109,31 @@ export function getTypingStyle(result = {}, context = {}) {
 }
 
 export function getRankTier(bestWpm = 0) {
-  const wpm = Number(bestWpm) || 0;
+  const wpm = Math.max(0, Number(bestWpm) || 0);
+  const tiers = [
+    { label: 'Elite', level: 'S', minimumWpm: 120 },
+    { label: 'Diamond', level: 'A', minimumWpm: 100 },
+    { label: 'Gold', level: 'B', minimumWpm: 80 },
+    { label: 'Silver', level: 'C', minimumWpm: 60 },
+    { label: 'Bronze', level: 'D', minimumWpm: 40 },
+    { label: 'Rookie', level: 'E', minimumWpm: 0 }
+  ];
+  const tierIndex = tiers.findIndex((tier) => wpm >= tier.minimumWpm);
+  const tier = tiers[tierIndex];
+  const nextTier = tiers[tierIndex - 1];
+  const progress = nextTier
+    ? Math.round(
+        ((wpm - tier.minimumWpm) / (nextTier.minimumWpm - tier.minimumWpm)) *
+          100
+      )
+    : 100;
 
-  if (wpm >= 120) return { label: 'Elite', level: 'S', progress: 100 };
-  if (wpm >= 100) return { label: 'Diamond', level: 'A', progress: Math.round(((wpm - 100) / 20) * 100) };
-  if (wpm >= 80) return { label: 'Gold', level: 'B', progress: Math.round(((wpm - 80) / 20) * 100) };
-  if (wpm >= 60) return { label: 'Silver', level: 'C', progress: Math.round(((wpm - 60) / 20) * 100) };
-  if (wpm >= 40) return { label: 'Bronze', level: 'D', progress: Math.round(((wpm - 40) / 20) * 100) };
-
-  return { label: 'Rookie', level: 'E', progress: Math.round((wpm / 40) * 100) };
+  return {
+    ...tier,
+    nextWpm: nextTier?.minimumWpm || null,
+    progress: Math.min(100, Math.max(0, progress)),
+    wpmToNext: nextTier ? Math.max(0, nextTier.minimumWpm - wpm) : 0
+  };
 }
 
 export function getAchievementBadges({

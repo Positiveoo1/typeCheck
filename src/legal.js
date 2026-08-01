@@ -1,1 +1,1 @@
-export const LEGAL_VERSION = '1.7.1';
+export const LEGAL_VERSION = '1.7.2';

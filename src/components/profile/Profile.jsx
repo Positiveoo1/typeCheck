@@ -40,6 +40,16 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatJoinedAge(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return undefined;
+
+  const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
+
+  return days === 0 ? 'Joined today' : `Joined ${days} ${days === 1 ? 'day' : 'days'} ago`;
+}
+
 function formatDuration(seconds) {
   const safeSeconds = Math.max(0, Math.round(Number(seconds) || 0));
   const hours = Math.floor(safeSeconds / 3600);
@@ -77,6 +87,24 @@ function getUtcDayKey(value) {
   return date.toISOString().slice(0, 10);
 }
 
+function getCurrentStreak(results) {
+  const activeDays = new Set(
+    (Array.isArray(results) ? results : [])
+      .map((result) => getUtcDayKey(result.createdAt))
+      .filter(Boolean)
+  );
+  const cursor = new Date();
+  cursor.setUTCHours(0, 0, 0, 0);
+
+  let streak = 0;
+  while (activeDays.has(getUtcDayKey(cursor))) {
+    streak += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  return streak;
+}
+
 function getRecentEvents(events) {
   if (!Array.isArray(events)) return [];
 
@@ -92,9 +120,9 @@ function getRecentEvents(events) {
     .filter((date) => date && date >= windowStart);
 }
 
-function StatCard({ label, value }) {
+function StatCard({ label, value, wide = false }) {
   return (
-    <div className="profile-stat">
+    <div className={wide ? "profile-stat profile-stat-wide" : "profile-stat"}>
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -266,7 +294,10 @@ function Profile({
       completed: dashboard.completed || 0,
       consistency,
       estimatedWords: Math.round(Number(dashboard.estimatedWordsTyped) || 0),
+      incomplete: Number(dashboard.incomplete) || 0,
       rank: getRankTier(bestWpm),
+      started: Number(dashboard.started) || 0,
+      streak: getCurrentStreak(results),
       style: getTypingStyle(
         results[0] || { accuracy: bestAccuracy, wpm: bestWpm },
         {
@@ -290,6 +321,7 @@ function Profile({
   const profileName = profile.username
     ? `@${profile.username}`
     : user.displayName || user.email;
+  const joinedAge = formatJoinedAge(profile.joinedAt);
   const avatarInitial = (
     profile.username ||
     user.displayName ||
@@ -394,7 +426,14 @@ function Profile({
               {profileName}
             </h2>
             {profile.username && user.displayName && <p>{user.displayName}</p>}
-            <p>Joined {formatDate(profile.joinedAt)}</p>
+            <p
+              aria-label={joinedAge ? `Account created ${joinedAge.toLowerCase()}` : undefined}
+              className="profile-joined"
+              data-tooltip={joinedAge || ''}
+              tabIndex={joinedAge ? 0 : undefined}
+            >
+              Joined {formatDate(profile.joinedAt)}
+            </p>
           </div>
         </div>
         <div className="profile-actions">
@@ -419,20 +458,44 @@ function Profile({
             <strong>Lifetime snapshot</strong>
           </div>
           <div className="profile-stats-grid">
+            <StatCard label="started" value={stats.started} />
             <StatCard label="best wpm" value={stats.bestWpm} />
             <StatCard label="completed" value={stats.completed} />
+            <StatCard label="not completed" value={stats.incomplete} />
+            <StatCard
+              label="streak"
+              value={`${stats.streak} ${stats.streak === 1 ? 'day' : 'days'}`}
+            />
             <StatCard
               label="typing time"
               value={formatDuration(stats.totalTypingSeconds)}
             />
-            <StatCard label="estimated words" value={stats.estimatedWords} />
+            <StatCard
+              label="estimated words"
+              value={stats.estimatedWords}
+              wide
+            />
           </div>
           <div className="profile-identity-strip">
             <div>
               <span>rank tier</span>
-              <strong>{stats.rank.label}</strong>
+              <strong>Level {stats.rank.level}</strong>
+              <span
+                aria-label={`${stats.rank.progress}% progress through ${stats.rank.label}`}
+                aria-valuemax="100"
+                aria-valuemin="0"
+                aria-valuenow={stats.rank.progress}
+                className="profile-level-track"
+                role="progressbar"
+              >
+                <i style={{ width: `${stats.rank.progress}%` }} />
+              </span>
               <small>
-                Level {stats.rank.level} - {stats.rank.progress}% to next tier
+                {stats.rank.label} · {stats.rank.nextWpm
+                  ? `${stats.rank.wpmToNext} WPM to Level ${
+                      getRankTier(stats.rank.nextWpm).level
+                    }`
+                  : 'Top level reached'}
               </small>
             </div>
             <div>
