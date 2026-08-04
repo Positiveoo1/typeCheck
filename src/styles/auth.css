@@ -668,7 +668,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .leaderboard-head {
+  .rank-board-head {
     display: none;
   }
 
@@ -676,44 +676,70 @@
     grid-template-columns: 1fr;
   }
 
-  .leaderboard-podium {
-    grid-template-columns: 1fr;
+  .rank-board {
+    border-radius: 10px;
   }
 
-  .podium-card,
-  .podium-rank-1 {
-    min-height: 132px;
-    order: initial;
-  }
-
-  .leaderboard-row {
+  .rank-row {
     min-height: auto;
-    padding: 14px;
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-  }
-
-  .leaderboard-row > * {
-    display: grid;
-    gap: 4px;
-  }
-
-  .leaderboard-row > *::before {
-    content: attr(data-label);
-    color: var(--muted);
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .leaderboard-row strong {
-    grid-column: 1 / -1;
+    padding: 10px 12px;
+    grid-template-columns: none;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 3px 10px;
   }
 
-  .leaderboard-player-name {
+  .rank-row[data-tier] {
+    min-height: auto;
+  }
+
+  .rank-row.current-user {
+    top: 0;
+    border-radius: 8px;
+  }
+
+  .rank-num {
+    flex: 0 0 26px;
+    font-size: 0.78rem;
+  }
+
+  .rank-player {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .rank-player-name {
     white-space: normal;
+  }
+
+  .rank-medal {
+    flex-basis: 100%;
+    margin-left: 42px;
+    width: fit-content;
+  }
+
+  .rank-wpm {
+    flex: 0 0 auto;
+    order: 1;
+    padding: 4px 8px;
+  }
+
+  .rank-accuracy {
+    flex: 0 0 auto;
+    order: 2;
+    margin-left: 32px;
+  }
+
+  .rank-mode {
+    order: 3;
+    margin-left: auto;
+  }
+
+  .rank-date {
+    flex: 0 0 100%;
+    order: 4;
+    margin-left: 32px;
   }
 
   .word-display {

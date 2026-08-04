@@ -141,6 +141,31 @@ export function getTimeLeft(testValue, elapsedSeconds) {
   return Math.max(0, testValue - Math.floor(normalizedElapsedSeconds));
 }
 
+// Finds the length of the leading run of typedText that consists of
+// complete words which were each typed correctly and followed by a
+// correctly-typed space. Once a word is finished correctly, backspace
+// should not be able to re-enter it — only words that still contain an
+// uncorrected mistake stay editable.
+export function getLockedPrefixLength(targetText, typedText) {
+  let floor = 0;
+  let wordStart = 0;
+
+  for (let index = wordStart; index < typedText.length; index += 1) {
+    if (targetText[index] !== ' ') continue;
+
+    const wordCorrect =
+      typedText.slice(wordStart, index) === targetText.slice(wordStart, index);
+    const spaceCorrect = typedText[index] === ' ';
+
+    if (!wordCorrect || !spaceCorrect) break;
+
+    floor = index + 1;
+    wordStart = index + 1;
+  }
+
+  return floor;
+}
+
 export function getNextTypedText(
   targetText,
   currentTypedText,
@@ -149,6 +174,14 @@ export function getNextTypedText(
 ) {
   if (!allowBackspace && inputValue.length < currentTypedText.length) {
     return currentTypedText;
+  }
+
+  if (allowBackspace && inputValue.length < currentTypedText.length) {
+    const lockedLength = getLockedPrefixLength(targetText, currentTypedText);
+
+    if (inputValue.length < lockedLength) {
+      return currentTypedText.slice(0, lockedLength);
+    }
   }
 
   const hasJumpedForward = inputValue.length > currentTypedText.length + 1;

@@ -97,6 +97,39 @@ describe('getNextTypedText', () => {
   it('never lets typed text grow beyond the target text', () => {
     assert.equal(getNextTypedText('hello', 'hell', 'hello!!!'), 'hello');
   });
+
+  it('stops backspace from re-entering a word that was already typed correctly', () => {
+    const target = 'hello world';
+
+    // Typed "hello" (correct) + space + "wo" of the next word, then
+    // backspaces all the way back past the word boundary.
+    assert.equal(getNextTypedText(target, 'hello wo', 'hello w'), 'hello w');
+    assert.equal(getNextTypedText(target, 'hello w', 'hello '), 'hello ');
+    // Trying to delete the trailing space (and re-enter "hello") is blocked.
+    assert.equal(getNextTypedText(target, 'hello ', 'hello'), 'hello ');
+    assert.equal(getNextTypedText(target, 'hello ', ''), 'hello ');
+  });
+
+  it('still allows backspacing into a word that was finished with a mistake', () => {
+    const target = 'hello world';
+
+    // "hbllo" (wrong) + space typed already — the mistake was never fixed
+    // before moving on, so backspace should be able to reach it.
+    assert.equal(getNextTypedText(target, 'hbllo wo', 'hbllo w'), 'hbllo w');
+    assert.equal(getNextTypedText(target, 'hbllo w', 'hbllo '), 'hbllo ');
+    assert.equal(getNextTypedText(target, 'hbllo ', 'hbllo'), 'hbllo');
+    assert.equal(getNextTypedText(target, 'hbllo', 'hb'), 'hb');
+  });
+
+  it('locks each correct word in a multi-word run independently', () => {
+    const target = 'the cat sat';
+
+    // "the" and "cat" both correct, "sat" still in progress — backspacing
+    // may edit "sat" freely but not cross back into "cat" or "the".
+    assert.equal(getNextTypedText(target, 'the cat sa', 'the cat s'), 'the cat s');
+    assert.equal(getNextTypedText(target, 'the cat s', 'the cat '), 'the cat ');
+    assert.equal(getNextTypedText(target, 'the cat ', 'the cat'), 'the cat ');
+  });
 });
 
 describe('buildMistakeKeyCounts', () => {

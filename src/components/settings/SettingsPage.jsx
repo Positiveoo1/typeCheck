@@ -5,6 +5,7 @@ import {
   getUnlockedThemeIds,
   THEME_PERSONALITIES
 } from '../../themePersonalities.js';
+import { LockIcon } from '../common/MaterialIcons.jsx';
 
 const SOUND_STYLES = [
   {
@@ -45,6 +46,30 @@ const MISTAKE_MODES = [
     description: 'Keep mistakes locked in once typed.'
   }
 ];
+
+const SETTINGS_SECTIONS = [
+  { id: 'theme-settings-title', label: 'Appearance' },
+  { id: 'behavior-settings-title', label: 'Behavior' },
+  { id: 'display-settings-title', label: 'Display' },
+  { id: 'sound-settings-title', label: 'Sound' }
+];
+
+function getUnlockProgress(unlockLabel, themeStats) {
+  const target = Number((unlockLabel.match(/\d+/) || [])[0]);
+  if (!target) return null;
+
+  let current = 0;
+  if (/wpm/i.test(unlockLabel)) current = themeStats.bestWpm;
+  else if (/accuracy/i.test(unlockLabel)) current = themeStats.bestAccuracy;
+  else if (/test/i.test(unlockLabel)) current = themeStats.completed;
+  else return null;
+
+  return {
+    current: Math.min(current, target),
+    pct: Math.max(0, Math.min(100, Math.round((current / target) * 100))),
+    target
+  };
+}
 
 function ToggleSetting({ checked, description, label, onChange }) {
   return (
@@ -101,6 +126,14 @@ function SettingsPage({
         </div>
       </section>
 
+      <nav className="settings-section-nav" aria-label="Jump to settings section">
+        {SETTINGS_SECTIONS.map((item) => (
+          <a href={`#${item.id}`} key={item.id}>
+            {item.label}
+          </a>
+        ))}
+      </nav>
+
       <section className="settings-panel" aria-labelledby="theme-settings-title">
         <div className="settings-panel-heading">
           <div>
@@ -113,6 +146,9 @@ function SettingsPage({
           {THEME_PERSONALITIES.map((themeOption) => {
             const isActive = theme === themeOption.id;
             const isUnlocked = unlockedThemeIds.includes(themeOption.id) || isActive;
+            const progress = isUnlocked
+              ? null
+              : getUnlockProgress(themeOption.unlock.label, themeStats);
 
             return (
               <button
@@ -145,7 +181,27 @@ function SettingsPage({
                 </span>
                 <strong>{themeOption.label}</strong>
                 <small>{themeOption.description}</small>
-                <em>{isUnlocked ? themeOption.soundStyle : themeOption.unlock.label}</em>
+
+                {isUnlocked ? (
+                  <em>{themeOption.soundStyle}</em>
+                ) : (
+                  <span className="theme-lock-status">
+                    <em className="locked-em">
+                      <LockIcon aria-hidden="true" />
+                      {themeOption.unlock.label}
+                    </em>
+                    {progress && (
+                      <span className="theme-lock-progress">
+                        <span className="bar">
+                          <span style={{ width: `${progress.pct}%` }} />
+                        </span>
+                        <small>
+                          {progress.current}/{progress.target}
+                        </small>
+                      </span>
+                    )}
+                  </span>
+                )}
               </button>
             );
           })}

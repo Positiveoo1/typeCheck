@@ -157,6 +157,37 @@
   line-height: 0.95;
 }
 
+.settings-section-nav {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-section-nav a {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.026);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.settings-section-nav a:hover {
+  color: var(--heading);
+  border-color: rgba(var(--accent-2-rgb), 0.4);
+}
+
 .settings-panel {
   margin-top: 18px;
   padding: 18px;
@@ -184,27 +215,40 @@
 .settings-panel-heading strong {
   color: var(--heading);
   font-size: 1.2rem;
+  scroll-margin-top: 84px;
 }
 
 .theme-choice-grid {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
   gap: 10px;
 }
 
 .settings-theme-choice {
-  min-height: 186px;
+  min-height: 168px;
   padding: 12px;
   border: 1px solid rgba(var(--accent-rgb), 0.14);
   border-radius: 8px;
   display: grid;
   align-content: start;
-  gap: 9px;
+  gap: 8px;
   color: var(--text);
   background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   text-align: left;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.settings-theme-choice:hover:not(.locked) {
+  border-color: rgba(var(--accent-2-rgb), 0.32);
+}
+
+.settings-theme-choice:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
 }
 
 .settings-theme-choice.active {
@@ -294,6 +338,55 @@
   font-style: normal;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.theme-lock-status {
+  display: grid;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.theme-lock-status em.locked-em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  border-color: var(--border);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.theme-lock-status em.locked-em svg {
+  width: 11px;
+  height: 11px;
+}
+
+.theme-lock-progress {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.theme-lock-progress .bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-lock-progress .bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-2);
+}
+
+.theme-lock-progress small {
+  color: var(--subtle);
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .theme-unlock-summary {
@@ -419,7 +512,7 @@
 .sound-style-cards {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 12px;
 }
 
@@ -435,6 +528,16 @@
   background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   text-align: left;
+  transition: border-color 140ms ease;
+}
+
+.sound-style-card:hover:not(:disabled) {
+  border-color: rgba(var(--accent-2-rgb), 0.32);
+}
+
+.sound-style-card:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
 }
 
 .sound-style-card.active {
@@ -505,4 +608,56 @@
   width: 17px;
   height: 17px;
   fill: currentColor;
+}
+
+.sound-toggle:focus-visible,
+.accent-choice:focus-visible,
+.settings-section-nav a:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .settings-page {
+    padding: 24px 0 28px;
+  }
+
+  .settings-page-hero {
+    min-height: unset;
+    padding: 20px;
+    flex-wrap: wrap;
+  }
+
+  .settings-panel {
+    padding: 14px;
+  }
+
+  .settings-panel-heading {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .theme-choice-grid,
+  .sound-style-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .accent-customizer {
+    flex-wrap: wrap;
+  }
+
+  .accent-choice-row {
+    justify-content: flex-start;
+  }
+
+  .setting-toggle-row {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .theme-choice-grid,
+  .sound-style-cards {
+    grid-template-columns: 1fr;
+  }
 }

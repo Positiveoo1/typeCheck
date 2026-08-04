@@ -12,55 +12,51 @@ import {
 } from '../../leaderboardLogic.js';
 import { EmojiEventsIcon } from '../common/MaterialIcons.jsx';
 
-function Podium({ entries, onOpenProfile, currentUserId }) {
-  if (entries.length === 0) return null;
+const TIER_LABELS = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 
-  const podiumEntries = entries.slice(0, 3);
+function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
+  const tier = rank <= 3 ? rank : 0;
+  const barPct = topWpm > 0 ? Math.max(6, Math.round((entry.wpm / topWpm) * 100)) : 0;
 
   return (
-    <div className="leaderboard-podium" aria-label="Top three players">
-      {podiumEntries.map((entry, index) => {
-        const rank = index + 1;
-        const isCurrentUser = currentUserId && entry.userId === currentUserId;
-
-        return (
-          <motion.button
-            className={[
-              'podium-card',
-              `podium-rank-${rank}`,
-              isCurrentUser ? 'current-user' : ''
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            key={`podium-${entry.id}-${rank}`}
-            onClick={() => onOpenProfile(entry.userId)}
-            type="button"
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.22, delay: index * 0.05, ease: 'easeOut' }}
-          >
-            {/* rank badge is now unconditional and structurally identical
-                across all three cards — no CSS path should be able to hide
-                it only for .current-user anymore since markup no longer
-                varies by that class */}
-            <div className="podium-top-row">
-              <span className="podium-rank">
-                {rank === 1 && <EmojiEventsIcon />}#{rank}
-              </span>
-              {isCurrentUser && <span className="podium-you-tag">you</span>}
-            </div>
-            <span className="podium-avatar" aria-hidden="true">
-              {getPlayerInitials(entry.playerName)}
-            </span>
-            <strong>{entry.playerName}</strong>
-            <span className="podium-score">{entry.wpm} WPM</span>
-            <small>
-              {entry.accuracy}% accuracy &middot; {entry.modeLabel}
-            </small>
-          </motion.button>
-        );
-      })}
-    </div>
+    <motion.button
+      className={['rank-row', isCurrentUser ? 'current-user' : ''].filter(Boolean).join(' ')}
+      data-tier={tier || undefined}
+      key={`${entry.id}-${rank}`}
+      onClick={() => onOpenProfile(entry.userId)}
+      role="row"
+      type="button"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.3) }}
+    >
+      <span className="rank-num" data-label="rank" role="cell">
+        {tier === 1 ? <EmojiEventsIcon /> : null}#{rank}
+      </span>
+      <span className="rank-player" data-label="player" role="cell">
+        <span className="rank-avatar" aria-hidden="true">
+          {getPlayerInitials(entry.playerName)}
+        </span>
+        <span className="rank-player-name">
+          {entry.playerName}
+          {isCurrentUser && <span className="rank-you">you</span>}
+        </span>
+        {tier > 0 && <em className={`rank-medal tier-${tier}`}>{TIER_LABELS[tier]}</em>}
+      </span>
+      <span className="rank-wpm" data-label="wpm" role="cell">
+        <span className="rank-wpm-bar" style={{ width: `${barPct}%` }} aria-hidden="true" />
+        <b>{entry.wpm}</b>
+      </span>
+      <span className="rank-accuracy" data-label="accuracy" role="cell">
+        {entry.accuracy}%
+      </span>
+      <span className="rank-mode" data-label="mode" role="cell">
+        {entry.modeLabel}
+      </span>
+      <span className="rank-date" data-label="date" role="cell">
+        {formatLeaderboardDate(entry.createdAt)}
+      </span>
+    </motion.button>
   );
 }
 
@@ -101,10 +97,6 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
     () => getLeaderboardSummary(filteredEntries),
     [filteredEntries]
   );
-
-  // table now only renders entries beyond the podium, so nobody appears twice
-  const podiumEntries = filteredEntries.slice(0, 3);
-  const tableEntries = filteredEntries.slice(3);
 
   return (
     <motion.main
@@ -223,76 +215,27 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         ) : filteredEntries.length === 0 ? (
           <p className="leaderboard-message">No saved results match this filter yet.</p>
         ) : (
-          <>
-            <Podium
-              currentUserId={currentUserId}
-              entries={podiumEntries}
-              onOpenProfile={onOpenProfile}
-            />
-            {tableEntries.length > 0 && (
-              <div
-                className="leaderboard-table"
-                role="table"
-                aria-label="Global typing leaderboard"
-              >
-                <div className="leaderboard-row leaderboard-head" role="row">
-                  <span role="columnheader">rank</span>
-                  <span role="columnheader">player</span>
-                  <span role="columnheader">wpm</span>
-                  <span role="columnheader">accuracy</span>
-                  <span role="columnheader">mode</span>
-                  <span role="columnheader">date</span>
-                </div>
-                {tableEntries.map((entry, index) => {
-                  const isCurrentUser = currentUserId && entry.userId === currentUserId;
-                  // rank continues from where the podium left off (starts at 4)
-                  const rank = index + 4;
-
-                  return (
-                    <motion.button
-                      className={
-                        isCurrentUser
-                          ? 'leaderboard-row leaderboard-row-button current-user'
-                          : 'leaderboard-row leaderboard-row-button'
-                      }
-                      key={`${entry.id}-${rank}`}
-                      onClick={() => onOpenProfile(entry.userId)}
-                      role="row"
-                      type="button"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.24) }}
-                    >
-                      <span className="leaderboard-rank" data-label="rank" role="cell">
-                        #{rank}
-                      </span>
-                      <strong data-label="player" role="cell">
-                        <span className="leaderboard-avatar" aria-hidden="true">
-                          {getPlayerInitials(entry.playerName)}
-                        </span>
-                        <span className="leaderboard-player-name">
-                          {entry.playerName}
-                          {isCurrentUser && <span className="leaderboard-you">you</span>}
-                        </span>
-                      </strong>
-                      <span className="leaderboard-wpm" data-label="wpm" role="cell">
-                        {entry.wpm}
-                      </span>
-                      <span data-label="accuracy" role="cell">
-                        {entry.accuracy}%
-                      </span>
-                      <span className="leaderboard-mode" data-label="mode" role="cell">
-                        {entry.modeLabel}
-                      </span>
-                      <span data-label="date" role="cell">
-                        {formatLeaderboardDate(entry.createdAt)}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            )}
-          </>
+          <div className="rank-board" role="table" aria-label="Global typing leaderboard">
+            <div className="rank-board-head" role="row">
+              <span role="columnheader">rank</span>
+              <span role="columnheader">player</span>
+              <span role="columnheader">wpm</span>
+              <span role="columnheader">accuracy</span>
+              <span role="columnheader">mode</span>
+              <span role="columnheader">date</span>
+            </div>
+            {filteredEntries.map((entry, index) => (
+              <RankRow
+                entry={entry}
+                index={index}
+                isCurrentUser={Boolean(currentUserId && entry.userId === currentUserId)}
+                key={`${entry.id}-${index + 1}`}
+                onOpenProfile={onOpenProfile}
+                rank={index + 1}
+                topWpm={summary.topWpm}
+              />
+            ))}
+          </div>
         )}
       </section>
     </motion.main>
