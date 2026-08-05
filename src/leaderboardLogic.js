@@ -27,6 +27,25 @@ export function sortLeaderboardEntries(firstEntry, secondEntry) {
   );
 }
 
+// Expects entries already sorted best-first (see sortLeaderboardEntries).
+// Keeps only each player's first (i.e. best) run so the board ranks
+// distinct players instead of listing every run someone has submitted.
+export function getBestEntryPerPlayer(entries) {
+  const seen = new Set();
+  const bestEntries = [];
+
+  for (const entry of entries) {
+    const key = entry.userId || (entry.playerName ? `name:${entry.playerName}` : entry.id);
+
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    bestEntries.push(entry);
+  }
+
+  return bestEntries;
+}
+
 export function getEntryTestType(entry) {
   if (entry.testType === 'time' || entry.testType === 'words') return entry.testType;
 

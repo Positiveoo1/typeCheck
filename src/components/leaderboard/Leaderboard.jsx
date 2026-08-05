@@ -4,6 +4,7 @@ import {
   CATEGORY_FILTERS,
   DEFAULT_MODE_FILTER,
   formatLeaderboardDate,
+  getBestEntryPerPlayer,
   getEntryTestType,
   getLeaderboardSummary,
   getModeOptions,
@@ -78,13 +79,12 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
   const effectiveModeFilter = modeOptions.includes(modeFilter) ? modeFilter : 'all';
   const filteredEntries = useMemo(
     () =>
-      categoryEntries
-        .filter(
+      getBestEntryPerPlayer(
+        categoryEntries.filter(
           (entry) =>
             effectiveModeFilter === 'all' || entry.modeLabel === effectiveModeFilter
         )
-        .sort(sortLeaderboardEntries)
-        .slice(0, 50),
+      ).slice(0, 50),
     [categoryEntries, effectiveModeFilter]
   );
   const activeFilterLabel =

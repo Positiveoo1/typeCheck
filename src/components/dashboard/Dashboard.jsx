@@ -404,14 +404,27 @@ function ProgressChart({ results }) {
           {/* dots rendered as HTML overlay so they stay perfect circles
               regardless of the SVG's non-uniform stretch */}
           <div className="dashboard-chart-dots">
-            {points.map(([x, y], index) => (
-              <span
-                aria-label={`${chartResults[index].label}: ${chartResults[index][metric]}${metric === 'accuracy' ? '%' : ' WPM'}`}
-                className="dashboard-chart-dot"
-                key={index}
-                style={{ left: `${x}%`, top: `${y}%` }}
-              />
-            ))}
+            {points.map(([x, y], index) => {
+              const point = chartResults[index];
+              const valueLabel = `${point[metric]}${metric === 'accuracy' ? '%' : ' WPM'}`;
+              const edgeClass = x < 8 ? 'edge-start' : x > 92 ? 'edge-end' : '';
+
+              return (
+                <span
+                  aria-label={`${point.label}: ${valueLabel}`}
+                  className={['dashboard-chart-point', edgeClass].filter(Boolean).join(' ')}
+                  key={index}
+                  style={{ left: `${x}%`, top: `${y}%` }}
+                  tabIndex={0}
+                >
+                  <span className="dashboard-chart-dot" />
+                  <span aria-hidden="true" className="dashboard-chart-tooltip">
+                    <strong>{valueLabel}</strong>
+                    <small>{point.label}</small>
+                  </span>
+                </span>
+              );
+            })}
           </div>
         </div>
       )}

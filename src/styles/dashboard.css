@@ -12,14 +12,124 @@
   pointer-events: none;
 }
 
-.dashboard-chart-dot {
+.dashboard-chart-point {
   position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  outline: none;
+}
+
+.dashboard-chart-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--accent-2);
-  transform: translate(-50%, -50%);
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25);
+  transition:
+    width 120ms ease,
+    height 120ms ease;
+}
+
+.dashboard-chart-point:hover .dashboard-chart-dot,
+.dashboard-chart-point:focus-visible .dashboard-chart-dot {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 0 0 4px rgba(var(--accent-2-rgb), 0.22);
+}
+
+.dashboard-chart-point:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-2);
+}
+
+.dashboard-chart-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  min-width: max-content;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  color: var(--heading);
+  background: var(--panel-strong);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  z-index: 6;
+}
+
+.dashboard-chart-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-strong);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.dashboard-chart-tooltip strong {
+  color: var(--accent-2);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.dashboard-chart-tooltip small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.dashboard-chart-point:hover .dashboard-chart-tooltip,
+.dashboard-chart-point:focus-visible .dashboard-chart-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.dashboard-chart-point.edge-start .dashboard-chart-tooltip {
+  left: 0;
+  transform: translate(0, 4px);
+}
+
+.dashboard-chart-point.edge-start:hover .dashboard-chart-tooltip,
+.dashboard-chart-point.edge-start:focus-visible .dashboard-chart-tooltip {
+  transform: translate(0, 0);
+}
+
+.dashboard-chart-point.edge-start .dashboard-chart-tooltip::after {
+  left: 11px;
+}
+
+.dashboard-chart-point.edge-end .dashboard-chart-tooltip {
+  left: auto;
+  right: 0;
+  transform: translate(0, 4px);
+}
+
+.dashboard-chart-point.edge-end:hover .dashboard-chart-tooltip,
+.dashboard-chart-point.edge-end:focus-visible .dashboard-chart-tooltip {
+  transform: translate(0, 0);
+}
+
+.dashboard-chart-point.edge-end .dashboard-chart-tooltip::after {
+  left: auto;
+  right: 11px;
+  transform: translate(50%, -50%) rotate(45deg);
 }
 
 .dashboard-hero {

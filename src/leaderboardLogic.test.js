@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  getBestEntryPerPlayer,
   getEntryTestType,
   getLeaderboardSummary,
   getModeOptions,
@@ -61,5 +62,33 @@ describe('leaderboard sorting and filtering helpers', () => {
     assert.equal(getPlayerInitials('@ada_lovelace'), 'AL');
     assert.equal(getPlayerInitials('Grace Hopper'), 'GH');
     assert.equal(getPlayerInitials(''), '?');
+  });
+
+  it('keeps only each player\'s best run, in place', () => {
+    // Already sorted best-first, as it would be after sortLeaderboardEntries.
+    const runs = [
+      { id: 'a1', userId: 'alice', wpm: 90 },
+      { id: 'b1', userId: 'bob', wpm: 80 },
+      { id: 'a2', userId: 'alice', wpm: 70 },
+      { id: 'a3', userId: 'alice', wpm: 60 },
+      { id: 'c1', userId: 'cara', wpm: 50 }
+    ];
+
+    assert.deepEqual(
+      getBestEntryPerPlayer(runs).map((entry) => entry.id),
+      ['a1', 'b1', 'c1']
+    );
+  });
+
+  it('falls back to player name when a run has no userId', () => {
+    const runs = [
+      { id: 'g1', playerName: 'Guest', userId: null, wpm: 40 },
+      { id: 'g2', playerName: 'Guest', userId: null, wpm: 30 }
+    ];
+
+    assert.deepEqual(
+      getBestEntryPerPlayer(runs).map((entry) => entry.id),
+      ['g1']
+    );
   });
 });
