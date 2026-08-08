@@ -673,7 +673,15 @@
   }
 
   .leaderboard-filters {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .filter-dropdown {
+    min-width: 0;
+  }
+
+  .filter-dropdown-menu {
+    max-width: none;
   }
 
   .rank-board {

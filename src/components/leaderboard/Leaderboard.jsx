@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CATEGORY_FILTERS,
   DEFAULT_MODE_FILTER,
@@ -11,9 +11,86 @@ import {
   getPlayerInitials,
   sortLeaderboardEntries
 } from '../../leaderboardLogic.js';
-import { EmojiEventsIcon } from '../common/MaterialIcons.jsx';
+import { CheckIcon, ChevronDownIcon, EmojiEventsIcon } from '../common/MaterialIcons.jsx';
 
 const TIER_LABELS = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+
+function FilterDropdown({ hint, id, label, onSelect, options, value }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    function handlePointerDown(event) {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setIsOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const activeOption = options.find((option) => option.value === value);
+  const labelId = `${id}-label`;
+  const buttonId = `${id}-trigger`;
+
+  return (
+    <div className="filter-dropdown" ref={rootRef}>
+      <span className="filter-dropdown-label" id={labelId}>
+        {label}
+        {hint && <small className="filter-scope-hint">{hint}</small>}
+      </span>
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-labelledby={`${labelId} ${buttonId}`}
+        className={isOpen ? 'filter-dropdown-trigger open' : 'filter-dropdown-trigger'}
+        id={buttonId}
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
+      >
+        <span>{activeOption?.label ?? value}</span>
+        <ChevronDownIcon />
+      </button>
+      {isOpen && (
+        <ul aria-labelledby={labelId} className="filter-dropdown-menu" role="listbox">
+          {options.map((option) => {
+            const isActive = option.value === value;
+
+            return (
+              <li key={option.value}>
+                <button
+                  aria-selected={isActive}
+                  className={isActive ? 'active' : ''}
+                  onClick={() => {
+                    onSelect(option.value);
+                    setIsOpen(false);
+                  }}
+                  role="option"
+                  type="button"
+                >
+                  <span>{option.label}</span>
+                  {isActive && <CheckIcon />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
   const tier = rank <= 3 ? rank : 0;
@@ -142,60 +219,34 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
           <strong>Ranked by WPM, accuracy, then date</strong>
         </div>
 
-        {/* Type and Mode are now one visual unit: Mode is nested under Type
-            with a connecting label, making the parent/child relationship
-            explicit instead of two flat, unrelated-looking button rows */}
+        {/* Type and Mode are two dropdowns instead of two rows of pill
+            buttons — Mode's option list still depends on the active Type,
+            shown via the "for <type>" hint next to its label. */}
         <div className="leaderboard-filters" aria-label="Leaderboard filters">
-          <div className="leaderboard-filter-card">
-            <span>type</span>
-            <div
-              className="leaderboard-filter-group"
-              role="group"
-              aria-label="Filter by test type"
-            >
-              {CATEGORY_FILTERS.map((filter) => (
-                <button
-                  className={categoryFilter === filter.id ? 'active' : ''}
-                  key={filter.id}
-                  onClick={() => {
-                    setCategoryFilter(filter.id);
-                    setModeFilter('all');
-                  }}
-                  type="button"
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="leaderboard-filter-card mode-filter-card nested-filter">
-            <span>
-              mode <small className="filter-scope-hint">for {activeCategoryLabel}</small>
-            </span>
-            <div
-              className="leaderboard-filter-group mode-filter-group"
-              role="group"
-              aria-label="Filter by mode"
-            >
-              <button
-                className={effectiveModeFilter === 'all' ? 'active' : ''}
-                onClick={() => setModeFilter('all')}
-                type="button"
-              >
-                all modes
-              </button>
-              {modeOptions.map((mode) => (
-                <button
-                  className={effectiveModeFilter === mode ? 'active' : ''}
-                  key={mode}
-                  onClick={() => setModeFilter(mode)}
-                  type="button"
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
+          <FilterDropdown
+            id="type-filter"
+            label="type"
+            onSelect={(next) => {
+              setCategoryFilter(next);
+              setModeFilter('all');
+            }}
+            options={CATEGORY_FILTERS.map((filter) => ({
+              label: filter.label,
+              value: filter.id
+            }))}
+            value={categoryFilter}
+          />
+          <FilterDropdown
+            hint={`for ${activeCategoryLabel}`}
+            id="mode-filter"
+            label="mode"
+            onSelect={setModeFilter}
+            options={[
+              { label: 'all modes', value: 'all' },
+              ...modeOptions.map((mode) => ({ label: mode, value: mode }))
+            ]}
+            value={effectiveModeFilter}
+          />
         </div>
 
         {!currentUserId && (
