@@ -71,6 +71,7 @@ function TestPage({
             key="results"
             onNextGame={restart}
             onTryAgain={tryAgain}
+            onPracticeWeakKeys={() => handleTrainingModeChange('weak')}
             soundEnabled={soundEnabled}
             soundStyle={effectiveSoundStyle}
             soundVolume={soundVolume}

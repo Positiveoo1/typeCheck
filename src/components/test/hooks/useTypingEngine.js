@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { loadKeyStats } from "../../../keyStats.js";
 import { buildTrainingTarget, getTrainingMode } from "../../../trainingModes.js";
 import {
   buildWordTokens,
@@ -176,6 +177,7 @@ export function useTypingEngine({
       targetTextOverride ||
       buildTrainingTarget({
         customText,
+        keyStats: trainingMode === "weak" ? loadKeyStats(language) : undefined,
         language,
         testType,
         testValue,

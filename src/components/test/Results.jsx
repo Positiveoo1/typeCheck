@@ -4,6 +4,7 @@ import { getTypingStyle } from '../../typingIdentity.js';
 import { buildMistakeKeyCounts, calculateStats } from '../../typingLogic.js';
 import { ArrowForwardIcon, CloseIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
 import KeyboardHeatmap from './KeyboardHeatmap.jsx';
+import WeakKeysPanel from './WeakKeysPanel.jsx';
 import { playKeySound } from './utils/keySound.js';
 
 function AnimatedNumber({ value }) {
@@ -755,6 +756,7 @@ function Results({
   stats,
   onNextGame,
   onTryAgain,
+  onPracticeWeakKeys,
   soundEnabled,
   soundStyle,
   soundVolume
@@ -931,6 +933,8 @@ function Results({
       {!isInvalid && <WpmHistoryChart historyResults={historyResults} stats={stats} />}
 
       {!isInvalid && <ErrorProneKeys stats={stats} />}
+
+      {!isInvalid && <WeakKeysPanel language={stats.language} onPractice={onPracticeWeakKeys} />}
 
       {!isInvalid && <ResultInsights stats={stats} />}
 
