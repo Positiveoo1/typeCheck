@@ -11,6 +11,7 @@ const SettingsPage = lazy(() => import('../settings/SettingsPage.jsx'));
 
 function AppPages({
   currentPage,
+  currentStreak,
   dashboard,
   leaderboard,
   navigate,
@@ -32,7 +33,7 @@ function AppPages({
     <div className={pageContentClass}>
       <Suspense fallback={null}>
         <AnimatePresence mode="wait">
-          {currentPage === 'dashboard' && user ? (
+          {currentPage === 'dashboard' ? (
             <Dashboard key="dashboard" dashboard={dashboard} onNavigate={navigate} />
           ) : currentPage === 'leaderboard' ? (
             <Leaderboard
@@ -57,6 +58,7 @@ function AppPages({
               key="profile"
               onNotify={notify}
               onRequestPasswordReset={onRequestPasswordReset}
+              currentStreak={currentStreak}
               dashboard={dashboard}
               onSaveProfile={onSaveProfile}
               onSignOut={onSignOut}
@@ -67,6 +69,8 @@ function AppPages({
             <SettingsPage
               key="settings"
               accentColor={settings.accentColor}
+              dailyGoalType={settings.dailyGoalType}
+              dailyGoalValue={settings.dailyGoalValue}
               dashboard={dashboard}
               mistakeMode={settings.mistakeMode}
               onPreferencesChange={settings.onPreferencesChange}

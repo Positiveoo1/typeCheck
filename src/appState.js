@@ -1,6 +1,11 @@
 import { getThemeIds, normalizeAccentColor } from './themePersonalities.js';
 import { DEFAULT_LANGUAGE, getLanguageIds } from './languages.js';
 import { getTrainingModeIds } from './trainingModes.js';
+import {
+  DEFAULT_DAILY_GOAL_TYPE,
+  DEFAULT_DAILY_GOAL_VALUE,
+  normalizeDailyGoal
+} from './dailyProgress.js';
 
 export const SETTINGS_KEY = 'typecheck-settings';
 export const THEME_KEY = 'typecheck-theme';
@@ -24,6 +29,8 @@ export const MAX_CUSTOM_TEXT_LENGTH = 1200;
 export const MIN_CUSTOM_TEST_CHARACTERS = 10;
 
 export const DEFAULT_SETTINGS = {
+  dailyGoalType: DEFAULT_DAILY_GOAL_TYPE,
+  dailyGoalValue: DEFAULT_DAILY_GOAL_VALUE,
   customText: 'Small steady practice makes typing feel effortless.',
   language: DEFAULT_LANGUAGE,
   mistakeMode: 'backspace',
@@ -90,7 +97,14 @@ export function loadSettings() {
 
     const savedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY));
 
+    const dailyGoal = normalizeDailyGoal({
+      type: savedSettings?.dailyGoalType,
+      value: savedSettings?.dailyGoalValue
+    });
+
     return {
+      dailyGoalType: dailyGoal.type,
+      dailyGoalValue: dailyGoal.value,
       mistakeMode: MISTAKE_MODES.includes(savedSettings?.mistakeMode)
         ? savedSettings.mistakeMode
         : DEFAULT_SETTINGS.mistakeMode,

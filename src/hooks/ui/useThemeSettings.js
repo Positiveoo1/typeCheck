@@ -13,6 +13,7 @@ import {
   THEMES,
   TRAINING_MODE_IDS
 } from '../../appState.js';
+import { normalizeDailyGoal } from '../../dailyProgress.js';
 import {
   getThemePersonality,
   getUnlockedThemeIds,
@@ -170,9 +171,15 @@ export function useThemeSettings({
 
   const handlePreferencesChange = useCallback(
     (nextOptions) => {
+      const dailyGoal = normalizeDailyGoal({
+        type: nextOptions.dailyGoalType ?? settings.dailyGoalType,
+        value: nextOptions.dailyGoalValue ?? settings.dailyGoalValue
+      });
       const nextSettings = {
         ...settings,
         ...nextOptions,
+        dailyGoalType: dailyGoal.type,
+        dailyGoalValue: dailyGoal.value,
         mistakeMode: MISTAKE_MODES.includes(nextOptions.mistakeMode)
           ? nextOptions.mistakeMode
           : settings.mistakeMode,

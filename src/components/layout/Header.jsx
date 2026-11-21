@@ -8,9 +8,11 @@ import {
   SettingsIcon
 } from '../common/MaterialIcons.jsx';
 
+import DailyGoalWidget from './DailyGoalWidget.jsx';
+
 const AuthPanel = lazy(() => import('../auth/AuthPanel.jsx'));
 
-function Header({ currentPage, onNotify, profile, user, onNavigate }) {
+function Header({ currentPage, dailyProgress, onNotify, profile, user, onNavigate }) {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const navRef = useRef(null);
 
@@ -51,6 +53,7 @@ function Header({ currentPage, onNotify, profile, user, onNavigate }) {
       </motion.button>
 
       <nav className="nav-actions" aria-label="Primary" ref={navRef}>
+        <DailyGoalWidget progress={dailyProgress} />
         <motion.button
           aria-label="Typing test"
           className={currentPage === 'test' ? 'nav-icon active' : 'nav-icon'}

@@ -10,6 +10,7 @@ import '../src/styles/profile.css';
 import '../src/styles/settings.css';
 import '../src/styles/auth.css';
 import '../src/styles/onboarding.css';
+import '../src/styles/daily-goal.css';
 
 export const metadata = {
   title: 'TypeCheck',
