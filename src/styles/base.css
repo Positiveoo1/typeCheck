@@ -1,4 +1,5 @@
 :root {
+  --on-accent: var(--bg);
   --bg: #10120f;
   --bg-soft: #171a15;
   --bg-deep: #0e100d;
@@ -28,6 +29,7 @@
 }
 
 [data-theme='serika'] {
+  --on-accent: #ffffff;
   --bg: #e1dcc9;
   --bg-soft: #d8d0bb;
   --bg-deep: #cfc5ad;
@@ -154,6 +156,7 @@
 }
 
 [data-theme='sakura'] {
+  --on-accent: #111111;
   --bg: #fff1f6;
   --bg-soft: #f8dfe9;
   --bg-deep: #efcbd9;
@@ -448,6 +451,7 @@
 }
 
 [data-theme='ice'] {
+  --on-accent: #111111;
   --bg: #f1f8ff;
   --bg-soft: #dfefff;
   --bg-deep: #c9e4fb;
@@ -490,6 +494,7 @@
 }
 
 [data-theme='lavender'] {
+  --on-accent: #ffffff;
   --bg: #f5f0ff;
   --bg-soft: #e8defb;
   --bg-deep: #d8c9f1;

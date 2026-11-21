@@ -117,7 +117,7 @@
 
 .leaderboard-tab.active,
 .leaderboard-tab:hover {
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
 }
 

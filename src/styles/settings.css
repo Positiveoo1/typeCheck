@@ -295,7 +295,8 @@
 
 .theme-preview-text i:nth-child(2) {
   width: 74px;
-  background: color-mix(in srgb, var(--heading) 18%, transparent);
+  /* Sits on the preview's fixed dark window, so it stays white in every theme. */
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .theme-preview-text i:nth-child(3) {

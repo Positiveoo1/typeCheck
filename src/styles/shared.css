@@ -170,7 +170,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
   font-weight: 800;
 }
@@ -218,7 +218,7 @@
   padding: 8px 14px;
   border: 1px solid rgba(var(--caret-rgb), 0.36);
   border-radius: 8px;
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
   font-size: 0.86rem;
   font-weight: 900;
@@ -290,7 +290,7 @@
 }
 
 .segmented button.active {
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
 }
 
@@ -312,7 +312,7 @@
 }
 
 ::selection {
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
 }
 
@@ -324,7 +324,7 @@
   min-height: 44px;
   padding: 0 18px;
   border-radius: 8px;
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
   font-weight: 800;
   cursor: pointer;
@@ -334,7 +334,7 @@
 }
 
 .page-cta:hover {
-  color: var(--bg);
+  color: var(--on-accent);
   background: color-mix(in srgb, var(--accent-2) 86%, var(--heading));
 }
 

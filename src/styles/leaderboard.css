@@ -205,7 +205,7 @@ td.lb-col-rank {
 
 .lb-table tr.is-you .lb-avatar,
 .lb-table tr.is-selected .lb-avatar {
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
 }
 
@@ -300,7 +300,7 @@ td.lb-col-date {
 .lb-avatar-large {
   width: 52px;
   height: 52px;
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
   font-size: 1.05rem;
 }

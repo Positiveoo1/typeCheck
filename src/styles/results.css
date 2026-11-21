@@ -310,7 +310,7 @@
 }
 
 .history-toolbar button.active {
-  color: var(--bg);
+  color: var(--on-accent);
   border-color: rgba(var(--accent-2-rgb), 0.72);
   background: var(--accent-2);
 }
@@ -521,7 +521,7 @@
 
 .replay-speed button { min-width: 38px; height: 32px; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; font-weight: 800; }
 
-.replay-speed button.active { color: var(--bg); border-color: var(--accent-2); background: var(--accent-2); }
+.replay-speed button.active { color: var(--on-accent); border-color: var(--accent-2); background: var(--accent-2); }
 
 .replay-unavailable { margin: 14px 0 0; color: var(--muted); font-size: 0.82rem; }
 .share-result-backdrop {

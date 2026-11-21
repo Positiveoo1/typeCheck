@@ -484,7 +484,7 @@
 
 .training-mode-card.active .training-mode-icon {
   border-color: rgba(var(--accent-2-rgb), 0.42);
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
 }
 
@@ -612,7 +612,7 @@
 }
 
 .custom-text-actions button[type='submit'] {
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
 }
 
@@ -756,7 +756,7 @@
   min-height: 36px;
   padding: 0 12px;
   border-radius: 7px;
-  color: var(--bg);
+  color: var(--on-accent);
   background: var(--accent-2);
   cursor: pointer;
   font-weight: 800;
@@ -938,7 +938,7 @@
 }
 
 .keyboard-key.pressed {
-  color: var(--bg);
+  color: var(--on-accent);
   border-color: rgba(var(--accent-2-rgb), 0.8);
   background: var(--accent-2);
   box-shadow:
@@ -966,7 +966,7 @@
 }
 
 .visual-keyboard-results .keyboard-key-mistake {
-  border-color: color-mix(in srgb, var(--accent-rgb) 35%, transparent);
+  border-color: rgba(var(--accent-rgb), 0.35);
   background: rgba(var(--accent-rgb), 0.09);
 }
 
