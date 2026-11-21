@@ -6,6 +6,7 @@ import {
   THEME_PERSONALITIES
 } from '../../themePersonalities.js';
 import { LockIcon } from '../common/MaterialIcons.jsx';
+import DailyGoalSetting from './DailyGoalSetting.jsx';
 
 const SOUND_STYLES = [
   {
@@ -50,6 +51,7 @@ const MISTAKE_MODES = [
 const SETTINGS_SECTIONS = [
   { id: 'theme-settings-title', label: 'Appearance' },
   { id: 'behavior-settings-title', label: 'Behavior' },
+  { id: 'goal-settings-title', label: 'Daily goal' },
   { id: 'display-settings-title', label: 'Display' },
   { id: 'sound-settings-title', label: 'Sound' }
 ];
@@ -115,6 +117,8 @@ function ChoiceGroup({ label, onChange, options, value }) {
 
 function SettingsPage({
   accentColor,
+  dailyGoalType,
+  dailyGoalValue,
   dashboard,
   mistakeMode,
   reducedMotion,
@@ -297,6 +301,21 @@ function SettingsPage({
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="settings-panel" aria-labelledby="goal-settings-title">
+        <div className="settings-panel-heading">
+          <div>
+            <span>streak</span>
+            <strong id="goal-settings-title">Daily goal</strong>
+          </div>
+        </div>
+
+        <DailyGoalSetting
+          dailyGoalType={dailyGoalType}
+          dailyGoalValue={dailyGoalValue}
+          onPreferencesChange={onPreferencesChange}
+        />
       </section>
 
       <section className="settings-panel" aria-labelledby="display-settings-title">

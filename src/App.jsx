@@ -6,7 +6,7 @@ import {
   MotionConfig,
   motion,
 } from "framer-motion";
-import { lazy, useCallback, useEffect, useState } from "react";
+import { lazy, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ACCOUNT_SECURITY_WINDOW_DAYS,
   addCompletedResultToDashboard,
@@ -30,11 +30,17 @@ import Header from "./components/layout/Header.jsx";
 import { useAppKeyboardShortcuts } from "./hooks/app/useAppKeyboardShortcuts.js";
 import { pushPageRoute, useAppRouting } from "./hooks/app/useAppRouting.js";
 import { useAuthSync } from "./hooks/auth/useAuthSync.js";
+import { useDailyProgress } from "./hooks/data/useDailyProgress.js";
 import { useDashboardPersistence } from "./hooks/data/useDashboardPersistence.js";
+import { useLocalHistory } from "./hooks/data/useLocalHistory.js";
 import { useRemotePageData } from "./hooks/data/useRemotePageData.js";
 import { useCapsLockIndicator } from "./hooks/ui/useCapsLockIndicator.js";
 import { useThemeSettings } from "./hooks/ui/useThemeSettings.js";
 import { ToastStack, useToasts } from "./hooks/ui/useToasts.jsx";
+import {
+  buildDashboardFromLocal,
+  mergeResultSources,
+} from "./localHistory.js";
 import { isFirebaseConfigured } from "./services/firebaseConfig.js";
 import {
   getAuthActionErrorMessage,
@@ -68,7 +74,6 @@ function App() {
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
   const [showMobileTip, setShowMobileTip] = useState(true);
   const [pendingPage, setPendingPage] = useState(null);
-  const [pendingResultSave, setPendingResultSave] = useState(null);
   const [replayTargetText, setReplayTargetText] = useState(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const { dismissToast, notify, toasts } = useToasts();
@@ -228,24 +233,39 @@ function App() {
     setUserProfile,
   });
 
+  const { localHistory, recordLocalResult } = useLocalHistory({
+    isAuthReady,
+    notify,
+    updateDashboard,
+    user,
+  });
+  const guestDashboard = useMemo(
+    () => buildDashboardFromLocal(localHistory),
+    [localHistory],
+  );
+  const progressResults = useMemo(
+    () =>
+      user
+        ? mergeResultSources(localHistory, dashboard.results)
+        : localHistory,
+    [dashboard.results, localHistory, user],
+  );
+  const dailyProgress = useDailyProgress({
+    goalType: settings.dailyGoalType,
+    goalValue: settings.dailyGoalValue,
+    isReady: true,
+    notify,
+    results: progressResults,
+  });
+
   useEffect(() => {
-    if (!isAuthReady || user || !["dashboard", "profile"].includes(currentPage))
-      return;
+    if (!isAuthReady || user || currentPage !== "profile") return;
 
     pushPageRoute("test");
     setCurrentPage("test");
     setPendingPage(currentPage);
     setIsAuthGateOpen(true);
   }, [currentPage, isAuthReady, user]);
-
-  useEffect(() => {
-    if (!isAuthReady || !user || !pendingResultSave) return;
-
-    saveCompletedResult(pendingResultSave.result, {
-      countStarted: pendingResultSave.countStarted,
-    });
-    setPendingResultSave(null);
-  }, [isAuthReady, pendingResultSave, saveCompletedResult, user]);
 
   const finishTest = useCallback(
     (nextResult) => {
@@ -307,24 +327,20 @@ function App() {
         addCompletedResultToDashboard(currentDashboard, completedResult),
       );
 
+      // Every valid result is kept in the browser (also the source for streaks).
+      recordLocalResult(completedResult);
+
+      // Guests are not interrupted; local results upload when they sign in
+      // (see useLocalHistory).
       if (user && isFirebaseConfigured) {
         saveCompletedResult(completedResult, { skipDashboardUpdate: true });
-      } else if (isFirebaseConfigured) {
-        setPendingResultSave({
-          countStarted: true,
-          result: completedResult,
-        });
-        setIsAuthGateOpen(true);
-      } else {
-        console.error(
-          "Typing performance was not saved because Firebase is not configured.",
-        );
       }
     },
     [
       dashboard.modes,
       dashboard.results,
       notify,
+      recordLocalResult,
       saveCompletedResult,
       updateDashboard,
       user,
@@ -521,7 +537,7 @@ function App() {
   };
 
   const navigate = (nextPage, options = {}) => {
-    if (["dashboard", "profile"].includes(nextPage) && isAuthReady && !user) {
+    if (nextPage === "profile" && isAuthReady && !user) {
       setPendingPage(nextPage);
       setIsAuthGateOpen(true);
       return;
@@ -618,6 +634,7 @@ function App() {
 
           <Header
             currentPage={currentPage}
+            dailyProgress={dailyProgress}
             onNavigate={navigate}
             onNotify={notify}
             profile={userProfile}
@@ -638,7 +655,8 @@ function App() {
 
           <AppPages
             currentPage={currentPage}
-            dashboard={dashboard}
+            currentStreak={dailyProgress.currentStreak}
+            dashboard={user ? dashboard : guestDashboard}
             leaderboard={leaderboard}
             navigate={navigate}
             notify={notify}
@@ -649,6 +667,8 @@ function App() {
             publicProfile={publicProfile}
             settings={{
               accentColor,
+              dailyGoalType: settings.dailyGoalType,
+              dailyGoalValue: settings.dailyGoalValue,
               mistakeMode,
               onPreferencesChange: handlePreferencesChange,
               onSoundToggle: handleSoundToggle,

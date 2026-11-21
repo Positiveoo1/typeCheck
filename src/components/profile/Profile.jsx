@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { getStreaks } from "../../dailyProgress.js";
 import { EditIcon } from "../common/MaterialIcons.jsx";
 
 import {
@@ -87,22 +88,9 @@ function getUtcDayKey(value) {
   return date.toISOString().slice(0, 10);
 }
 
+// Fallback when no goal-aware streak is supplied: any day with >= 1 test counts.
 function getCurrentStreak(results) {
-  const activeDays = new Set(
-    (Array.isArray(results) ? results : [])
-      .map((result) => getUtcDayKey(result.createdAt))
-      .filter(Boolean)
-  );
-  const cursor = new Date();
-  cursor.setUTCHours(0, 0, 0, 0);
-
-  let streak = 0;
-  while (activeDays.has(getUtcDayKey(cursor))) {
-    streak += 1;
-    cursor.setUTCDate(cursor.getUTCDate() - 1);
-  }
-
-  return streak;
+  return getStreaks(results, { type: "tests", value: 1 }).current;
 }
 
 function getRecentEvents(events) {
@@ -217,6 +205,7 @@ function ActivityGrid({ results }) {
 }
 
 function Profile({
+  currentStreak,
   dashboard,
   onNotify,
   onRequestPasswordReset,
@@ -297,7 +286,7 @@ function Profile({
       incomplete: Number(dashboard.incomplete) || 0,
       rank: getRankTier(bestWpm),
       started: Number(dashboard.started) || 0,
-      streak: getCurrentStreak(results),
+      streak: currentStreak ?? getCurrentStreak(results),
       style: getTypingStyle(
         results[0] || { accuracy: bestAccuracy, wpm: bestWpm },
         {
@@ -307,7 +296,7 @@ function Profile({
       ),
       totalTypingSeconds: Number(dashboard.totalTypingSeconds) || 0,
     };
-  }, [dashboard]);
+  }, [currentStreak, dashboard]);
   const achievementBadges = getAchievementBadges({
     bestAccuracy: stats.bestAccuracy,
     bestWpm: stats.bestWpm,

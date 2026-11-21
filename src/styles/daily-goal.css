@@ -1,0 +1,103 @@
+.daily-goal {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.16);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.daily-goal.met {
+  border-color: rgba(var(--accent-2-rgb), 0.5);
+}
+
+.daily-goal-streak,
+.daily-goal-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.daily-goal-streak b {
+  color: var(--heading);
+  font-weight: 800;
+}
+
+.daily-goal-streak .material-icon {
+  width: 18px;
+  height: 18px;
+  fill: var(--muted);
+}
+
+.daily-goal-streak.lit .material-icon {
+  fill: var(--accent-2);
+}
+
+.daily-goal-ring svg {
+  width: 22px;
+  height: 22px;
+  transform: rotate(-90deg);
+}
+
+.daily-goal-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.daily-goal-ring-track {
+  stroke: rgba(var(--accent-rgb), 0.18);
+}
+
+.daily-goal-ring-value {
+  stroke: var(--accent-2);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 300ms ease;
+}
+
+.daily-goal-ring small {
+  font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+  .daily-goal-unit {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-goal-ring-value {
+    transition: none;
+  }
+}
+
+.daily-goal-setting {
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.daily-goal-setting-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.daily-goal-setting-controls input[type='number'] {
+  width: 84px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: 8px;
+  color: var(--heading);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.daily-goal-setting-controls input[type='number']:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 2px;
+}
