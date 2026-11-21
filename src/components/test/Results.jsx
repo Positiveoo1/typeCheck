@@ -2,6 +2,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useTransform } from '
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getTypingStyle } from '../../typingIdentity.js';
 import { buildMistakeKeyCounts, calculateStats } from '../../typingLogic.js';
+import ShareResultButton from './ShareResultButton.jsx';
 import { ArrowForwardIcon, CloseIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
 import KeyboardHeatmap from './KeyboardHeatmap.jsx';
 import { playKeySound } from './utils/keySound.js';
@@ -976,6 +977,7 @@ function Results({
         >
           <span>{isSharing ? 'Preparing...' : 'Share card'}</span>
         </motion.button>
+        {!isInvalid && <ShareResultButton result={stats} />}
       </div>
       <AnimatePresence>
         {isReplayOpen && (
