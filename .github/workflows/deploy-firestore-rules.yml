@@ -35,6 +35,8 @@ jobs:
             exit 1
           fi
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          # Not secret: shows which identity is deploying, to help debug IAM errors.
+          node -e 'const k=require(process.argv[1]); console.log("Deploying as service account:", k.client_email); console.log("Key belongs to project:", k.project_id);' "$RUNNER_TEMP/firebase-sa.json"
 
       - name: Deploy firestore.rules
         env:
