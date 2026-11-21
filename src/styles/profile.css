@@ -243,16 +243,16 @@
 }
 
 /* Activity grid */
-.profile-contrib {
-  overflow-x: auto;
-  padding-bottom: 4px;
+.profile-contrib-body {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
 }
 
-.profile-contrib-body {
-  width: max-content;
-  display: grid;
-  grid-template-columns: 34px auto;
-  gap: 8px;
+.profile-contrib {
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .profile-contrib-labels {
@@ -702,6 +702,17 @@
 .badge-strip li:hover .badge-tip,
 .badge-strip li:focus-visible .badge-tip {
   display: block;
+}
+
+.badge-todo {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.badge-todo strong {
+  color: var(--text);
 }
 
 .badge-strip li:nth-last-child(-n + 2) .badge-tip {

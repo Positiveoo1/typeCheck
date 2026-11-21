@@ -82,6 +82,7 @@ export function TierRail({ bestWpm, label = 'Your best' }) {
 
 export function BadgeList({ badges }) {
   const earned = badges.filter((badge) => badge.isUnlocked).length;
+  const locked = badges.filter((badge) => !badge.isUnlocked);
 
   return (
     <section className="prof-section" aria-labelledby="badges-heading">
@@ -112,6 +113,18 @@ export function BadgeList({ badges }) {
           </li>
         ))}
       </ul>
+      {locked.length > 0 && (
+        <p className="badge-todo">
+          Still to earn:{' '}
+          {locked.map((badge, index) => (
+            <span key={badge.id}>
+              {index > 0 && ' · '}
+              <strong>{badge.label}</strong>: {badge.detail.replace(/\.$/, '')}
+            </span>
+          ))}
+          .
+        </p>
+      )}
     </section>
   );
 }

@@ -153,23 +153,23 @@ function ActivityGrid({ results }) {
           last 12 months · days in UTC
         </p>
       </div>
-      <div className="profile-contrib" ref={scrollRef}>
       <div className="profile-contrib-body">
         <div className="profile-contrib-labels" aria-hidden="true">
           {DAY_LABELS.map((label, index) => (
             <span key={`${label}-${index}`}>{label}</span>
           ))}
         </div>
-        <div className="profile-contrib-grid">
-          {days.map((day) => (
-            <span
-              data-level={day.level}
-              key={day.key}
-              title={`${day.count} tests on ${day.key}`}
-            />
-          ))}
+        <div className="profile-contrib" ref={scrollRef}>
+          <div className="profile-contrib-grid">
+            {days.map((day) => (
+              <span
+                data-level={day.level}
+                key={day.key}
+                title={`${day.count} tests on ${day.key}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
       </div>
       <div className="profile-contrib-legend" aria-hidden="true">
         <span>Less</span>
