@@ -524,3 +524,59 @@
 .replay-speed button.active { color: var(--bg); border-color: var(--accent-2); background: var(--accent-2); }
 
 .replay-unavailable { margin: 14px 0 0; color: var(--muted); font-size: 0.82rem; }
+.share-result-backdrop {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  padding: 22px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.share-result-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.32);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  outline: none;
+}
+
+.share-result-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.share-result-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.share-status {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.share-result-dismiss {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.share-result-modal {
+  position: relative;
+  z-index: 1;
+}
