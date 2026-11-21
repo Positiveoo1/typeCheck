@@ -566,81 +566,6 @@ function ErrorProneKeys({ stats }) {
   );
 }
 
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => resolve(image);
-    image.onerror = reject;
-    image.src = src;
-  });
-}
-
-async function createShareCard(stats, sectionElement) {
-  const canvas = document.createElement('canvas');
-  const width = 1200;
-  const height = 630;
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('Canvas is unavailable in this browser.');
-
-  const styles = sectionElement ? getComputedStyle(sectionElement) : getComputedStyle(document.body);
-  const bg = styles.getPropertyValue('--bg') || '#111';
-  const bgSoft = styles.getPropertyValue('--bg-soft') || '#1b1b1b';
-  const heading = styles.getPropertyValue('--heading') || '#fff';
-  const text = styles.getPropertyValue('--text') || '#eee';
-  const accent = styles.getPropertyValue('--accent') || '#74c365';
-  const accent2 = styles.getPropertyValue('--accent-2') || '#9de16c';
-
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, bg.trim());
-  gradient.addColorStop(1, bgSoft.trim());
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, width, height);
-
-  const orb = context.createRadialGradient(width * 0.8, height * 0.2, 20, width * 0.8, height * 0.2, 280);
-  orb.addColorStop(0, `${accent2.trim()}66`);
-  orb.addColorStop(1, 'transparent');
-  context.fillStyle = orb;
-  context.fillRect(0, 0, width, height);
-
-  context.fillStyle = accent.trim();
-  context.font = '700 28px "IBM Plex Sans", sans-serif';
-  context.fillText('TypeCheck', 92, 94);
-  context.fillStyle = heading.trim();
-  context.font = '800 128px "IBM Plex Sans", sans-serif';
-  context.fillText(`${Math.round(Number(stats.wpm) || 0)}`, 88, 252);
-  context.font = '700 52px "IBM Plex Sans", sans-serif';
-  context.fillText('WPM', 424, 252);
-
-  context.fillStyle = text.trim();
-  context.font = '600 34px "IBM Plex Sans", sans-serif';
-  context.fillText(`Accuracy ${Math.round(Number(stats.accuracy) || 0)}%`, 92, 324);
-  context.fillText(`Mode ${stats.modeLabel}`, 92, 374);
-  context.fillText(`Elapsed ${formatSeconds(Number(stats.elapsedSeconds) || 0)}s`, 92, 424);
-
-  context.fillStyle = accent2.trim();
-  context.font = '700 28px "IBM Plex Sans", sans-serif';
-  context.fillText('Raw vs Net', 92, 504);
-  context.fillStyle = text.trim();
-  context.font = '600 28px "IBM Plex Sans", sans-serif';
-  context.fillText(
-    `${Math.round(Number(stats.rawWpm ?? stats.wpm) || 0)} / ${Math.round(Number(stats.netWpm ?? stats.wpm) || 0)} WPM`,
-    250,
-    504
-  );
-
-  try {
-    const logo = await loadImage('/logo.png');
-    context.drawImage(logo, width - 220, 56, 140, 88);
-  } catch {
-    // Keep the card shareable even if logo loading fails.
-  }
-
-  return canvas;
-}
-
 function ResultInsights({ stats }) {
   const heatmap = getWordHeatmap(stats.targetText, stats.typedText);
   const segments = getSegmentInsights(stats.speedHistory || []);
@@ -762,7 +687,6 @@ function Results({
 }) {
   const typingStyle = getTypingStyle(stats);
   const isInvalid = Boolean(stats.isInvalid);
-  const [isSharing, setIsSharing] = useState(false);
   const [isReplayOpen, setIsReplayOpen] = useState(false);
   const resultsRef = useRef(null);
   const keySoundPoolRef = useRef([]);
@@ -786,42 +710,6 @@ function Results({
     setIsReplayOpen(true);
   };
 
-  const handleShare = async () => {
-    if (isSharing) return;
-
-    setIsSharing(true);
-    try {
-      const canvas = await createShareCard(stats, resultsRef.current);
-
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) {
-        throw new Error('Could not generate image.');
-      }
-
-      const file = new File([blob], `typecheck-${Date.now()}.png`, { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          text: `${Math.round(Number(stats.wpm) || 0)} WPM at ${Math.round(Number(stats.accuracy) || 0)}% accuracy on TypeCheck`,
-          title: 'TypeCheck result'
-        });
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = file.name;
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Failed to share result card:', error);
-    } finally {
-      setIsSharing(false);
-    }
-  };
 
   return (
     <motion.section
@@ -966,16 +854,6 @@ function Results({
         >
           <ArrowForwardIcon />
           <span>Next game</span>
-        </motion.button>
-        <motion.button
-          className="secondary-action"
-          disabled={isSharing}
-          onClick={handleShare}
-          type="button"
-          whileHover={{ y: -2, scale: 1.04 }}
-          whileTap={{ scale: 0.93, rotate: 2 }}
-        >
-          <span>{isSharing ? 'Preparing...' : 'Share card'}</span>
         </motion.button>
         {!isInvalid && <ShareResultButton result={stats} />}
       </div>

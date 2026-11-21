@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
   "files": {
-    "includes": ["**", "!node_modules", "!.next", "!package-lock.json", "!public/audio"]
+    "includes": ["**", "!node_modules", "!.next", "!package-lock.json", "!public/audio", "!.claude"]
   },
   "formatter": {
     "enabled": true,
