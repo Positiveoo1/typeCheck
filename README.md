@@ -108,6 +108,8 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# Optional: submit results through the verified Cloud Function (Blaze plan).
+NEXT_PUBLIC_VERIFIED_SUBMIT=false
 ```
 
 Optional sitemap data sources:
@@ -143,6 +145,75 @@ If saving a result logs `Missing or insufficient permissions`, the deployed
 Firestore rules do not allow the app's expected authenticated writes yet. A
 separate `net::ERR_BLOCKED_BY_CLIENT` line is usually caused by a browser
 extension or privacy blocker interrupting a Firestore network request.
+
+## Leaderboard integrity
+
+Leaderboard results can be submitted in two ways.
+
+### 1. Hardened direct path (default, Spark plan)
+
+The free Spark plan cannot run Cloud Functions, so by default the browser
+writes leaderboard entries itself and `firestore.rules` bounds what it may
+claim:
+
+- `userId` must equal the signed-in user's uid, and `verified` must be absent
+  or `false` (clients can never mark their own entries as verified).
+- Plausibility bounds: `wpm <= 300`, `accuracy >= 50` (lower-accuracy runs are
+  still saved to your history, just not ranked), `elapsedSeconds >= 5`, and
+  the duration has to agree with the test: timed runs carry their length in
+  `testValue` (5-300 s, matching the mode label, at most that long); word runs
+  must be 10/30/60 words and `wpm * elapsedSeconds` must fit the word count.
+- Per-user rate limit: each leaderboard write is a `writeBatch` that also sets
+  `users/{uid}.lastLeaderboardSubmitAt` to the server time. The rules use
+  `getAfter`/`existsAfter` to require that stamp in the same batch and reject
+  the write if the previous stamp is less than 5 seconds old. The stamp can
+  only ever move forward to "now", and the user document can't be deleted.
+
+Before submitting, the client also runs `isPlausibleResult(result)`
+(`src/resultPlausibility.js`) over the keystroke log -- enough events for the
+typed length, no paste-like bursts, no inhuman sustained speed -- and skips the
+leaderboard for implausible runs.
+
+This raises the bar but is **not tamper-proof**: a determined user can still
+forge plausible numbers from the browser console.
+
+### 2. Verified path (opt-in, Blaze plan)
+
+`functions/index.js` exports a callable `submitResult` function. It receives the
+target text, typed text and keystroke log, then (see `functions/verify.js`):
+
+- checks the log is chronological, ends with exactly the typed text and has
+  no paste-like bursts;
+- checks timed runs against the test length, and that word runs' target text
+  has the declared number of words;
+- recomputes WPM / accuracy / mode label itself and ignores client stats;
+- writes the personal result and the leaderboard entry with `verified: true`
+  (shown with a check mark on the leaderboard).
+
+To enable it:
+
+1. Upgrade the Firebase project to the **Blaze** plan.
+2. Deploy the function:
+
+   ```bash
+   cd functions && npm install && cd ..
+   firebase deploy --only functions
+   ```
+
+3. Set `NEXT_PUBLIC_VERIFIED_SUBMIT=true` in the hosting environment and rebuild.
+   If the call fails, the run is saved to the user's history and the user is
+   notified, but nothing is written to the leaderboard.
+4. Optional: once every client uses the verified path, stop accepting direct
+   client writes by changing the leaderboard rule in `firestore.rules` and
+   redeploying the rules:
+
+   ```
+   match /leaderboardResults/{resultId} {
+     allow read: if true;
+     // Only the submitResult Cloud Function (Admin SDK) may write entries.
+     allow create, update, delete: if false;
+   }
+   ```
 
 ## App Navigation
 

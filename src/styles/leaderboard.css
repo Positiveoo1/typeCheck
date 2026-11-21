@@ -460,6 +460,24 @@
   vertical-align: middle;
 }
 
+.rank-verified {
+  margin-left: 6px;
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  background: var(--accent-2);
+  vertical-align: middle;
+}
+
+.rank-verified svg {
+  width: 11px;
+  height: 11px;
+}
+
 .rank-medal {
   flex: 0 0 auto;
   padding: 2px 7px;

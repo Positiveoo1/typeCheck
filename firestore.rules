@@ -53,27 +53,92 @@ service cloud.firestore {
         isValidNumber(request.resource.data.wrongChars, 0, 20000);
     }
 
+    // --- Leaderboard integrity (direct, Spark-plan path) -------------------
+    // Clients write leaderboard entries themselves, so these rules bound
+    // what they can claim. The opt-in verified path (functions/index.js,
+    // submitResult) writes with the Admin SDK and bypasses these rules; it
+    // is the only writer allowed to set `verified: true`.
+
+    function isNotVerifiedClaim() {
+      return !('verified' in request.resource.data) ||
+        request.resource.data.verified == false;
+    }
+
+    // Per-user rate limit: every leaderboard write must also stamp
+    // users/{uid}.lastLeaderboardSubmitAt = request.time in the same batch,
+    // and the previous stamp must be at least 5 seconds old.
+    function hasFreshLeaderboardStamp() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return existsAfter(userPath) &&
+        getAfter(userPath).data.lastLeaderboardSubmitAt == request.time &&
+        (!exists(userPath) ||
+          !('lastLeaderboardSubmitAt' in get(userPath).data) ||
+          request.time >= get(userPath).data.lastLeaderboardSubmitAt + duration.value(5, 's'));
+    }
+
+    // users/{uid}.lastLeaderboardSubmitAt may only move to "now", so it
+    // can't be back-dated (or removed) to dodge the rate limit.
+    function isValidLeaderboardStampChange() {
+      let hadStamp = resource != null && ('lastLeaderboardSubmitAt' in resource.data);
+      let hasStamp = 'lastLeaderboardSubmitAt' in request.resource.data;
+      return (!hadStamp &&
+          (!hasStamp || request.resource.data.lastLeaderboardSubmitAt == request.time)) ||
+        (hadStamp && hasStamp &&
+          (request.resource.data.lastLeaderboardSubmitAt == resource.data.lastLeaderboardSubmitAt ||
+            request.resource.data.lastLeaderboardSubmitAt == request.time));
+    }
+
+    function isPlausibleLeaderboardScore(data) {
+      return isValidNumber(data.wpm, 0, 300) &&
+        isValidNumber(data.accuracy, 50, 100) &&
+        data.elapsedSeconds is number &&
+        data.elapsedSeconds >= 5;
+    }
+
+    // elapsedSeconds/testValue must agree with testType and the mode label:
+    // timed runs last at most their length (accuracy lock can end them
+    // early); word runs are bounded by ~200 wpm-seconds per word, which no
+    // human beats (e.g. 60 words can't be finished at 300 wpm in 5s).
+    function hasConsistentDuration(data) {
+      return data.testValue is int &&
+        ((data.testType == 'time' &&
+          data.testValue >= 5 && data.testValue <= 300 &&
+          data.elapsedSeconds <= data.testValue + 1 &&
+          data.modeLabel.matches('^(.+ )?' + string(data.testValue) + 's$')) ||
+        (data.testType == 'words' &&
+          data.testValue in [10, 30, 60] &&
+          data.elapsedSeconds <= 3600 &&
+          data.wpm * data.elapsedSeconds <= data.testValue * 200 &&
+          data.modeLabel.matches('^(.+ )?' + string(data.testValue) + ' words$')));
+    }
+
     function isValidLeaderboardResult() {
+      let data = request.resource.data;
       return hasOnlyFields([
           'accuracy',
           'createdAt',
+          'elapsedSeconds',
           'modeLabel',
           'testType',
+          'testValue',
           'trainingMode',
           'userId',
+          'verified',
           'wpm'
         ]) &&
-        request.resource.data.userId == request.auth.uid &&
-        isValidNumber(request.resource.data.accuracy, 0, 100) &&
-        request.resource.data.createdAt == request.time &&
-        request.resource.data.modeLabel is string &&
-        request.resource.data.modeLabel.size() > 0 &&
-        request.resource.data.modeLabel.size() <= 80 &&
-        request.resource.data.testType in ['time', 'words'] &&
-        request.resource.data.trainingMode is string &&
-        request.resource.data.trainingMode.size() > 0 &&
-        request.resource.data.trainingMode.size() <= 40 &&
-        isValidNumber(request.resource.data.wpm, 0, 400);
+        data.userId == request.auth.uid &&
+        isNotVerifiedClaim() &&
+        data.createdAt == request.time &&
+        data.modeLabel is string &&
+        data.modeLabel.size() > 0 &&
+        data.modeLabel.size() <= 80 &&
+        data.testType in ['time', 'words'] &&
+        data.trainingMode is string &&
+        data.trainingMode.size() > 0 &&
+        data.trainingMode.size() <= 40 &&
+        !(data.trainingMode in ['custom', 'daily']) &&
+        isPlausibleLeaderboardScore(data) &&
+        hasConsistentDuration(data);
     }
 
     function isValidPublicPlayer(userId) {
@@ -96,7 +161,10 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidLeaderboardStampChange();
+      // Deleting the profile doc would also reset the leaderboard rate limit.
+      allow delete: if false;
 
       match /stats/dashboard {
         allow read, write: if isOwner(userId);
@@ -121,12 +189,15 @@ service cloud.firestore {
 
     match /leaderboardResults/{resultId} {
       allow read: if true;
-      // No Cloud Functions on the Spark plan, so leaderboard entries are
-      // written directly by the client. This trusts the client's
-      // self-reported wpm/accuracy within range checks only -- it's not
-      // tamper-proof the way the Cloud Function version was. Worth
-      // revisiting if leaderboard integrity becomes a concern.
-      allow create: if isSignedIn() && isValidLeaderboardResult();
+      // Direct client writes (default, Spark plan): shape, plausibility
+      // bounds and a per-user rate limit are enforced here, but the stats
+      // are still self-reported. Entries written by the verified Cloud
+      // Function carry `verified: true`. To accept ONLY verified entries,
+      // replace the next line with `allow create: if false;` (see README,
+      // "Leaderboard integrity").
+      allow create: if isSignedIn() &&
+        isValidLeaderboardResult() &&
+        hasFreshLeaderboardStamp();
       allow update, delete: if false;
     }
 

@@ -116,6 +116,15 @@ function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
         </span>
         <span className="rank-player-name">
           {entry.playerName}
+          {entry.verified && (
+            <span
+              aria-label="verified result"
+              className="rank-verified"
+              title="Verified: stats recomputed on the server"
+            >
+              <CheckIcon />
+            </span>
+          )}
           {isCurrentUser && <span className="rank-you">you</span>}
         </span>
         {tier > 0 && <em className={`rank-medal tier-${tier}`}>{TIER_LABELS[tier]}</em>}

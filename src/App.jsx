@@ -45,19 +45,15 @@ import { isFirebaseConfigured } from "./services/firebaseConfig.js";
 import {
   getAuthActionErrorMessage,
   getFirebaseRuntime,
-  getLeaderboardCollectionRef,
   getPasswordResetActionSettings,
   getPublicPlayerDocRef,
-  getResultsCollectionRef,
   getUserDocRef,
-  isCloudResultEligible,
-  serializeLeaderboardResult,
   serializePublicPlayer,
-import { recordGhostRun } from "./ghostRuns.js";
-  serializeResult,
 } from "./services/typecheckData.js";
+import { submitCompletedResult } from "./services/submitResult.js";
 import { getModeLabel } from "./typingLogic.js";
 import { recordRunKeyStats } from "./keyStats.js";
+import { recordGhostRun } from "./ghostRuns.js";
 
 const AuthPanel = lazy(() => import("./components/auth/AuthPanel.jsx"));
 
@@ -136,47 +132,20 @@ function App() {
         );
       }
 
-      const canSaveCloudResult = isCloudResultEligible(completedResult);
-     
-
-      if (canSaveCloudResult) {
-        // Written directly by the client and validated in firestore.rules,
-        firebase
-
-          .addDoc(
-            getResultsCollectionRef(firebase, user.uid),
-            serializeResult(firebase, completedResult),
-          )
-          .catch((error) => {
-            console.error("Failed to save result:", error);
-            notify({
-              title: "Result not saved",
-              message: "Your local result is visible, but syncing failed.",
-              type: "error",
-            });
-          });
-
-        if ((completedResult.trainingMode || "standard") !== "custom") {
-          firebase
-            .addDoc(
-              getLeaderboardCollectionRef(firebase),
-              serializeLeaderboardResult(firebase, completedResult, user.uid),
-            )
-            .catch((error) => {
-              console.error("Failed to save public leaderboard result:", error);
-            });
-        }
-      } else {
-        console.warn(
-          "Skipped Firebase result save because the result is outside Firestore rule bounds.",
-        );
-      }
+      // Personal result + leaderboard entry (verified or direct path).
+      submitCompletedResult({
+        firebase,
+        notify,
+        result: completedResult,
+        user,
+      }).catch((error) => {
+        console.error("Failed to submit result:", error);
+      });
 
       firebase
         .setDoc(
           getPublicPlayerDocRef(firebase, user.uid),
           serializePublicPlayer(firebase, userProfile, user),
-    ghostMode,
           { merge: true },
         )
         .catch((error) => {
@@ -207,6 +176,7 @@ function App() {
   const {
     accentColor,
     customText,
+    ghostMode,
     language,
     mistakeMode,
     reducedMotion,
@@ -294,7 +264,6 @@ function App() {
         : 0;
 
       const isInvalidShortCustomTest = isTooShortCustomTest(nextResult);
-      recordGhostRun(completedResult, { isReplay: Boolean(replayTargetText) });
       const isPersonalBest =
         !isInvalidShortCustomTest &&
         Boolean(user) &&
@@ -314,7 +283,6 @@ function App() {
 
       setResult(completedResult);
       activeAttemptRef.current = null;
-      replayTargetText,
 
       if (isInvalidShortCustomTest) {
         notify({
@@ -326,6 +294,7 @@ function App() {
       }
 
       recordRunKeyStats(completedResult);
+      recordGhostRun(completedResult, { isReplay: Boolean(replayTargetText) });
 
       updateDashboard((currentDashboard) =>
         addCompletedResultToDashboard(currentDashboard, completedResult),
@@ -345,6 +314,7 @@ function App() {
       dashboard.results,
       notify,
       recordLocalResult,
+      replayTargetText,
       saveCompletedResult,
       updateDashboard,
       user,
@@ -643,7 +613,6 @@ function App() {
             onNotify={notify}
             profile={userProfile}
             user={user}
-              ghostMode,
           />
 
           <MobileTip
@@ -661,8 +630,6 @@ function App() {
           <AppPages
             currentPage={currentPage}
             currentStreak={dailyProgress.currentStreak}
-              ghostMode,
-              onGhostModeChange: handlePreferencesChange,
             dashboard={user ? dashboard : guestDashboard}
             leaderboard={leaderboard}
             navigate={navigate}
@@ -676,6 +643,7 @@ function App() {
               accentColor,
               dailyGoalType: settings.dailyGoalType,
               dailyGoalValue: settings.dailyGoalValue,
+              ghostMode,
               mistakeMode,
               onPreferencesChange: handlePreferencesChange,
               onSoundToggle: handleSoundToggle,
@@ -693,6 +661,8 @@ function App() {
               dashboardResults: dashboard.results || [],
               effectiveSoundStyle,
               finishTest,
+              ghostMode,
+              onGhostModeChange: handlePreferencesChange,
               handleCustomTextChange,
               handleLanguageChange,
               handleSettingsChange,

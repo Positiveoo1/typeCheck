@@ -124,12 +124,26 @@ export function serializeResult(firebase, completedResult) {
   };
 }
 
+// Recovers the test length from the result, falling back to its mode label
+// ("english 30s", "60 words") because the engine result doesn't carry it.
+export function getResultTestValue(result) {
+  const explicitValue = Number(result?.testValue);
+  if (Number.isInteger(explicitValue) && explicitValue > 0) return explicitValue;
+
+  const match = String(result?.modeLabel || '').match(/(\d+)(s| words)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+// Direct (client) leaderboard writes never carry `verified` -- only the
+// submitResult Cloud Function may set verified: true (see firestore.rules).
 export function serializeLeaderboardResult(firebase, completedResult, userId) {
   return {
     accuracy: completedResult.accuracy,
     createdAt: firebase.serverTimestamp(),
+    elapsedSeconds: Number(completedResult.elapsedSeconds) || 0,
     modeLabel: completedResult.modeLabel,
     testType: completedResult.testType,
+    testValue: getResultTestValue(completedResult),
     trainingMode: completedResult.trainingMode || 'standard',
     userId,
     wpm: completedResult.wpm
@@ -288,6 +302,7 @@ export async function loadGlobalLeaderboard() {
         testType: data.testType || 'time',
         trainingMode: data.trainingMode || 'standard',
         userId,
+        verified: data.verified === true,
         wpm: Number(data.wpm) || 0
       };
     })
@@ -343,6 +358,7 @@ export async function loadPublicPlayerProfile(userId) {
         testType: data.testType || 'time',
         trainingMode: data.trainingMode || 'standard',
         userId: data.userId || '',
+        verified: data.verified === true,
         wpm: Number(data.wpm) || 0
       };
     })

@@ -1,189 +1,142 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { VerificationError, verifySubmission } = require('./verify.js');
 
 initializeApp();
 const db = getFirestore();
 
-const MAX_TEXT_LENGTH = 2000;
-const MAX_LOG_EVENTS = 4000;
-const MAX_CLOUD_WPM = 400;
-// Minimum fraction of typedText.length that the keystroke log must cover.
-// A legitimate run logs roughly one event per committed character (backspaces
-// included), so a log that's far shorter than the final text implies the
-// text was set programmatically rather than typed.
-const MIN_LOG_COVERAGE_RATIO = 0.5;
-// No single burst of characters may appear faster than this (ms per char),
-// which blocks paste-like or scripted bulk inserts recorded as one event.
-const MIN_MS_PER_BURST_CHAR = 15;
+function getPlayerName(profile) {
+  if (profile?.username) return `@${profile.username}`;
+  if (profile?.displayName) return profile.displayName;
+  if (profile?.fallbackName) return profile.fallbackName;
+  return 'Anonymous typist';
+}
 
 /**
- * Server-side port of src/typingLogic.js#calculateStats.
- * Deliberately duplicated here rather than imported so the Cloud Function
- * has no dependency on client bundling and cannot be swapped out from the
- * client side.
+ * Verified result submission (opt-in, requires the Blaze plan).
+ *
+ * Re-validates the keystroke log, recomputes WPM/accuracy server-side and
+ * writes the personal result, the global leaderboard entry and (for the
+ * daily challenge) the daily leaderboard entry with `verified: true`.
+ * The client enables this path with NEXT_PUBLIC_VERIFIED_SUBMIT=true.
  */
-function calculateStats(targetText, typedText, elapsedSeconds) {
-  let correctChars = 0;
-  let wrongChars = 0;
-
-  for (let index = 0; index < typedText.length; index += 1) {
-    if (typedText[index] === targetText[index]) {
-      correctChars += 1;
-    } else {
-      wrongChars += 1;
-    }
-  }
-
-  const safeElapsedSeconds = Math.max(0.1, Number(elapsedSeconds) || 0);
-  const wpm = Math.round(correctChars / 5 / (safeElapsedSeconds / 60));
-  const accuracy =
-    typedText.length === 0
-      ? 100
-      : Math.round((correctChars / typedText.length) * 100);
-
-  return { accuracy, correctChars, elapsedSeconds: safeElapsedSeconds, wpm, wrongChars };
-}
-
-function validateKeystrokeLog(log, typedTextLength) {
-  if (!Array.isArray(log) || log.length === 0) {
-    throw new HttpsError('invalid-argument', 'Missing keystroke log.');
-  }
-  if (log.length > MAX_LOG_EVENTS) {
-    throw new HttpsError('invalid-argument', 'Keystroke log too long.');
-  }
-  if (log.length < typedTextLength * MIN_LOG_COVERAGE_RATIO) {
-    throw new HttpsError('failed-precondition', 'Keystroke log does not match typed text.');
-  }
-
-  let prevT = -1;
-  let prevLen = 0;
-  for (const event of log) {
-    if (
-      typeof event !== 'object' ||
-      !Number.isFinite(event.t) ||
-      !Number.isFinite(event.len) ||
-      event.t < 0 ||
-      event.len < 0
-    ) {
-      throw new HttpsError('invalid-argument', 'Malformed keystroke event.');
-    }
-    if (event.t < prevT) {
-      throw new HttpsError('failed-precondition', 'Keystroke log is not chronological.');
-    }
-
-    const dt = event.t - prevT;
-    const dLen = Math.abs(event.len - prevLen);
-    if (prevT >= 0 && dLen > 1 && dt < dLen * MIN_MS_PER_BURST_CHAR) {
-      throw new HttpsError('failed-precondition', 'Keystroke burst inconsistent with typing.');
-    }
-
-    prevT = event.t;
-    prevLen = event.len;
-  }
-
-  return prevT / 1000; // final timestamp = total elapsed seconds
-}
-
 exports.submitResult = onCall({ region: 'us-central1' }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Sign in required.');
   }
   const uid = request.auth.uid;
-  const data = request.data || {};
 
-  const {
-    targetText,
-    typedText,
-    testType,
-    testValue,
-    trainingMode,
-    modeLabel,
-    language,
-    keystrokeLog,
-    endedByAccuracyLock
-  } = data;
-
-  if (
-    typeof targetText !== 'string' ||
-    typeof typedText !== 'string' ||
-    targetText.length === 0 ||
-    targetText.length > MAX_TEXT_LENGTH ||
-    typedText.length > targetText.length
-  ) {
-    throw new HttpsError('invalid-argument', 'Invalid target/typed text.');
-  }
-  if (typeof testType !== 'string' || !['time', 'words'].includes(testType)) {
-    throw new HttpsError('invalid-argument', 'Invalid test type.');
-  }
-  if (typeof trainingMode !== 'string' || trainingMode.length > 40) {
-    throw new HttpsError('invalid-argument', 'Invalid training mode.');
-  }
-  if (typeof modeLabel !== 'string' || modeLabel.length === 0 || modeLabel.length > 80) {
-    throw new HttpsError('invalid-argument', 'Invalid mode label.');
-  }
-
-  const elapsedSecondsFromLog = validateKeystrokeLog(keystrokeLog, typedText.length);
-
-  // For timed tests, the log's total duration must roughly match the test
-  // length (a little slack for the final keypress/render tick).
-  if (testType === 'time' && Number.isFinite(testValue)) {
-    if (elapsedSecondsFromLog < testValue - 2 || elapsedSecondsFromLog > testValue + 3) {
-      throw new HttpsError('failed-precondition', 'Elapsed time inconsistent with test type.');
+  let verified;
+  try {
+    verified = verifySubmission(request.data || {});
+  } catch (error) {
+    if (error instanceof VerificationError) {
+      throw new HttpsError(error.code, error.message);
     }
+    throw error;
   }
 
-  const stats = calculateStats(targetText, typedText, elapsedSecondsFromLog);
-
-  if (stats.wpm < 0 || stats.wpm > MAX_CLOUD_WPM || !Number.isFinite(stats.wpm)) {
-    throw new HttpsError('failed-precondition', 'Computed WPM out of range.');
-  }
-
+  const isDaily = verified.trainingMode === 'daily';
   const resultPayload = {
-    accuracy: stats.accuracy,
-    correctChars: stats.correctChars,
+    accuracy: verified.accuracy,
+    correctChars: verified.correctChars,
     createdAt: FieldValue.serverTimestamp(),
-    elapsedSeconds: stats.elapsedSeconds,
-    endedByAccuracyLock: Boolean(endedByAccuracyLock),
-    modeLabel,
-    netWpm: stats.wpm,
-    rawWpm: Math.round((typedText.length / 5) / (stats.elapsedSeconds / 60)),
-    testType,
-    trainingMode,
-    wpm: stats.wpm,
-    wrongChars: stats.wrongChars
+    elapsedSeconds: verified.elapsedSeconds,
+    endedByAccuracyLock: verified.endedByAccuracyLock,
+    modeLabel: verified.modeLabel,
+    netWpm: verified.wpm,
+    rawWpm: verified.rawWpm,
+    testType: verified.testType,
+    trainingMode: verified.trainingMode,
+    wpm: verified.wpm,
+    wrongChars: verified.wrongChars
   };
 
-  const batch = db.batch();
+  const userRef = db.collection('users').doc(uid);
+  const resultRef = userRef.collection('results').doc();
+  const leaderboardRef = db.collection('leaderboardResults').doc();
+  const dailyRef = isDaily
+    ? db.collection('dailyLeaderboard').doc(verified.dailyKey).collection('entries').doc(uid)
+    : null;
 
-  const resultRef = db.collection('users').doc(uid).collection('results').doc();
-  batch.set(resultRef, resultPayload);
+  const outcome = await db.runTransaction(async (transaction) => {
+    let dailyBest = null;
+    let playerName = 'Anonymous typist';
+    let dailySnapshot = null;
 
-  let leaderboardWritten = false;
-  if (trainingMode !== 'custom') {
-    const leaderboardRef = db.collection('leaderboardResults').doc();
-    batch.set(leaderboardRef, {
-      accuracy: stats.accuracy,
-      createdAt: FieldValue.serverTimestamp(),
-      modeLabel,
-      testType,
-      trainingMode,
-      userId: uid,
-      wpm: stats.wpm
-    });
-    leaderboardWritten = true;
-  }
+    if (dailyRef && verified.isLeaderboardEligible) {
+      const [snapshot, playerSnapshot] = await Promise.all([
+        transaction.get(dailyRef),
+        transaction.get(db.collection('publicPlayers').doc(uid))
+      ]);
+      dailySnapshot = snapshot;
+      playerName = getPlayerName(playerSnapshot.data());
+    }
 
-  await batch.commit();
+    transaction.set(resultRef, resultPayload);
+
+    let leaderboardWritten = false;
+    if (verified.isLeaderboardEligible && !isDaily) {
+      transaction.set(leaderboardRef, {
+        accuracy: verified.accuracy,
+        createdAt: FieldValue.serverTimestamp(),
+        elapsedSeconds: verified.elapsedSeconds,
+        modeLabel: verified.modeLabel,
+        testType: verified.testType,
+        testValue: verified.testValue,
+        trainingMode: verified.trainingMode,
+        userId: uid,
+        verified: true,
+        wpm: verified.wpm
+      });
+      leaderboardWritten = true;
+    }
+
+    if (dailySnapshot) {
+      const previous = dailySnapshot.exists ? dailySnapshot.data() : null;
+      const attempts = (Number(previous?.attempts) || 0) + 1;
+
+      if (!previous || verified.wpm > (Number(previous.wpm) || 0)) {
+        transaction.set(dailyRef, {
+          accuracy: verified.accuracy,
+          attempts,
+          createdAt: FieldValue.serverTimestamp(),
+          elapsedSeconds: verified.elapsedSeconds,
+          language: verified.language,
+          playerName,
+          userId: uid,
+          verified: true,
+          wpm: verified.wpm
+        });
+        dailyBest = verified.wpm;
+      } else {
+        transaction.update(dailyRef, { attempts });
+        dailyBest = Number(previous.wpm) || 0;
+      }
+      leaderboardWritten = true;
+    }
+
+    transaction.set(
+      userRef,
+      { lastLeaderboardSubmitAt: FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+
+    return { dailyBest, leaderboardWritten };
+  });
 
   return {
-    accuracy: stats.accuracy,
-    correctChars: stats.correctChars,
-    elapsedSeconds: stats.elapsedSeconds,
-    leaderboardWritten,
-    netWpm: stats.wpm,
-    rawWpm: Math.round((typedText.length / 5) / (stats.elapsedSeconds / 60)),
-    wpm: stats.wpm,
-    wrongChars: stats.wrongChars
+    accuracy: verified.accuracy,
+    correctChars: verified.correctChars,
+    dailyBestWpm: outcome.dailyBest,
+    elapsedSeconds: verified.elapsedSeconds,
+    leaderboardWritten: outcome.leaderboardWritten,
+    modeLabel: verified.modeLabel,
+    netWpm: verified.wpm,
+    rawWpm: verified.rawWpm,
+    verified: true,
+    wpm: verified.wpm,
+    wrongChars: verified.wrongChars
   };
 });

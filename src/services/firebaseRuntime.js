@@ -13,12 +13,15 @@ export {
   doc,
   getDoc,
   getDocs,
+  increment,
   limit,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
-  where
+  updateDoc,
+  where,
+  writeBatch
 } from 'firebase/firestore';
 export { httpsCallable } from 'firebase/functions';
 export { auth, db, functions, isFirebaseConfigured } from './firebase.js';
