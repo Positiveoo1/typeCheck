@@ -1,0 +1,525 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-21T18:52:14+00:00",
+  "title": "Design System: TypeCheck",
+  "extensions": {
+    "colorMeta": {
+      "accent-2-lime": {
+        "role": "primary",
+        "displayName": "Accent-2 Lime",
+        "canonical": "var(--accent-2) default #b9dc6d",
+        "cssVar": "--accent-2",
+        "tonalRamp": [
+          "#2c3518",
+          "#4f6225",
+          "#73942d",
+          "#9aca31",
+          "#afd165",
+          "#c4d997",
+          "#dbe5c5",
+          "#f4f6ee"
+        ]
+      },
+      "accent-ochre": {
+        "role": "secondary",
+        "displayName": "Accent Ochre",
+        "canonical": "var(--accent) default #cfc257",
+        "cssVar": "--accent",
+        "tonalRamp": [
+          "#333019",
+          "#5f5928",
+          "#8f8532",
+          "#c3b438",
+          "#ccc16a",
+          "#d6cf9a",
+          "#e4e1c6",
+          "#f6f5ef"
+        ]
+      },
+      "accent-3-brass": {
+        "role": "secondary",
+        "displayName": "Accent-3 Brass",
+        "canonical": "var(--accent-3) default #d6ca62",
+        "cssVar": "--accent-3",
+        "tonalRamp": [
+          "#343118",
+          "#615b26",
+          "#928730",
+          "#c7b835",
+          "#cfc467",
+          "#d7d198",
+          "#e5e1c6",
+          "#f6f5ee"
+        ]
+      },
+      "caret-lime": {
+        "role": "tertiary",
+        "displayName": "Caret Lime",
+        "canonical": "var(--caret) default #b6e36c",
+        "cssVar": "--caret",
+        "tonalRamp": [
+          "#2a3616",
+          "#4c6521",
+          "#6e9928",
+          "#92d229",
+          "#a9d75f",
+          "#c1dd93",
+          "#d9e7c3",
+          "#f3f7ee"
+        ]
+      },
+      "wrong-signal-red": {
+        "role": "tertiary",
+        "displayName": "Wrong Signal Red",
+        "canonical": "var(--wrong) default #ff5f57",
+        "cssVar": "--wrong",
+        "tonalRamp": [
+          "#3e110f",
+          "#751611",
+          "#b4150d",
+          "#fa0d01",
+          "#f34b42",
+          "#ee8782",
+          "#f0bdbb",
+          "#f9ecec"
+        ]
+      },
+      "bg-olive-black": {
+        "role": "neutral",
+        "displayName": "Olive Black",
+        "canonical": "var(--bg) default #10120f",
+        "cssVar": "--bg",
+        "tonalRamp": [
+          "#262824",
+          "#42483f",
+          "#5e6859",
+          "#7a8972",
+          "#98a393",
+          "#b6bdb3",
+          "#d4d8d3",
+          "#f2f3f2"
+        ]
+      },
+      "bg-soft-olive": {
+        "role": "neutral",
+        "displayName": "Soft Olive",
+        "canonical": "var(--bg-soft) default #171a15",
+        "cssVar": "--bg-soft",
+        "tonalRamp": [
+          "#262924",
+          "#42493e",
+          "#5f6958",
+          "#7b8b70",
+          "#99a491",
+          "#b7beb2",
+          "#d5d8d2",
+          "#f2f3f2"
+        ]
+      },
+      "bg-deep-olive": {
+        "role": "neutral",
+        "displayName": "Deep Olive",
+        "canonical": "var(--bg-deep) default #0e100d",
+        "cssVar": "--bg-deep",
+        "tonalRamp": [
+          "#252924",
+          "#42493e",
+          "#5e6958",
+          "#798b71",
+          "#98a492",
+          "#b6beb2",
+          "#d4d8d2",
+          "#f2f3f2"
+        ]
+      },
+      "heading-bone": {
+        "role": "neutral",
+        "displayName": "Bone",
+        "canonical": "var(--heading) default #edf0df",
+        "cssVar": "--heading",
+        "tonalRamp": [
+          "#2c2f1e",
+          "#4f5531",
+          "#747f42",
+          "#9bab51",
+          "#b0bb7b",
+          "#c5cba5",
+          "#dbdfcc",
+          "#f4f5f0"
+        ]
+      },
+      "text-sage-paper": {
+        "role": "neutral",
+        "displayName": "Sage Paper",
+        "canonical": "var(--text) default #d5d8c9",
+        "cssVar": "--text",
+        "tonalRamp": [
+          "#292a22",
+          "#484b3b",
+          "#696e53",
+          "#8a926a",
+          "#a3a98d",
+          "#bdc1af",
+          "#d8d9d1",
+          "#f3f3f1"
+        ]
+      },
+      "muted-lichen": {
+        "role": "neutral",
+        "displayName": "Lichen",
+        "canonical": "var(--muted) default #7f8575",
+        "cssVar": "--muted",
+        "tonalRamp": [
+          "#272825",
+          "#444740",
+          "#62665b",
+          "#808676",
+          "#9ca095",
+          "#b9bbb5",
+          "#d6d7d3",
+          "#f2f3f2"
+        ]
+      },
+      "subtle-moss": {
+        "role": "neutral",
+        "displayName": "Moss",
+        "canonical": "var(--subtle) default #5d6355",
+        "cssVar": "--subtle",
+        "tonalRamp": [
+          "#272824",
+          "#444740",
+          "#61675a",
+          "#7f8774",
+          "#9ca294",
+          "#b9bcb4",
+          "#d5d7d3",
+          "#f2f3f2"
+        ]
+      },
+      "panel-veil": {
+        "role": "neutral",
+        "displayName": "Panel Veil",
+        "canonical": "var(--panel) default rgba(255, 255, 255, 0.035)",
+        "cssVar": "--panel"
+      },
+      "panel-strong-smoke": {
+        "role": "neutral",
+        "displayName": "Strong Smoke",
+        "canonical": "var(--panel-strong) default rgba(16, 18, 15, 0.48)",
+        "cssVar": "--panel-strong"
+      },
+      "border-hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "var(--border) default rgba(255, 255, 255, 0.06)",
+        "cssVar": "--border"
+      }
+    },
+    "themes": {
+      "source": "src/styles/base.css",
+      "default": ":root (olive)",
+      "named": [
+        "serika",
+        "botanical",
+        "midnight",
+        "rose",
+        "ember",
+        "aurora",
+        "sakura",
+        "cobalt",
+        "citrus",
+        "lagoon",
+        "violet",
+        "mono",
+        "copper",
+        "mint",
+        "plum",
+        "skyline",
+        "ruby",
+        "ocean",
+        "forest",
+        "sunset",
+        "ice",
+        "neon",
+        "lavender",
+        "espresso",
+        "contrast",
+        "contrast-light",
+        "colorblind"
+      ],
+      "light": [
+        "serika",
+        "sakura",
+        "mint",
+        "skyline",
+        "ice",
+        "lavender",
+        "contrast-light"
+      ],
+      "tokens": [
+        "--bg",
+        "--bg-soft",
+        "--bg-deep",
+        "--text",
+        "--heading",
+        "--muted",
+        "--subtle",
+        "--accent",
+        "--accent-2",
+        "--accent-3",
+        "--caret",
+        "--wrong",
+        "--panel",
+        "--panel-strong",
+        "--border",
+        "--accent-rgb",
+        "--accent-2-rgb",
+        "--caret-rgb",
+        "--correct (colorblind only, falls back to --text)"
+      ]
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Global h2; the result WPM figure."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Dashboard read-out sentence, max 24ch, balanced wrap."
+      },
+      "page-title": {
+        "displayName": "Page Title",
+        "purpose": "Leaderboard and profile h2 titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section h3 heads on data pages."
+      },
+      "stat-numeral": {
+        "displayName": "Stat Numeral",
+        "purpose": "Values in hairline stat rows (1.5rem on profile, 1.75rem on dashboard)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Table cells and running text."
+      },
+      "body-lead": {
+        "displayName": "Body Lead",
+        "purpose": "Coaching prose under a headline, max 60ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Stat terms and table column heads in --muted, sentence case."
+      },
+      "typing-text": {
+        "displayName": "Typing Text",
+        "purpose": "Words to type; face and scale come from the reader's settings."
+      }
+    },
+    "shadows": [
+      {
+        "name": "tooltip",
+        "value": "0 8px 20px rgba(0, 0, 0, 0.22)",
+        "purpose": "Badge and chart tooltips."
+      },
+      {
+        "name": "marker",
+        "value": "0 2px 8px rgba(0, 0, 0, 0.3)",
+        "purpose": "Tier-rail position marker."
+      },
+      {
+        "name": "caret-glow",
+        "value": "0 0 16px rgba(var(--caret-rgb), 0.55)",
+        "purpose": "Typing caret only."
+      },
+      {
+        "name": "key-press",
+        "value": "inset 0 -2px 0 rgba(0, 0, 0, 0.16)",
+        "purpose": "Bottom lip of visual-keyboard keys."
+      },
+      {
+        "name": "focus-halo",
+        "value": "0 0 0 3px rgba(var(--caret-rgb), 0.08)",
+        "purpose": "Text inputs on focus."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-ui",
+        "value": "150-160ms ease",
+        "purpose": "Colour, background and border transitions on controls."
+      },
+      {
+        "name": "ease-caret",
+        "value": "150ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Caret glide between letters."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "[data-reduced-motion='true'] and prefers-reduced-motion collapse all animation to 0.01ms",
+        "purpose": "Reader-controlled motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "720px"
+      },
+      {
+        "name": "split",
+        "value": "900px"
+      },
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "xs",
+        "value": "520px"
+      },
+      {
+        "name": "xxs",
+        "value": "430px"
+      },
+      {
+        "name": "min",
+        "value": "380px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Page call to action: the one --accent-2 fill on a page.",
+      "html": "<button class=\"ds-btn-primary\">Practise weak keys</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:0;border-radius:8px;color:var(--bg,#10120f);background:var(--accent-2,#b9dc6d);font-weight:800;cursor:pointer;transition:background-color 160ms ease,transform 160ms ease}.ds-btn-primary:hover{background:color-mix(in srgb,var(--accent-2,#b9dc6d) 86%,var(--heading,#edf0df))}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid var(--accent-2,#b9dc6d);outline-offset:3px}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary page action on a faint panel ground.",
+      "html": "<button class=\"ds-btn-quiet\">Edit profile</button>",
+      "css": ".ds-btn-quiet{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 14px;border:1px solid var(--border,rgba(255,255,255,.06));border-radius:8px;color:var(--heading,#edf0df);background:var(--panel,rgba(255,255,255,.035));font-weight:700;cursor:pointer;transition:background-color 150ms ease,border-color 150ms ease}.ds-btn-quiet:hover{border-color:color-mix(in srgb,var(--heading,#edf0df) 24%,transparent);background:color-mix(in srgb,var(--heading,#edf0df) 7%,transparent)}.ds-btn-quiet:focus-visible{outline:2px solid var(--accent-2,#b9dc6d);outline-offset:3px}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "nav",
+      "refersTo": "segmented",
+      "description": "Range and mode switcher on data pages.",
+      "html": "<div class=\"ds-seg\"><button class=\"ds-seg-on\">All-time</button><button>Daily</button></div>",
+      "css": ".ds-seg{padding:3px;display:inline-flex;gap:2px;border:1px solid var(--border,rgba(255,255,255,.06));border-radius:8px;background:var(--panel,rgba(255,255,255,.035))}.ds-seg button{min-height:32px;padding:0 12px;border:0;border-radius:6px;color:var(--muted,#7f8575);background:transparent;font-size:.84rem;font-weight:700;cursor:pointer;transition:color 150ms ease,background-color 150ms ease}.ds-seg button:hover{color:var(--heading,#edf0df)}.ds-seg button.ds-seg-on{color:var(--bg,#10120f);background:var(--accent-2,#b9dc6d)}.ds-seg button:focus-visible{outline:2px solid var(--accent-2,#b9dc6d);outline-offset:3px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Auth and profile form field.",
+      "html": "<input class=\"ds-input\" placeholder=\"Display name\">",
+      "css": ".ds-input{min-height:40px;padding:0 12px;border:1px solid var(--border,rgba(255,255,255,.06));border-radius:7px;color:var(--heading,#edf0df);background:var(--panel-strong,rgba(16,18,15,.48));outline:0;font:inherit}.ds-input:focus{border-color:rgba(var(--caret-rgb,182,227,108),.38);box-shadow:0 0 0 3px rgba(var(--caret-rgb,182,227,108),.08)}"
+    },
+    {
+      "name": "Page Pill and Badge",
+      "kind": "chip",
+      "refersTo": "page-pill",
+      "description": "Status pill and earned/locked badge chips.",
+      "html": "<span class=\"ds-pill\">You</span> <span class=\"ds-badge ds-badge-on\">First 100 tests</span> <span class=\"ds-badge\">Streak 30</span>",
+      "css": ".ds-pill{padding:2px 7px;display:inline-flex;border-radius:999px;color:var(--accent-2,#b9dc6d);background:color-mix(in srgb,var(--accent-2,#b9dc6d) 14%,transparent);font-size:.7rem;font-weight:800;line-height:1.4}.ds-badge{min-height:36px;padding:0 14px 0 10px;display:inline-flex;align-items:center;border:1px dashed var(--border,rgba(255,255,255,.06));border-radius:999px;color:var(--muted,#7f8575);font-size:.9rem;font-weight:700}.ds-badge-on{border:1px solid transparent;color:var(--heading,#edf0df);background:color-mix(in srgb,var(--accent-2,#b9dc6d) 14%,transparent)}"
+    },
+    {
+      "name": "Keycap",
+      "kind": "custom",
+      "refersTo": "keycap",
+      "description": "A named key drawn as a physical keycap, set inline in prose.",
+      "html": "<p class=\"ds-prose\">You miss <kbd class=\"ds-key\">E</kbd> <kbd class=\"ds-key\">R</kbd> most often.</p>",
+      "css": ".ds-prose{color:var(--text,#d5d8c9);font-size:1.12rem;line-height:1.75}.ds-key{min-width:1.9em;padding:1px 7px 3px;display:inline-grid;place-items:center;border:1px solid color-mix(in srgb,var(--heading,#edf0df) 22%,transparent);border-bottom-width:3px;border-radius:6px;color:var(--heading,#edf0df);background:var(--bg-soft,#171a15);font:inherit;font-size:.95rem;font-weight:800;line-height:1.5}"
+    },
+    {
+      "name": "Hairline Stat Row",
+      "kind": "card",
+      "refersTo": "",
+      "description": "Ruled definition row that replaces stat cards on data pages.",
+      "html": "<dl class=\"ds-stats\"><div><dt>Best</dt><dd>84<small>wpm</small></dd></div><div><dt>7-day avg</dt><dd>71<small>wpm</small></dd></div><div><dt>Accuracy</dt><dd>96<small>%</small></dd></div></dl>",
+      "css": ".ds-stats{margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--border,rgba(255,255,255,.06));border-bottom:1px solid var(--border,rgba(255,255,255,.06));font-variant-numeric:tabular-nums}.ds-stats div{padding:16px 20px 18px;display:grid;gap:4px}.ds-stats div:first-child{padding-left:0}.ds-stats div+div{border-left:1px solid var(--border,rgba(255,255,255,.06))}.ds-stats dt{color:var(--muted,#7f8575);font-size:.82rem}.ds-stats dd{margin:0;color:var(--heading,#edf0df);font-size:1.75rem;font-weight:800;line-height:1.15}.ds-stats small{margin-left:4px;color:var(--muted,#7f8575);font-size:.8rem;font-weight:700}"
+    },
+    {
+      "name": "Tier Rail",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Progress track with tier ticks and a marker at the exact best WPM.",
+      "html": "<div class=\"ds-rail\"><div class=\"ds-rail-fill\" style=\"width:62%\"></div><span class=\"ds-rail-tick\" style=\"left:33%\"></span><span class=\"ds-rail-tick\" style=\"left:50%\"></span><span class=\"ds-rail-tick\" style=\"left:67%\"></span><span class=\"ds-rail-marker\" style=\"left:62%\"></span></div>",
+      "css": ".ds-rail{position:relative;height:10px;margin:24px 0;border-radius:5px;background:color-mix(in srgb,var(--heading,#edf0df) 9%,transparent)}.ds-rail-fill{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:var(--accent-2,#b9dc6d)}.ds-rail-tick{position:absolute;top:-4px;width:2px;height:18px;border-radius:1px;background:color-mix(in srgb,var(--heading,#edf0df) 26%,transparent);transform:translateX(-1px)}.ds-rail-marker{position:absolute;top:50%;width:22px;height:22px;border:4px solid var(--bg,#10120f);border-radius:50%;background:var(--heading,#edf0df);box-shadow:0 2px 8px rgba(0,0,0,.3);transform:translate(-50%,-50%)}"
+    },
+    {
+      "name": "Typing Letters",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Typed, wrong, current and untyped letter states in the typing field.",
+      "html": "<p class=\"ds-type\"><span class=\"ds-ok\">the</span> <span class=\"ds-ok\">qu</span><span class=\"ds-bad\">u</span><span class=\"ds-cur\">c</span>k <span class=\"ds-fut\">brown fox</span></p>",
+      "css": ".ds-type{color:var(--subtle,#5d6355);font-size:1.6rem;line-height:1.68}.ds-ok{color:var(--correct,var(--text,#d5d8c9))}.ds-bad{color:var(--wrong,#ff5f57);background:color-mix(in srgb,var(--wrong,#ff5f57) 11%,transparent);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.12em;border-radius:3px}.ds-cur{color:var(--accent-2,#b9dc6d);box-shadow:-2px 0 0 var(--caret,#b6e36c)}.ds-fut{opacity:.44}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Reader's Own Room",
+    "overview": "TypeCheck is a quiet, dark-by-default practice room that the typist repaints. Every colour on every page is a theme token, and the theme belongs to the reader: 27 named themes in `src/styles/base.css` (the olive default on `:root`, plus warm, cool, light, high-contrast and colour-blind sets) redefine the same fifteen-odd custom properties. The system is therefore less a palette than a contract. Pages state roles (`--heading`, `--muted`, `--accent-2`, `--border`), never colours, and each theme decides what those roles look like.\n\nInside that contract the world is restrained and text-led. The typing test is a field of words on a transparent ground with one glowing caret; the dashboard, leaderboard and profile read as typeset reports with hairline rules instead of card grids. One accent role, `--accent-2`, carries the primary action, the current selection and progress. Wrong input is the only other signal colour, and it is always paired with a non-colour cue (an underline). Numbers are set with tabular figures so stats line up across rows.\n\nDensity is moderate and keyboard-first: compact controls (32 to 44px tall), generous vertical spacing between page sections, and no decoration that competes with the words being typed.",
+    "keyCharacteristics": [
+      "Role tokens only; the reader's theme supplies every colour.",
+      "One accent role (`--accent-2`) for action, selection and progress.",
+      "Hairline-ruled rows and tables in place of cards on data pages.",
+      "Physical keycap chips for keys, set inline in prose.",
+      "Tabular numerals on every stat surface.",
+      "Heavy sans weights (700 to 900) for headings and numbers, regular weight for prose."
+    ],
+    "rules": [
+      {
+        "name": "The Reader Owns the Colour Rule",
+        "body": "Every colour on every page comes from a theme token in `base.css`. No hex, no `rgba(255,255,255,…)`, no `rgba(0,0,0,…)` fills. Tints are made with `color-mix(in srgb, var(--role) N%, transparent)` or `rgba(var(--accent-2-rgb), a)`. Test any new surface in the default, one light theme (serika, sakura, mint, skyline, ice, lavender) and `contrast-light` before calling it done.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Action Rule",
+        "body": "`--accent-2` marks what to do next, what is selected and how far the typist has come. Nothing else on a page competes with it in fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Cue Error Rule",
+        "body": "Wrong input is shown with `--wrong` and an underline, so errors read without hue perception (the colour-blind theme swaps red for orange and relies on this).",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Any page that shows numbers sets `font-variant-numeric: tabular-nums` on its root, so columns of WPM and accuracy align.",
+        "section": "typography"
+      },
+      {
+        "name": "The Reader's Font Rule",
+        "body": "The typing field always takes `--typing-font-family` and `--typing-font-scale`; never hardcode its face or size.",
+        "section": "typography"
+      },
+      {
+        "name": "The Rules Not Cards Rule",
+        "body": "Data pages separate content with 1px `--border` hairlines (top and bottom of a stats row, left between cells, under each table row), not with filled, shadowed cards.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** use theme tokens for every colour, and tint with `color-mix(... var(--role) N%, transparent)` or the `--*-rgb` triplets.",
+      "**Do** check new surfaces in the default theme, a light theme and `contrast-light`.",
+      "**Do** reserve `--accent-2` fills for the primary action, the active selection and progress.",
+      "**Do** separate data with 1px `--border` hairlines and set numbers in tabular figures.",
+      "**Do** draw keys as keycaps (`--bg-soft` face, 3px bottom edge) wherever a key is named.",
+      "**Do** pair every `--wrong` signal with a non-colour cue such as an underline.",
+      "**Do** give every interactive element the shared 2px `--accent-2` focus outline and keep it operable from the keyboard.",
+      "**Do** honour the reader's motion setting: animations collapse under `[data-reduced-motion='true']` and `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "**Don't** hardcode hex or `rgba(255, 255, 255, …)` / `rgba(0, 0, 0, …)` fills or borders; they break the seven light themes and the high-contrast pair.",
+      "**Don't** wrap stats in filled, shadowed cards on data pages.",
+      "**Don't** colour leaderboard ranks gold, silver and bronze; rank is shown by numeral weight.",
+      "**Don't** set the typing field's face or size directly; use `--typing-font-family` and `--typing-font-scale`.",
+      "**Don't** copy the small uppercase accent label that sits above some headings (header tagline, results, settings, legal); it is carried in the build, not a pattern for new surfaces."
+    ]
+  }
+}
