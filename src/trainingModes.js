@@ -249,3 +249,26 @@ export function buildTrainingTarget({
 
   return shuffleWords(wordCount, getWordListForLanguage(language), random);
 }
+
+// Timed tests start with a fixed batch of words. Fast typists (or long custom
+// durations) can reach the end before the timer does, so the engine extends
+// the target once the remaining untyped text drops below this many chars.
+export const TARGET_EXTENSION_THRESHOLD = 120;
+export const TARGET_EXTENSION_WORDS = 40;
+
+export function shouldExtendTarget({ targetText, typedLength, testType, trainingMode }) {
+  if (testType !== 'time' || trainingMode === 'custom') return false;
+  return targetText.length - typedLength < TARGET_EXTENSION_THRESHOLD;
+}
+
+export function extendTrainingTarget(targetText, { language = 'english', random = Math.random, trainingMode = 'standard' } = {}) {
+  const extra = buildTrainingTarget({
+    language,
+    random,
+    testType: 'words',
+    testValue: TARGET_EXTENSION_WORDS,
+    trainingMode
+  });
+  if (!extra) return targetText;
+  return targetText ? `${targetText} ${extra}` : extra;
+}

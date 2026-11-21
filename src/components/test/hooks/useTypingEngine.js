@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildTrainingTarget, getTrainingMode } from "../../../trainingModes.js";
+import {
+  buildTrainingTarget,
+  extendTrainingTarget,
+  getTrainingMode,
+  shouldExtendTarget,
+} from "../../../trainingModes.js";
 import {
   buildWordTokens,
   calculateStats,
@@ -348,6 +353,25 @@ export function useTypingEngine({
       typedTextRef.current = nextTypedText;
       setTypedText(nextTypedText);
 
+      // Keep timed tests supplied with words so fast typists never run out
+      // before the timer ends.
+      if (
+        !targetTextOverride &&
+        shouldExtendTarget({
+          targetText: currentTargetText,
+          typedLength: nextTypedText.length,
+          testType,
+          trainingMode,
+        })
+      ) {
+        const extendedTargetText = extendTrainingTarget(currentTargetText, {
+          language,
+          trainingMode,
+        });
+        targetTextRef.current = extendedTargetText;
+        setTargetText(extendedTargetText);
+      }
+
       if (
         startedAtRef.current !== null &&
         nextTypedText.length !== currentTypedText.length
@@ -430,6 +454,7 @@ export function useTypingEngine({
       onStart,
       recordSpeedSnapshot,
       language,
+      targetTextOverride,
       testType,
       testValue,
       trainingMode,

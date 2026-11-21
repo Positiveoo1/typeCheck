@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  extendTrainingTarget,
+  shouldExtendTarget,
+  TARGET_EXTENSION_THRESHOLD
+} from './trainingModes.js';
+import {
   buildWordTokens,
   buildMistakeKeyCounts,
   calculateStats,
@@ -347,4 +352,31 @@ describe('word generation and tokenizing', () => {
       ]
     );
   });
+});
+
+it('timed tests extend the target when the typist nears the end', () => {
+  const targetText = 'a '.repeat(100).trim();
+  assert.equal(
+    shouldExtendTarget({ targetText, typedLength: 0, testType: 'time', trainingMode: 'standard' }),
+    targetText.length < TARGET_EXTENSION_THRESHOLD
+  );
+  assert.equal(
+    shouldExtendTarget({ targetText, typedLength: targetText.length - 5, testType: 'time', trainingMode: 'standard' }),
+    true
+  );
+  assert.equal(
+    shouldExtendTarget({ targetText, typedLength: targetText.length - 5, testType: 'words', trainingMode: 'standard' }),
+    false
+  );
+  assert.equal(
+    shouldExtendTarget({ targetText, typedLength: targetText.length - 5, testType: 'time', trainingMode: 'custom' }),
+    false
+  );
+});
+
+it('extendTrainingTarget appends words after a single space', () => {
+  const extended = extendTrainingTarget('hello world', { trainingMode: 'standard' });
+  assert.ok(extended.startsWith('hello world '));
+  assert.ok(extended.split(' ').length > 2);
+  assert.ok(!extended.includes('  '));
 });

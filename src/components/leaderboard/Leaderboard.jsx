@@ -53,7 +53,7 @@ function FilterDropdown({ hint, id, label, onSelect, options, value }) {
       </span>
       <button
         aria-expanded={isOpen}
-        aria-haspopup="listbox"
+        aria-haspopup="true"
         aria-labelledby={`${labelId} ${buttonId}`}
         className={isOpen ? 'filter-dropdown-trigger open' : 'filter-dropdown-trigger'}
         id={buttonId}
@@ -64,20 +64,19 @@ function FilterDropdown({ hint, id, label, onSelect, options, value }) {
         <ChevronDownIcon />
       </button>
       {isOpen && (
-        <ul aria-labelledby={labelId} className="filter-dropdown-menu" role="listbox">
+        <ul aria-labelledby={labelId} className="filter-dropdown-menu">
           {options.map((option) => {
             const isActive = option.value === value;
 
             return (
               <li key={option.value}>
                 <button
-                  aria-selected={isActive}
+                  aria-pressed={isActive}
                   className={isActive ? 'active' : ''}
                   onClick={() => {
                     onSelect(option.value);
                     setIsOpen(false);
                   }}
-                  role="option"
                   type="button"
                 >
                   <span>{option.label}</span>

@@ -410,19 +410,19 @@ function ProgressChart({ results }) {
               const edgeClass = x < 8 ? 'edge-start' : x > 92 ? 'edge-end' : '';
 
               return (
-                <span
+                <button
                   aria-label={`${point.label}: ${valueLabel}`}
                   className={['dashboard-chart-point', edgeClass].filter(Boolean).join(' ')}
                   key={index}
                   style={{ left: `${x}%`, top: `${y}%` }}
-                  tabIndex={0}
+                  type="button"
                 >
                   <span className="dashboard-chart-dot" />
                   <span aria-hidden="true" className="dashboard-chart-tooltip">
                     <strong>{valueLabel}</strong>
                     <small>{point.label}</small>
                   </span>
-                </span>
+                </button>
               );
             })}
           </div>

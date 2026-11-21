@@ -36,7 +36,7 @@ function playPooled(poolsRef, poolKey, src, volume) {
 
 function playCreamSound(poolsRef, volume, event) {
   loadCreamConfig().then((config) => {
-    if (!config || !config.defines) return;
+    if (!config?.defines) return;
 
     const scancode = event ? scancodeForEvent(event) : null;
     const define =
