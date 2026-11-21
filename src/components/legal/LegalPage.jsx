@@ -28,11 +28,11 @@ const LEGAL_CONTENT = {
       },
       {
         title: "Data services",
-        body: "TypeCheck uses Firebase services for authentication, cloud data storage, and server-side result verification (Cloud Functions). Firebase processes data according to Google Firebase policies and the project security rules.",
+        body: "TypeCheck uses Firebase services for authentication, cloud data storage, and (where enabled) server-side result verification (Cloud Functions). Firebase processes data according to Google Firebase policies and the project security rules.",
       },
       {
         title: "Result verification",
-        body: "To keep the leaderboard fair, finished typing results (including the target text, what you typed, and keystroke timing) are sent to a server-side function that recalculates your WPM and accuracy independently before saving. This raw typing content is used only to verify the result and is not stored after verification — only the final computed stats (WPM, accuracy, character counts) are saved to your account and, where eligible, the public leaderboard.",
+        body: "To keep the leaderboard fair, finished results are checked for plausibility (speed, accuracy, and keystroke timing) before they are submitted, and database rules limit how often and what can be posted. Where server verification is enabled, the target text, what you typed, and keystroke timing are sent to a server-side function that recalculates your WPM and accuracy independently before saving. This raw typing content is used only to verify the result and is not stored after verification — only the final computed stats (WPM, accuracy, character counts) are saved to your account and, where eligible, the public leaderboard.",
       },
       {
         title: "Your choices",
