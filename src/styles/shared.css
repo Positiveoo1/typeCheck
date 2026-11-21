@@ -54,7 +54,7 @@
   width: 1px;
   height: 18px;
   flex: 0 0 auto;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--heading) 8%, transparent);
 }
 
 .language-picker {
@@ -105,7 +105,7 @@
   gap: 8px;
   color: var(--heading);
   background: var(--panel);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--heading) 8%, transparent);
   cursor: pointer;
   font-weight: 800;
 }
@@ -184,7 +184,7 @@
 
 .secondary-action {
   color: var(--heading);
-  background: rgba(255, 255, 255, 0.065);
+  background: color-mix(in srgb, var(--heading) 6.5%, transparent);
   border: 1px solid rgba(var(--accent-rgb), 0.18);
 }
 
@@ -231,10 +231,10 @@
   width: fit-content;
   margin: 12px auto 0;
   padding: 7px 10px;
-  border: 1px solid rgba(255, 95, 87, 0.32);
+  border: 1px solid color-mix(in srgb, var(--wrong) 32%, transparent);
   border-radius: 7px;
   color: var(--wrong);
-  background: rgba(255, 95, 87, 0.08);
+  background: color-mix(in srgb, var(--wrong) 8%, transparent);
   font-size: 0.76rem;
   font-weight: 900;
   text-transform: uppercase;

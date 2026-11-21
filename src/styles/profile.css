@@ -11,7 +11,7 @@
   display: grid;
   place-items: center;
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--heading) 4%, transparent);
   cursor: pointer;
 }
 

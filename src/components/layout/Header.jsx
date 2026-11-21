@@ -47,7 +47,6 @@ function Header({ currentPage, dailyProgress, onNotify, profile, user, onNavigat
         whileTap={{ scale: 0.98 }}
       >
         <div>
-          <p className="eyebrow">typing speed test</p>
           <h1>TypeCheck</h1>
         </div>
       </motion.button>

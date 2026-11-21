@@ -6,7 +6,7 @@
   z-index: 80;
   height: 3px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.045);
+  background: color-mix(in srgb, var(--heading) 4.5%, transparent);
 }
 
 .page-loading-bar span {
@@ -160,7 +160,7 @@
   border-radius: 8px;
   background:
     linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-2-rgb), 0.045)),
-    rgba(255, 255, 255, 0.028);
+    color-mix(in srgb, var(--heading) 2.8%, transparent);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
 }
 
@@ -219,7 +219,7 @@
   gap: 8px;
   background:
     linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-2-rgb), 0.04)),
-    rgba(255, 255, 255, 0.028);
+    color-mix(in srgb, var(--heading) 2.8%, transparent);
 }
 
 .legal-hero h2 {

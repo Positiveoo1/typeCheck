@@ -30,7 +30,7 @@
   min-height: 72px;
   padding: 14px 16px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  background: color-mix(in srgb, var(--heading) 3.5%, transparent);
   border: 1px solid var(--border);
 }
 
@@ -186,7 +186,7 @@
   padding: 14px 16px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.026);
+  background: color-mix(in srgb, var(--heading) 2.6%, transparent);
   text-align: left;
 }
 
@@ -223,7 +223,7 @@
   position: absolute;
   inset: auto 0 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--heading) 8%, transparent);
 }
 
 .speed-bar {
@@ -256,7 +256,7 @@
   height: 100%;
   border-radius: 999px;
   background: var(--wrong);
-  box-shadow: 0 0 16px rgba(255, 95, 87, 0.44);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--wrong) 44%, transparent);
   transform: translateX(-1px);
 }
 
@@ -285,7 +285,7 @@
   padding: 14px 16px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.026);
+  background: color-mix(in srgb, var(--heading) 2.6%, transparent);
   text-align: left;
 }
 
@@ -302,7 +302,7 @@
   border: 1px solid rgba(var(--accent-rgb), 0.22);
   border-radius: 999px;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--heading) 3%, transparent);
   cursor: pointer;
   font-size: 0.72rem;
   font-weight: 800;
@@ -323,7 +323,7 @@
 }
 
 .history-baseline {
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke: color-mix(in srgb, var(--heading) 14%, transparent);
   stroke-width: 1;
 }
 
@@ -336,7 +336,7 @@
 }
 
 .history-line-raw {
-  stroke: rgba(255, 95, 87, 0.85);
+  stroke: color-mix(in srgb, var(--wrong) 85%, transparent);
 }
 
 .history-line-net {
@@ -344,7 +344,7 @@
 }
 
 .history-dot-raw {
-  fill: rgba(255, 95, 87, 0.78);
+  fill: color-mix(in srgb, var(--wrong) 78%, transparent);
 }
 
 .history-dot-net {
@@ -376,7 +376,7 @@
 }
 
 .history-legend .line-raw {
-  background: rgba(255, 95, 87, 0.85);
+  background: color-mix(in srgb, var(--wrong) 85%, transparent);
 }
 
 .history-legend .line-net {
@@ -406,7 +406,7 @@
 .mistake-heatmap {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.026);
+  background: color-mix(in srgb, var(--heading) 2.6%, transparent);
 }
 
 .result-insight-grid div {
@@ -500,7 +500,7 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.025);
+  background: color-mix(in srgb, var(--heading) 2.5%, transparent);
   font-family: 'IBM Plex Mono', monospace;
   font-size: clamp(1rem, 2.4vw, 1.35rem);
   line-height: 1.8;
@@ -591,7 +591,7 @@
   text-align: left;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.026);
+  background: color-mix(in srgb, var(--heading) 2.6%, transparent);
 }
 
 .weak-keys-grid {
