@@ -1,5 +1,6 @@
 import { shuffleWords } from './typingLogic.js';
 import { getWordListForLanguage } from './languages.js';
+import { buildPersonalDrill } from './keyStats.js';
 
 export const TRAINING_MODES = [
   {
@@ -10,9 +11,9 @@ export const TRAINING_MODES = [
   },
   {
     id: 'weak',
-    label: 'Weak letters',
+    label: 'Weak keys',
     shortLabel: 'weak',
-    description: 'Awkward letters and same-hand patterns.'
+    description: 'Drills built from your mistakes.'
   },
   {
     id: 'quotes',
@@ -219,6 +220,7 @@ export function getTrainingModeLabel(modeId) {
 
 export function buildTrainingTarget({
   customText = '',
+  keyStats,
   language = 'english',
   random = Math.random,
   testType = 'time',
@@ -232,7 +234,13 @@ export function buildTrainingTarget({
   }
 
   if (trainingMode === 'weak') {
-    return shuffleWords(wordCount, WEAK_WORDS, random);
+    return buildPersonalDrill({
+      fallbackWords: WEAK_WORDS,
+      random,
+      stats: keyStats,
+      wordCount,
+      wordList: getWordListForLanguage(language)
+    });
   }
 
   if (trainingMode === 'quotes') {
@@ -261,8 +269,12 @@ export function shouldExtendTarget({ targetText, typedLength, testType, training
   return targetText.length - typedLength < TARGET_EXTENSION_THRESHOLD;
 }
 
-export function extendTrainingTarget(targetText, { language = 'english', random = Math.random, trainingMode = 'standard' } = {}) {
+export function extendTrainingTarget(
+  targetText,
+  { keyStats, language = 'english', random = Math.random, trainingMode = 'standard' } = {}
+) {
   const extra = buildTrainingTarget({
+    keyStats,
     language,
     random,
     testType: 'words',

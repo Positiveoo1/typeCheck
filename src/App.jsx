@@ -50,6 +50,7 @@ import {
   serializeResult,
 } from "./services/typecheckData.js";
 import { getModeLabel } from "./typingLogic.js";
+import { recordRunKeyStats } from "./keyStats.js";
 
 const AuthPanel = lazy(() => import("./components/auth/AuthPanel.jsx"));
 
@@ -297,6 +298,8 @@ function App() {
         });
         return;
       }
+
+      recordRunKeyStats(completedResult);
 
       updateDashboard((currentDashboard) =>
         addCompletedResultToDashboard(currentDashboard, completedResult),
