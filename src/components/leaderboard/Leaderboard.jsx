@@ -11,9 +11,59 @@ import {
   getPlayerInitials,
   sortLeaderboardEntries
 } from '../../leaderboardLogic.js';
+import {
+  formatDailyResetCountdown,
+  getDailyChallengeKey,
+  getMsUntilDailyReset
+} from '../../dailyChallenge.js';
+import { loadDailyLeaderboard } from '../../services/typecheckData.js';
 import { CheckIcon, ChevronDownIcon, EmojiEventsIcon } from '../common/MaterialIcons.jsx';
 
 const TIER_LABELS = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+const EMPTY_DAILY = { dateKey: '', entries: [], error: '', isLoading: false };
+
+// Loads today's daily-challenge board when the Daily tab is open, and keeps
+// the "resets in" countdown (and the day itself) current.
+function useDailyLeaderboard(isActive) {
+  const [daily, setDaily] = useState(EMPTY_DAILY);
+  const [now, setNow] = useState(() => new Date());
+  const dateKey = getDailyChallengeKey(now);
+
+  useEffect(() => {
+    if (!isActive) return undefined;
+    const interval = window.setInterval(() => setNow(new Date()), 30000);
+    return () => window.clearInterval(interval);
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive) return undefined;
+
+    let isSubscribed = true;
+    setDaily((current) => ({ ...current, dateKey, error: '', isLoading: true }));
+
+    loadDailyLeaderboard(dateKey)
+      .then((entries) => {
+        if (isSubscribed) setDaily({ dateKey, entries, error: '', isLoading: false });
+      })
+      .catch((error) => {
+        console.error('Failed to load daily leaderboard:', error);
+        if (isSubscribed) {
+          setDaily({
+            dateKey,
+            entries: [],
+            error: "Could not load today's ranking.",
+            isLoading: false
+          });
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [dateKey, isActive]);
+
+  return { ...daily, dateKey, resetMs: getMsUntilDailyReset(now) };
+}
 
 function FilterDropdown({ hint, id, label, onSelect, options, value }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +147,9 @@ function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
 
   return (
     <motion.button
-      className={['rank-row', isCurrentUser ? 'current-user' : ''].filter(Boolean).join(' ')}
+      className={['rank-row', isCurrentUser ? 'current-user' : '']
+        .filter(Boolean)
+        .join(' ')}
       data-tier={tier || undefined}
       key={`${entry.id}-${rank}`}
       onClick={() => onOpenProfile(entry.userId)}
@@ -130,7 +182,11 @@ function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
         {tier > 0 && <em className={`rank-medal tier-${tier}`}>{TIER_LABELS[tier]}</em>}
       </span>
       <span className="rank-wpm" data-label="wpm" role="cell">
-        <span className="rank-wpm-bar" style={{ width: `${barPct}%` }} aria-hidden="true" />
+        <span
+          className="rank-wpm-bar"
+          style={{ width: `${barPct}%` }}
+          aria-hidden="true"
+        />
         <b>{entry.wpm}</b>
       </span>
       <span className="rank-accuracy" data-label="accuracy" role="cell">
@@ -146,7 +202,16 @@ function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
   );
 }
 
-function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }) {
+function Leaderboard({
+  currentUserId,
+  entries,
+  error: allTimeError,
+  isLoading: isAllTimeLoading,
+  onOpenProfile
+}) {
+  const [view, setView] = useState('all');
+  const isDailyView = view === 'daily';
+  const daily = useDailyLeaderboard(isDailyView);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [modeFilter, setModeFilter] = useState(DEFAULT_MODE_FILTER);
   const rankedEntries = useMemo(
@@ -162,7 +227,7 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
   );
   const modeOptions = useMemo(() => getModeOptions(categoryEntries), [categoryEntries]);
   const effectiveModeFilter = modeOptions.includes(modeFilter) ? modeFilter : 'all';
-  const filteredEntries = useMemo(
+  const allTimeEntries = useMemo(
     () =>
       getBestEntryPerPlayer(
         categoryEntries.filter(
@@ -172,8 +237,20 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
       ).slice(0, 50),
     [categoryEntries, effectiveModeFilter]
   );
-  const activeFilterLabel =
-    effectiveModeFilter === 'all'
+  const dailyEntries = useMemo(
+    () =>
+      daily.entries.map((entry) => ({
+        ...entry,
+        modeLabel: `${entry.language} · ${entry.attempts} ${entry.attempts === 1 ? 'try' : 'tries'}`
+      })),
+    [daily.entries]
+  );
+  const filteredEntries = isDailyView ? dailyEntries : allTimeEntries;
+  const isLoading = isDailyView ? daily.isLoading : isAllTimeLoading;
+  const error = isDailyView ? daily.error : allTimeError;
+  const activeFilterLabel = isDailyView
+    ? 'daily challenge'
+    : effectiveModeFilter === 'all'
       ? `${categoryFilter === 'all' ? 'all modes' : `${categoryFilter} modes`}`
       : effectiveModeFilter;
   const activeCategoryLabel =
@@ -196,7 +273,11 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         <div className="leaderboard-hero-copy">
           <p className="eyebrow">leaderboard</p>
           <h2>{activeFilterLabel} rankings</h2>
-          <p>Fast scores, clean comparisons, and the best public runs from every mode.</p>
+          <p>
+            {isDailyView
+              ? `TypeCheck Daily ${daily.dateKey}: the same 40 words for everyone, best run per player.`
+              : 'Fast scores, clean comparisons, and the best public runs from every mode.'}
+          </p>
         </div>
         {/* entries ring folded into the same summary grid as the other stats,
             instead of floating separately with empty space around it */}
@@ -210,8 +291,8 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
             <small>avg accuracy</small>
           </span>
           <span>
-            <strong>{summary.modeCount}</strong>
-            <small>modes played</small>
+            <strong>{isDailyView ? summary.totalEntries : summary.modeCount}</strong>
+            <small>{isDailyView ? 'players' : 'modes played'}</small>
           </span>
           <span className="leaderboard-summary-entries">
             <EmojiEventsIcon />
@@ -230,32 +311,58 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         {/* Type and Mode are two dropdowns instead of two rows of pill
             buttons — Mode's option list still depends on the active Type,
             shown via the "for <type>" hint next to its label. */}
-        <div className="leaderboard-filters" aria-label="Leaderboard filters">
-          <FilterDropdown
-            id="type-filter"
-            label="type"
-            onSelect={(next) => {
-              setCategoryFilter(next);
-              setModeFilter('all');
-            }}
-            options={CATEGORY_FILTERS.map((filter) => ({
-              label: filter.label,
-              value: filter.id
-            }))}
-            value={categoryFilter}
-          />
-          <FilterDropdown
-            hint={`for ${activeCategoryLabel}`}
-            id="mode-filter"
-            label="mode"
-            onSelect={setModeFilter}
-            options={[
-              { label: 'all modes', value: 'all' },
-              ...modeOptions.map((mode) => ({ label: mode, value: mode }))
-            ]}
-            value={effectiveModeFilter}
-          />
+        <div className="leaderboard-tabs" role="group" aria-label="Leaderboard view">
+          {[
+            { id: 'all', label: 'all-time' },
+            { id: 'daily', label: 'daily' }
+          ].map((tab) => (
+            <button
+              aria-pressed={view === tab.id}
+              className={view === tab.id ? 'leaderboard-tab active' : 'leaderboard-tab'}
+              key={tab.id}
+              onClick={() => setView(tab.id)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        {isDailyView && (
+          <p className="leaderboard-daily-meta">
+            Today ({daily.dateKey}, UTC) · resets in{' '}
+            {formatDailyResetCountdown(daily.resetMs)}
+          </p>
+        )}
+
+        {!isDailyView && (
+          <div className="leaderboard-filters" aria-label="Leaderboard filters">
+            <FilterDropdown
+              id="type-filter"
+              label="type"
+              onSelect={(next) => {
+                setCategoryFilter(next);
+                setModeFilter('all');
+              }}
+              options={CATEGORY_FILTERS.map((filter) => ({
+                label: filter.label,
+                value: filter.id
+              }))}
+              value={categoryFilter}
+            />
+            <FilterDropdown
+              hint={`for ${activeCategoryLabel}`}
+              id="mode-filter"
+              label="mode"
+              onSelect={setModeFilter}
+              options={[
+                { label: 'all modes', value: 'all' },
+                ...modeOptions.map((mode) => ({ label: mode, value: mode }))
+              ]}
+              value={effectiveModeFilter}
+            />
+          </div>
+        )}
 
         {!currentUserId && (
           <div className="leaderboard-auth-prompt">
@@ -272,7 +379,11 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
         ) : error ? (
           <p className="leaderboard-message error">{error}</p>
         ) : filteredEntries.length === 0 ? (
-          <p className="leaderboard-message">No saved results match this filter yet.</p>
+          <p className="leaderboard-message">
+            {isDailyView
+              ? "No one has finished today's challenge yet. Be the first!"
+              : 'No saved results match this filter yet.'}
+          </p>
         ) : (
           <div className="rank-board" role="table" aria-label="Global typing leaderboard">
             <div className="rank-board-head" role="row">
@@ -280,7 +391,7 @@ function Leaderboard({ currentUserId, entries, error, isLoading, onOpenProfile }
               <span role="columnheader">player</span>
               <span role="columnheader">wpm</span>
               <span role="columnheader">accuracy</span>
-              <span role="columnheader">mode</span>
+              <span role="columnheader">{isDailyView ? 'details' : 'mode'}</span>
               <span role="columnheader">date</span>
             </div>
             {filteredEntries.map((entry, index) => (

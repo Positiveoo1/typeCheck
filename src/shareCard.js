@@ -65,6 +65,12 @@ export function getShareCardModel(result = {}, { themeColors = {}, playerName = 
 export function buildShareText(result = {}) {
   const wpm = Math.round(num(result.wpm));
   const accuracy = Math.round(num(result.accuracy));
+  const dailyKey =
+    result.dailyKey || String(result.modeLabel || '').match(/^daily (\d{4}-\d{2}-\d{2})$/)?.[1];
+  if (result.trainingMode === 'daily' && dailyKey) {
+    const rank = Number(result.dailyRank) > 0 ? `, rank #${result.dailyRank} today` : '';
+    return `TypeCheck Daily ${dailyKey}: ${wpm} WPM at ${accuracy}% accuracy${rank} ⌨️ ${SHARE_SITE_URL}`;
+  }
   const details = [result.language || 'english', result.modeLabel].filter(Boolean).join(' ');
   return `I typed ${wpm} WPM at ${accuracy}% accuracy on ${SHARE_SITE_NAME} (${details}) ⌨️ ${SHARE_SITE_URL}`;
 }

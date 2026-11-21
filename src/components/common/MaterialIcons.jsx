@@ -213,3 +213,11 @@ export function FlameIcon({ className = 'material-icon' } = {}) {
     </MaterialIcon>
   );
 }
+
+export function CalendarIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 16H5V10h14v10Zm0-12H5V6h14v2Zm-7 5h5v5h-5v-5Z" />
+    </MaterialIcon>
+  );
+}

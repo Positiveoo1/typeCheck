@@ -36,6 +36,14 @@ export function getLeaderboardCollectionRef(firebase) {
   return firebase.collection(firebase.db, 'leaderboardResults');
 }
 
+export function getDailyEntriesCollectionRef(firebase, dateKey) {
+  return firebase.collection(firebase.db, 'dailyLeaderboard', dateKey, 'entries');
+}
+
+export function getDailyEntryDocRef(firebase, dateKey, userId) {
+  return firebase.doc(firebase.db, 'dailyLeaderboard', dateKey, 'entries', userId);
+}
+
 export function getPublicPlayerDocRef(firebase, userId) {
   return firebase.doc(firebase.db, 'publicPlayers', userId);
 }
@@ -127,6 +135,8 @@ export function serializeResult(firebase, completedResult) {
 // Recovers the test length from the result, falling back to its mode label
 // ("english 30s", "60 words") because the engine result doesn't carry it.
 export function getResultTestValue(result) {
+  if (result?.trainingMode === 'daily') return 40;
+
   const explicitValue = Number(result?.testValue);
   if (Number.isInteger(explicitValue) && explicitValue > 0) return explicitValue;
 
@@ -377,4 +387,57 @@ export async function loadPublicPlayerProfile(userId) {
     playerName: getLeaderboardPlayerName(profile),
     results
   };
+}
+export const DAILY_LEADERBOARD_LIMIT = 50;
+
+// Player name stored on the daily entry so the daily board needs one query.
+export function getDailyPlayerName(profile, user) {
+  return getLeaderboardPlayerName({
+    displayName: user?.displayName || null,
+    fallbackName: toDisplayNameFromEmail(user?.email),
+    username: profile?.username || ''
+  }).slice(0, 80);
+}
+
+/** Today's (or dateKey's) daily challenge ranking: top 50 by wpm. */
+export async function loadDailyLeaderboard(dateKey) {
+  const firebase = await getFirebaseRuntime();
+  if (!firebase.db || !dateKey) return [];
+
+  const snapshot = await firebase.getDocs(firebase.query(
+    getDailyEntriesCollectionRef(firebase, dateKey),
+    firebase.orderBy('wpm', 'desc'),
+    firebase.limit(DAILY_LEADERBOARD_LIMIT)
+  ));
+
+  return snapshot.docs
+    .map((entryDoc) => {
+      const data = entryDoc.data();
+
+      return {
+        id: entryDoc.id,
+        accuracy: Number(data.accuracy) || 0,
+        attempts: Number(data.attempts) || 1,
+        createdAt: data.createdAt?.toDate?.() || data.createdAt || null,
+        language: data.language || 'english',
+        modeLabel: `daily ${dateKey}`,
+        playerName: data.playerName || 'Anonymous typist',
+        testType: 'words',
+        trainingMode: 'daily',
+        userId: data.userId || entryDoc.id,
+        verified: data.verified === true,
+        wpm: Number(data.wpm) || 0
+      };
+    })
+    .sort((first, second) => (
+      second.wpm - first.wpm ||
+      second.accuracy - first.accuracy ||
+      (new Date(first.createdAt || 0) - new Date(second.createdAt || 0))
+    ));
+}
+
+/** 1-based rank of userId on the daily board, or null if outside the top 50. */
+export function getDailyRank(entries, userId) {
+  const index = (entries || []).findIndex((entry) => entry.userId === userId);
+  return index === -1 ? null : index + 1;
 }

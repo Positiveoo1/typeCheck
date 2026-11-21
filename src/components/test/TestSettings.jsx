@@ -1,7 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import {
+  DAILY_CHALLENGE_MODE,
+  DAILY_CHALLENGE_WORD_COUNT,
+  formatDailyResetCountdown,
+  getMsUntilDailyReset,
+  loadDailyDone
+} from '../../dailyChallenge.js';
 import { TRAINING_MODES } from '../../trainingModes.js';
 import {
+  CalendarIcon,
+  CheckIcon,
   CodeIcon,
   KeyboardIcon,
   LockIcon,
@@ -16,10 +25,14 @@ import {
 const TIME_MODES = [15, 30, 60];
 const WORD_MODES = [10, 30, 60];
 
-const TRAINING_CARD_MODES = TRAINING_MODES.filter((mode) => mode.id !== 'standard');
+// Daily has its own entry point (DailyChallengeChip) above the mode row.
+const TRAINING_CARD_MODES = TRAINING_MODES.filter(
+  (mode) => mode.id !== 'standard' && mode.id !== DAILY_CHALLENGE_MODE
+);
 const TRAINING_LABELS = {
   'accuracy-lock': 'lock',
   code: 'code',
+  daily: 'daily',
   custom: 'custom',
   numbers: 'numbers',
   quotes: 'quote',
@@ -35,6 +48,63 @@ const TRAINING_ICONS = {
   standard: KeyboardIcon,
   weak: StarIcon
 };
+
+function useDailyStatus() {
+  const [status, setStatus] = useState({ done: null, resetMs: 0 });
+
+  useEffect(() => {
+    const refresh = () =>
+      setStatus({ done: loadDailyDone(), resetMs: getMsUntilDailyReset() });
+
+    refresh();
+    const interval = window.setInterval(refresh, 30000);
+    window.addEventListener('typecheck-daily-done', refresh);
+    window.addEventListener('storage', refresh);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('typecheck-daily-done', refresh);
+      window.removeEventListener('storage', refresh);
+    };
+  }, []);
+
+  return status;
+}
+
+function DailyChallengeChip({ disabled, isSelected, onSelect }) {
+  const { done, resetMs } = useDailyStatus();
+  const statusText = done
+    ? `done today · best ${done.bestWpm} wpm`
+    : `${DAILY_CHALLENGE_WORD_COUNT} words · same for everyone`;
+
+  return (
+    <div className="daily-challenge-entry">
+      <button
+        aria-pressed={isSelected}
+        className={[
+          'daily-challenge-chip',
+          isSelected ? 'active' : '',
+          done ? 'done' : ''
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        disabled={disabled}
+        onClick={onSelect}
+        title="Same 40 words for everyone today"
+        type="button"
+      >
+        {done ? <CheckIcon /> : <CalendarIcon />}
+        <span className="daily-challenge-chip-title">Daily challenge</span>
+        <span className="daily-challenge-chip-status">{statusText}</span>
+      </button>
+      {resetMs > 0 && (
+        <span className="daily-challenge-reset">
+          resets in {formatDailyResetCountdown(resetMs)}
+        </span>
+      )}
+    </div>
+  );
+}
 
 function TestSettings({
   customText = '',
@@ -71,8 +141,15 @@ function TestSettings({
     setIsCustomTextOpen(false);
   };
 
+  const isDaily = selectedTrainingMode === DAILY_CHALLENGE_MODE;
+
   return (
     <>
+      <DailyChallengeChip
+        disabled={disabled}
+        isSelected={isDaily}
+        onSelect={() => onTrainingModeChange(isDaily ? 'standard' : DAILY_CHALLENGE_MODE)}
+      />
       <motion.section
         className="settings settings-inline"
         aria-label="Test settings"
@@ -119,67 +196,100 @@ function TestSettings({
           })}
         </div>
 
-        <span className="inline-divider" aria-hidden="true" />
-
-        <div className="inline-mode-group" role="group" aria-label="Choose test type">
-          <span className="inline-mode-title">test</span>
-          <button
-            className={selectedType === 'time' ? 'inline-mode active' : 'inline-mode'}
-            disabled={disabled}
-            onClick={() =>
-              onSettingsChange(
-                'time',
-                selectedType === 'time' ? selectedValue : TIME_MODES[1]
-              )
-            }
-            title="Timed test"
-            type="button"
-          >
-            <TimerIcon />
-            <span>time</span>
-          </button>
-          <button
-            className={selectedType === 'words' ? 'inline-mode active' : 'inline-mode'}
-            disabled={disabled}
-            onClick={() =>
-              onSettingsChange(
-                'words',
-                selectedType === 'words' ? selectedValue : WORD_MODES[0]
-              )
-            }
-            title="Word-count test"
-            type="button"
-          >
-            <TextFieldsIcon />
-            <span>words</span>
-          </button>
-        </div>
-
-        <span className="inline-divider" aria-hidden="true" />
-
-        <div className="inline-mode-group" role="group" aria-label="Choose test length">
-          <span className="inline-mode-title">length</span>
-          {(selectedType === 'time' ? TIME_MODES : WORD_MODES).map((mode) => (
-            <button
-              className={mode === selectedValue ? 'inline-mode active' : 'inline-mode'}
-              disabled={disabled}
-              key={`${selectedType}-${mode}`}
-              onClick={() => onSettingsChange(selectedType, mode)}
-              title={selectedType === 'time' ? `${mode} seconds` : `${mode} words`}
-              type="button"
+        {isDaily ? (
+          <>
+            <span className="inline-divider" aria-hidden="true" />
+            <div
+              className="inline-mode-group"
+              role="group"
+              aria-label="Daily challenge length"
             >
-              {selectedType === 'time' ? <TimerIcon /> : <TextFieldsIcon />}
-              <span>{selectedType === 'time' ? `${mode}s` : mode}</span>
-            </button>
-          ))}
+              <span className="inline-mode-title">test</span>
+              <span
+                className="inline-mode inline-mode-static active"
+                title="Daily challenge"
+              >
+                <TextFieldsIcon />
+                <span>{DAILY_CHALLENGE_WORD_COUNT} words</span>
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="inline-divider" aria-hidden="true" />
 
-          {isCustomTimeSelected && (
-            <span className="inline-mode inline-mode-static active" title="Custom time">
-              <TimerIcon />
-              <span>{selectedValue}s</span>
-            </span>
-          )}
-        </div>
+            <div className="inline-mode-group" role="group" aria-label="Choose test type">
+              <span className="inline-mode-title">test</span>
+              <button
+                className={selectedType === 'time' ? 'inline-mode active' : 'inline-mode'}
+                disabled={disabled}
+                onClick={() =>
+                  onSettingsChange(
+                    'time',
+                    selectedType === 'time' ? selectedValue : TIME_MODES[1]
+                  )
+                }
+                title="Timed test"
+                type="button"
+              >
+                <TimerIcon />
+                <span>time</span>
+              </button>
+              <button
+                className={
+                  selectedType === 'words' ? 'inline-mode active' : 'inline-mode'
+                }
+                disabled={disabled}
+                onClick={() =>
+                  onSettingsChange(
+                    'words',
+                    selectedType === 'words' ? selectedValue : WORD_MODES[0]
+                  )
+                }
+                title="Word-count test"
+                type="button"
+              >
+                <TextFieldsIcon />
+                <span>words</span>
+              </button>
+            </div>
+
+            <span className="inline-divider" aria-hidden="true" />
+
+            <div
+              className="inline-mode-group"
+              role="group"
+              aria-label="Choose test length"
+            >
+              <span className="inline-mode-title">length</span>
+              {(selectedType === 'time' ? TIME_MODES : WORD_MODES).map((mode) => (
+                <button
+                  className={
+                    mode === selectedValue ? 'inline-mode active' : 'inline-mode'
+                  }
+                  disabled={disabled}
+                  key={`${selectedType}-${mode}`}
+                  onClick={() => onSettingsChange(selectedType, mode)}
+                  title={selectedType === 'time' ? `${mode} seconds` : `${mode} words`}
+                  type="button"
+                >
+                  {selectedType === 'time' ? <TimerIcon /> : <TextFieldsIcon />}
+                  <span>{selectedType === 'time' ? `${mode}s` : mode}</span>
+                </button>
+              ))}
+
+              {isCustomTimeSelected && (
+                <span
+                  className="inline-mode inline-mode-static active"
+                  title="Custom time"
+                >
+                  <TimerIcon />
+                  <span>{selectedValue}s</span>
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </motion.section>
 
       <AnimatePresence>

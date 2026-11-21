@@ -1,4 +1,10 @@
-import { AnimatePresence, animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useMotionValue,
+  useTransform
+} from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getTypingStyle } from '../../typingIdentity.js';
 import { buildMistakeKeyCounts, calculateStats } from '../../typingLogic.js';
@@ -46,7 +52,9 @@ function TypingReplay({
   const events = useMemo(() => {
     const log = Array.isArray(stats.keystrokeLog) ? stats.keystrokeLog : [];
     return log
-      .filter((event) => Number.isFinite(Number(event.t)) && typeof event.text === 'string')
+      .filter(
+        (event) => Number.isFinite(Number(event.t)) && typeof event.text === 'string'
+      )
       .sort((first, second) => Number(first.t) - Number(second.t));
   }, [stats.keystrokeLog]);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -56,17 +64,18 @@ function TypingReplay({
   const accumulatedMsRef = useRef(0);
   const frameRef = useRef(null);
   const lastSoundEventIndexRef = useRef(-1);
-  const durationMs = Math.max(events.at(-1)?.t || 0, Number(stats.elapsedSeconds || 0) * 1000);
+  const durationMs = Math.max(
+    events.at(-1)?.t || 0,
+    Number(stats.elapsedSeconds || 0) * 1000
+  );
   const replayText = useMemo(() => {
     const activeEvent = events.findLast((event) => Number(event.t) <= playbackMs);
     return activeEvent?.text || '';
   }, [events, playbackMs]);
   const liveWpm = useMemo(
-    () => calculateStats(
-      stats.targetText || '',
-      replayText,
-      Math.max(playbackMs / 1000, 0.1)
-    ).wpm,
+    () =>
+      calculateStats(stats.targetText || '', replayText, Math.max(playbackMs / 1000, 0.1))
+        .wpm,
     [playbackMs, replayText, stats.targetText]
   );
 
@@ -96,9 +105,7 @@ function TypingReplay({
   useEffect(() => {
     if (!soundEnabled) return;
 
-    const lastEventIndex = events.findLastIndex(
-      (event) => Number(event.t) <= playbackMs
-    );
+    const lastEventIndex = events.findLastIndex((event) => Number(event.t) <= playbackMs);
 
     for (
       let index = lastSoundEventIndexRef.current + 1;
@@ -132,7 +139,7 @@ function TypingReplay({
 
   const restartPlayback = () => {
     accumulatedMsRef.current = 0;
-    startedAtRef.current = performance.now(); 
+    startedAtRef.current = performance.now();
     lastSoundEventIndexRef.current = -1;
     setPlaybackMs(0);
     setIsPlaying(true);
@@ -164,10 +171,16 @@ function TypingReplay({
           <div>
             <span>typing replay</span>
             <strong>
-              {formatSeconds(playbackMs / 1000)}s / {formatSeconds(durationMs / 1000)}s · {liveWpm} WPM
+              {formatSeconds(playbackMs / 1000)}s / {formatSeconds(durationMs / 1000)}s ·{' '}
+              {liveWpm} WPM
             </strong>
           </div>
-          <button aria-label="Close typing replay" className="replay-close" onClick={onClose} type="button">
+          <button
+            aria-label="Close typing replay"
+            className="replay-close"
+            onClick={onClose}
+            type="button"
+          >
             <CloseIcon />
           </button>
         </div>
@@ -175,8 +188,17 @@ function TypingReplay({
         <div className="typing-replay-text" aria-live="off">
           {Array.from(stats.targetText || '').map((character, index) => {
             const typedCharacter = replayText[index];
-            const state = typedCharacter === undefined ? 'pending' : typedCharacter === character ? 'correct' : 'wrong';
-            return <span className={`replay-character ${state}`} key={index}>{character === ' ' ? '\u00a0' : character}</span>;
+            const state =
+              typedCharacter === undefined
+                ? 'pending'
+                : typedCharacter === character
+                  ? 'correct'
+                  : 'wrong';
+            return (
+              <span className={`replay-character ${state}`} key={index}>
+                {character === ' ' ? '\u00a0' : character}
+              </span>
+            );
           })}
         </div>
 
@@ -196,14 +218,31 @@ function TypingReplay({
         />
         <div className="typing-replay-controls">
           <button className="primary-action" onClick={togglePlayback} type="button">
-            <span>{isPlaying ? 'Pause' : playbackMs >= durationMs ? 'Play again' : 'Play'}</span>
+            <span>
+              {isPlaying ? 'Pause' : playbackMs >= durationMs ? 'Play again' : 'Play'}
+            </span>
           </button>
-          <button className="secondary-action" onClick={restartPlayback} type="button">Restart</button>
+          <button className="secondary-action" onClick={restartPlayback} type="button">
+            Restart
+          </button>
           <div className="replay-speed" aria-label="Replay speed">
-            {[1, 2].map((value) => <button className={speed === value ? 'active' : ''} key={value} onClick={() => setPlaybackSpeed(value)} type="button">{value}×</button>)}
+            {[1, 2].map((value) => (
+              <button
+                className={speed === value ? 'active' : ''}
+                key={value}
+                onClick={() => setPlaybackSpeed(value)}
+                type="button"
+              >
+                {value}×
+              </button>
+            ))}
           </div>
         </div>
-        {events.length === 0 && <p className="replay-unavailable">This test was completed before detailed replay data was available.</p>}
+        {events.length === 0 && (
+          <p className="replay-unavailable">
+            This test was completed before detailed replay data was available.
+          </p>
+        )}
       </motion.section>
     </div>
   );
@@ -408,13 +447,16 @@ function buildHistorySeries(historyResults = [], stats = {}, range = '30d') {
   const now = Date.now();
   const windowDays = HISTORY_RANGE_DAYS[range] ?? 30;
   const cutoff = windowDays ? now - windowDays * 24 * 60 * 60 * 1000 : 0;
-  const recentResults = [...historyResults, {
-    accuracy: stats.accuracy,
-    createdAt: new Date(),
-    netWpm: Number(stats.netWpm ?? stats.wpm) || 0,
-    rawWpm: Number(stats.rawWpm ?? stats.wpm) || 0,
-    wpm: Number(stats.wpm) || 0
-  }]
+  const recentResults = [
+    ...historyResults,
+    {
+      accuracy: stats.accuracy,
+      createdAt: new Date(),
+      netWpm: Number(stats.netWpm ?? stats.wpm) || 0,
+      rawWpm: Number(stats.rawWpm ?? stats.wpm) || 0,
+      wpm: Number(stats.wpm) || 0
+    }
+  ]
     .map((result) => ({
       createdAt: result.createdAt,
       netWpm: Number(result.netWpm ?? result.wpm) || 0,
@@ -447,9 +489,9 @@ function getChartGeometry(series) {
     ...series.map((result) => Math.max(result.rawWpm, result.netWpm))
   );
   const points = series.map((result, index) => {
-    const x = padding.left + (series.length === 1
-      ? graphWidth
-      : (index / (series.length - 1)) * graphWidth);
+    const x =
+      padding.left +
+      (series.length === 1 ? graphWidth : (index / (series.length - 1)) * graphWidth);
     const netY = padding.top + (1 - result.netWpm / peak) * graphHeight;
     const rawY = padding.top + (1 - result.rawWpm / peak) * graphHeight;
 
@@ -491,7 +533,9 @@ function WpmHistoryChart({ historyResults, stats }) {
           <span>wpm over time</span>
           <strong>Need more tests</strong>
         </div>
-        <p className="speed-note">Complete at least two saved tests to unlock trend lines.</p>
+        <p className="speed-note">
+          Complete at least two saved tests to unlock trend lines.
+        </p>
       </motion.div>
     );
   }
@@ -523,8 +567,18 @@ function WpmHistoryChart({ historyResults, stats }) {
         ))}
       </div>
 
-      <svg aria-label="WPM history" className="history-chart" viewBox={`0 0 ${chart.width} ${chart.height}`}>
-        <line className="history-baseline" x1="0" y1={chart.height - 28} x2={chart.width} y2={chart.height - 28} />
+      <svg
+        aria-label="WPM history"
+        className="history-chart"
+        viewBox={`0 0 ${chart.width} ${chart.height}`}
+      >
+        <line
+          className="history-baseline"
+          x1="0"
+          y1={chart.height - 28}
+          x2={chart.width}
+          y2={chart.height - 28}
+        />
         <path className="history-line-raw" d={chart.rawPath} />
         <path className="history-line-net" d={chart.netPath} />
         {chart.points.map((point) => (
@@ -536,8 +590,12 @@ function WpmHistoryChart({ historyResults, stats }) {
       </svg>
 
       <div className="history-legend">
-        <span><i className="line-raw" /> raw WPM</span>
-        <span><i className="line-net" /> net WPM</span>
+        <span>
+          <i className="line-raw" /> raw WPM
+        </span>
+        <span>
+          <i className="line-net" /> net WPM
+        </span>
         <strong>peak {Math.round(chart.peak)} WPM</strong>
       </div>
     </motion.div>
@@ -549,8 +607,10 @@ function ErrorProneKeys({ stats }) {
     () => buildMistakeKeyCounts(stats.targetText, stats.typedText, stats.keystrokeLog),
     [stats.keystrokeLog, stats.targetText, stats.typedText]
   );
-  const totalTrackedMistakes = Object.values(keyMistakeCounts)
-    .reduce((total, count) => total + (Number(count) || 0), 0);
+  const totalTrackedMistakes = Object.values(keyMistakeCounts).reduce(
+    (total, count) => total + (Number(count) || 0),
+    0
+  );
 
   return (
     <motion.div
@@ -698,10 +758,12 @@ function Results({
 
   useEffect(
     () => () => {
-      Object.values(keySoundPoolRef.current).flat().forEach((audio) => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
+      Object.values(keySoundPoolRef.current)
+        .flat()
+        .forEach((audio) => {
+          audio.pause();
+          audio.currentTime = 0;
+        });
       audioContextRef.current?.close?.();
     },
     []
@@ -713,7 +775,6 @@ function Results({
     }
     setIsReplayOpen(true);
   };
-
 
   return (
     <motion.section
@@ -755,6 +816,16 @@ function Results({
         )}
       </motion.h2>
       <GhostResultLine ghostMode={ghostMode} stats={stats} />
+      {stats.trainingMode === 'daily' && !isInvalid && (
+        <div className="daily-rank-banner" role="status">
+          <span>TypeCheck Daily {stats.dailyKey}</span>
+          {stats.dailyRank ? (
+            <strong>Today's rank #{stats.dailyRank}</strong>
+          ) : (
+            <small>same 40 words for everyone today</small>
+          )}
+        </div>
+      )}
 
       {isInvalid && (
         <motion.div
@@ -826,7 +897,9 @@ function Results({
 
       {!isInvalid && <ErrorProneKeys stats={stats} />}
 
-      {!isInvalid && <WeakKeysPanel language={stats.language} onPractice={onPracticeWeakKeys} />}
+      {!isInvalid && (
+        <WeakKeysPanel language={stats.language} onPractice={onPracticeWeakKeys} />
+      )}
 
       {!isInvalid && <ResultInsights stats={stats} />}
 

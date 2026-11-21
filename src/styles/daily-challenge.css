@@ -1,0 +1,136 @@
+/* Daily challenge: entry chip on the test page, results rank, leaderboard tab */
+
+.daily-challenge-entry {
+  margin: 0 auto 10px;
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+}
+
+.daily-challenge-chip {
+  min-height: 36px;
+  padding: 7px 14px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.35);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--heading);
+  background: rgba(var(--accent-2-rgb), 0.08);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.1;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.daily-challenge-chip:hover:not(:disabled),
+.daily-challenge-chip.active {
+  border-color: var(--accent-2);
+  background: rgba(var(--accent-2-rgb), 0.16);
+}
+
+.daily-challenge-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.daily-challenge-chip .material-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  fill: var(--accent-2);
+}
+
+.daily-challenge-chip-title {
+  font-weight: 900;
+}
+
+.daily-challenge-chip-status {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.daily-challenge-chip.done .daily-challenge-chip-status {
+  color: var(--accent-2);
+}
+
+.daily-challenge-reset {
+  color: var(--subtle);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.daily-rank-banner {
+  margin: 0 auto;
+  padding: 8px 14px;
+  border: 1px solid rgba(var(--accent-2-rgb), 0.35);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  color: var(--text);
+  background: rgba(var(--accent-2-rgb), 0.08);
+  font-size: 0.85rem;
+}
+
+.daily-rank-banner strong {
+  color: var(--accent-2);
+  font-weight: 900;
+}
+
+.daily-rank-banner small {
+  color: var(--muted);
+}
+
+.leaderboard-tabs {
+  margin-bottom: 14px;
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.leaderboard-tab {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.leaderboard-tab.active,
+.leaderboard-tab:hover {
+  color: var(--bg);
+  background: var(--accent-2);
+}
+
+.leaderboard-daily-meta {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 520px) {
+  .daily-challenge-chip {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 16px;
+  }
+}

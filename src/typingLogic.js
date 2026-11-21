@@ -122,8 +122,14 @@ export function getModeLabel(
   testType,
   testValue,
   trainingMode = 'standard',
-  language = 'english'
+  language = 'english',
+  dailyKey
 ) {
+  // Daily challenge runs are identified by their UTC day (see dailyChallenge.js).
+  if (trainingMode === 'daily') {
+    return `daily ${dailyKey || new Date().toISOString().slice(0, 10)}`;
+  }
+
   const baseLabel = testType === 'words' ? `${testValue} words` : `${testValue}s`;
   const modeLabel =
     trainingMode === 'standard'

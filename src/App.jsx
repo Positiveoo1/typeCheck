@@ -53,6 +53,8 @@ import {
 import { submitCompletedResult } from "./services/submitResult.js";
 import { getModeLabel } from "./typingLogic.js";
 import { recordRunKeyStats } from "./keyStats.js";
+import { getResultDailyKey, recordDailyDone } from "./dailyChallenge.js";
+import { getEffectiveTestConfig } from "./trainingModes.js";
 import { recordGhostRun } from "./ghostRuns.js";
 
 const AuthPanel = lazy(() => import("./components/auth/AuthPanel.jsx"));
@@ -138,9 +140,19 @@ function App() {
         notify,
         result: completedResult,
         user,
-      }).catch((error) => {
-        console.error("Failed to submit result:", error);
-      });
+        userProfile,
+      })
+        .then((outcome) => {
+          if (!outcome?.dailyRank) return;
+          setResult((current) =>
+            current === completedResult
+              ? { ...current, dailyRank: outcome.dailyRank }
+              : current,
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to submit result:", error);
+        });
 
       firebase
         .setDoc(
@@ -191,6 +203,12 @@ function App() {
     typingFontSize,
     wordMode,
   } = settings;
+
+  const dailyTestConfig = getEffectiveTestConfig({
+    testType,
+    testValue: testType === "time" ? timeMode : wordMode,
+    trainingMode,
+  });
 
   useAuthSync({
     currentPage,
@@ -280,6 +298,10 @@ function App() {
         personalAverageAccuracy,
         personalAverageWpm,
       };
+      if (completedResult.trainingMode === "daily") {
+        completedResult.dailyKey = getResultDailyKey(completedResult);
+        recordDailyDone(completedResult);
+      }
 
       setResult(completedResult);
       activeAttemptRef.current = null;
@@ -679,12 +701,16 @@ function App() {
               showKeyboard,
               soundEnabled,
               soundVolume,
-              testType,
+              // The daily challenge always runs as a 40-word test.
+              testType: dailyTestConfig.testType,
               timeMode,
               language,
               trainingMode,
               tryAgain,
-              wordMode,
+              wordMode:
+                dailyTestConfig.testType === "words"
+                  ? dailyTestConfig.testValue
+                  : wordMode,
             }}
             theme={theme}
             user={user}

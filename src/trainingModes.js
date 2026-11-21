@@ -1,6 +1,12 @@
 import { shuffleWords } from './typingLogic.js';
 import { getWordListForLanguage } from './languages.js';
 import { buildPersonalDrill } from './keyStats.js';
+import {
+  buildDailyChallengeText,
+  DAILY_CHALLENGE_MODE,
+  DAILY_CHALLENGE_WORD_COUNT,
+  getDailyChallengeKey
+} from './dailyChallenge.js';
 
 export const TRAINING_MODES = [
   {
@@ -38,6 +44,12 @@ export const TRAINING_MODES = [
     label: 'Accuracy lock',
     shortLabel: 'lock',
     description: 'The run ends at five live mistakes.'
+  },
+  {
+    id: 'daily',
+    label: 'Daily challenge',
+    shortLabel: 'daily',
+    description: 'Same 40 words for everyone today'
   },
   {
     id: 'custom',
@@ -218,15 +230,32 @@ export function getTrainingModeLabel(modeId) {
   return getTrainingMode(modeId).shortLabel;
 }
 
+// The daily challenge ignores the selected time/word setting.
+export function getEffectiveTestConfig({ testType, testValue, trainingMode }) {
+  if (trainingMode === DAILY_CHALLENGE_MODE) {
+    return { testType: 'words', testValue: DAILY_CHALLENGE_WORD_COUNT };
+  }
+  return { testType, testValue };
+}
+
 export function buildTrainingTarget({
   customText = '',
+  dateKey,
   keyStats,
   language = 'english',
+  now,
   random = Math.random,
   testType = 'time',
   testValue = 30,
   trainingMode = 'standard'
 } = {}) {
+  if (trainingMode === DAILY_CHALLENGE_MODE) {
+    return buildDailyChallengeText({
+      dateKey: dateKey || getDailyChallengeKey(now || new Date()),
+      language
+    });
+  }
+
   const wordCount = testType === 'words' ? testValue : 90;
 
   if (trainingMode === 'custom') {
@@ -265,7 +294,9 @@ export const TARGET_EXTENSION_THRESHOLD = 120;
 export const TARGET_EXTENSION_WORDS = 40;
 
 export function shouldExtendTarget({ targetText, typedLength, testType, trainingMode }) {
-  if (testType !== 'time' || trainingMode === 'custom') return false;
+  if (testType !== 'time' || trainingMode === 'custom' || trainingMode === DAILY_CHALLENGE_MODE) {
+    return false;
+  }
   return targetText.length - typedLength < TARGET_EXTENSION_THRESHOLD;
 }
 

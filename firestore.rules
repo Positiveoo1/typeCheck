@@ -141,6 +141,46 @@ service cloud.firestore {
         hasConsistentDuration(data);
     }
 
+    // --- Daily challenge ------------------------------------------------
+    // dateKey is the UTC day (YYYY-MM-DD); writes are accepted during that
+    // day plus a 10 minute grace period for runs finishing after midnight.
+    function isCurrentDailyKey(dateKey) {
+      return dateKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        request.time >= timestamp.date(
+          int(dateKey[0:4]), int(dateKey[5:7]), int(dateKey[8:10])) &&
+        request.time < timestamp.date(
+          int(dateKey[0:4]), int(dateKey[5:7]), int(dateKey[8:10])) +
+          duration.value(1450, 'm');
+    }
+
+    // A daily run is always 40 words: same bounds as other leaderboard
+    // entries, with wpm * elapsedSeconds capped at 40 * 200.
+    function isValidDailyEntry(userId) {
+      let data = request.resource.data;
+      return hasOnlyFields([
+          'accuracy',
+          'attempts',
+          'createdAt',
+          'elapsedSeconds',
+          'language',
+          'playerName',
+          'userId',
+          'verified',
+          'wpm'
+        ]) &&
+        data.userId == userId &&
+        isNotVerifiedClaim() &&
+        isPlausibleLeaderboardScore(data) &&
+        data.wpm * data.elapsedSeconds <= 8000 &&
+        data.attempts is int &&
+        data.language is string &&
+        data.language.size() > 0 &&
+        data.language.size() <= 20 &&
+        data.playerName is string &&
+        data.playerName.size() > 0 &&
+        data.playerName.size() <= 80;
+    }
+
     function isValidPublicPlayer(userId) {
       return hasOnlyFields([
         'displayName',
@@ -199,6 +239,28 @@ service cloud.firestore {
         isValidLeaderboardResult() &&
         hasFreshLeaderboardStamp();
       allow update, delete: if false;
+    }
+
+    // Best daily-challenge run per user: dailyLeaderboard/{dateKey}/entries/{uid}.
+    // Updates must bump `attempts` by one and either change nothing else or
+    // replace the run with a faster one. Rate-limited like leaderboardResults.
+    match /dailyLeaderboard/{dateKey}/entries/{userId} {
+      allow read: if true;
+      allow create: if isOwner(userId) &&
+        isCurrentDailyKey(dateKey) &&
+        isValidDailyEntry(userId) &&
+        request.resource.data.attempts == 1 &&
+        request.resource.data.createdAt == request.time &&
+        hasFreshLeaderboardStamp();
+      allow update: if isOwner(userId) &&
+        isCurrentDailyKey(dateKey) &&
+        request.resource.data.attempts == resource.data.attempts + 1 &&
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attempts']) ||
+          (isValidDailyEntry(userId) &&
+            request.resource.data.wpm > resource.data.wpm &&
+            request.resource.data.createdAt == request.time)) &&
+        hasFreshLeaderboardStamp();
+      allow delete: if false;
     }
 
     match /{document=**} {

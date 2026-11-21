@@ -12,6 +12,7 @@ import '../src/styles/settings.css';
 import '../src/styles/auth.css';
 import '../src/styles/onboarding.css';
 import '../src/styles/daily-goal.css';
+import '../src/styles/daily-challenge.css';
 
 const atkinson = Atkinson_Hyperlegible({
   display: 'swap',

@@ -23,6 +23,9 @@ TypeCheck v1.7.5 is a friendly typing speed test built with Next.js, React, and 
   - `Code`: developer-style casing, symbols, and snippets.
   - `Numbers`: digits and compact punctuation-heavy tokens.
   - `Accuracy lock`: ends a run after five live mistakes.
+- Daily challenge: the same 40 words for everyone each UTC day (seeded from the
+  date and language), with its own daily leaderboard and a "resets in" timer.
+  Guests can play; signed-in players are ranked by their best run of the day.
 - Typing stats: WPM, accuracy, correct characters, wrong characters, elapsed time, and mode labels.
 - Dashboard and profile history for signed-in users.
 - Public player profiles and leaderboard entries.
@@ -130,6 +133,8 @@ The app expects these Firestore areas when Firebase is configured:
 - `users/{userId}/results/{resultId}`: individual typing results.
 - `publicPlayers/{userId}`: public display data for profile and leaderboard links.
 - `leaderboardResults/{resultId}`: leaderboard-visible typing results.
+- `dailyLeaderboard/{YYYY-MM-DD}/entries/{userId}`: each player's best daily
+  challenge run of that UTC day (`wpm`, `accuracy`, `playerName`, `attempts`, ...).
 
 Auth is used for sign-in state, password reset email, password linking, password changes, sign-out, and recent-login checks.
 
@@ -168,6 +173,10 @@ claim:
   `getAfter`/`existsAfter` to require that stamp in the same batch and reject
   the write if the previous stamp is less than 5 seconds old. The stamp can
   only ever move forward to "now", and the user document can't be deleted.
+- Daily challenge entries (`dailyLeaderboard/{day}/entries/{uid}`) use the
+  same bounds and rate limit, the document id must be the user's uid, the day
+  must be the current UTC day (10 minute grace), and an update may only bump
+  `attempts` by one, optionally replacing the run with a faster one.
 
 Before submitting, the client also runs `isPlausibleResult(result)`
 (`src/resultPlausibility.js`) over the keystroke log -- enough events for the
@@ -188,7 +197,8 @@ target text, typed text and keystroke log, then (see `functions/verify.js`):
   has the declared number of words;
 - recomputes WPM / accuracy / mode label itself and ignores client stats;
 - writes the personal result and the leaderboard entry with `verified: true`
-  (shown with a check mark on the leaderboard).
+  (shown with a check mark on the leaderboard); daily challenge runs update
+  `dailyLeaderboard/{day}/entries/{uid}` instead.
 
 To enable it:
 
@@ -211,6 +221,11 @@ To enable it:
    match /leaderboardResults/{resultId} {
      allow read: if true;
      // Only the submitResult Cloud Function (Admin SDK) may write entries.
+     allow create, update, delete: if false;
+   }
+
+   match /dailyLeaderboard/{dateKey}/entries/{userId} {
+     allow read: if true;
      allow create, update, delete: if false;
    }
    ```
