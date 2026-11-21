@@ -11,7 +11,7 @@ import {
 export const SETTINGS_KEY = 'typecheck-settings';
 export const THEME_KEY = 'typecheck-theme';
 export const ONBOARDING_KEY = 'typecheck-onboarding-complete';
-export const ONBOARDING_VERSION = '2026-06-training-leaderboard-profile';
+export const ONBOARDING_VERSION = '2026-11-daily-practice';
 export const THEMES = getThemeIds();
 export const MODE_LABELS = ['15s', '30s', '60s', '10 words', '30 words', '60 words'];
 export const SHORTCUT_TIME_MODES = [15, 30, 60];
@@ -196,6 +196,23 @@ export function loadOnboardingComplete() {
     return localStorage.getItem(ONBOARDING_KEY) === ONBOARDING_VERSION;
   } catch {
     return true;
+  }
+}
+
+// 'new': never finished any tour; 'outdated': finished an older tour, so only
+// the steps added since then are worth showing; 'complete': up to date.
+export function getOnboardingStatus(storedVersion) {
+  if (storedVersion === ONBOARDING_VERSION) return 'complete';
+  return storedVersion ? 'outdated' : 'new';
+}
+
+export function loadOnboardingStatus() {
+  try {
+    if (typeof localStorage === 'undefined') return 'complete';
+
+    return getOnboardingStatus(localStorage.getItem(ONBOARDING_KEY));
+  } catch {
+    return 'complete';
   }
 }
 

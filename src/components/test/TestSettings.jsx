@@ -78,7 +78,7 @@ function DailyChallengeChip({ disabled, isSelected, onSelect }) {
     : `${DAILY_CHALLENGE_WORD_COUNT} words · same for everyone`;
 
   return (
-    <div className="daily-challenge-entry">
+    <div className="daily-challenge-entry" data-onboarding-target="daily-challenge">
       <button
         aria-pressed={isSelected}
         className={[

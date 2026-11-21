@@ -13,7 +13,9 @@ import {
   normalizeDashboard,
   normalizeTimeMode,
   saveSettings,
-  SETTINGS_KEY
+  SETTINGS_KEY,
+  getOnboardingStatus,
+  ONBOARDING_VERSION
 } from './appState.js';
 
 function installLocalStorage(initialValues = {}) {
@@ -193,5 +195,19 @@ describe('dashboard aggregation', () => {
     assert.equal(dashboard.estimatedWordsTyped, 7);
     assert.equal(dashboard.totalTypingSeconds, 35);
     assert.deepEqual(dashboard.results, resultHistory);
+  });
+});
+
+describe('onboarding status', () => {
+  it('is new when no tour was ever finished', () => {
+    assert.equal(getOnboardingStatus(null), 'new');
+  });
+
+  it('is outdated when an older tour was finished', () => {
+    assert.equal(getOnboardingStatus('2026-06-training-leaderboard-profile'), 'outdated');
+  });
+
+  it('is complete for the current version', () => {
+    assert.equal(getOnboardingStatus(ONBOARDING_VERSION), 'complete');
   });
 });

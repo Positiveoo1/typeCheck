@@ -14,7 +14,7 @@ import {
   createModeStats,
   getRecentAccountEvents,
   isTooShortCustomTest,
-  loadOnboardingComplete,
+  loadOnboardingStatus,
   MIN_CUSTOM_TEST_CHARACTERS,
   normalizeProfile,
   PASSWORD_RESET_EMAIL_LIMIT,
@@ -75,6 +75,7 @@ function App() {
   const [pendingPage, setPendingPage] = useState(null);
   const [replayTargetText, setReplayTargetText] = useState(null);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [onboardingStatus, setOnboardingStatus] = useState("complete");
   const { dismissToast, notify, toasts } = useToasts();
   const {
     activeAttemptRef,
@@ -89,7 +90,9 @@ function App() {
   });
 
   useEffect(() => {
-    setIsOnboardingOpen(!loadOnboardingComplete());
+    const status = loadOnboardingStatus();
+    setOnboardingStatus(status);
+    setIsOnboardingOpen(status !== "complete");
   }, []);
 
   useCapsLockIndicator();
@@ -645,7 +648,7 @@ function App() {
 
           <AnimatePresence>
             {isOnboardingOpen && !isAuthGateOpen && !isSignOutConfirmOpen && (
-              <Onboarding onDismiss={dismissOnboarding} />
+              <Onboarding onDismiss={dismissOnboarding} status={onboardingStatus} />
             )}
           </AnimatePresence>
 

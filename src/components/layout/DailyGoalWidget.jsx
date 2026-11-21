@@ -14,6 +14,7 @@ function DailyGoalWidget({ progress }) {
     <div
       aria-label={label}
       className={progress.met ? 'daily-goal met' : 'daily-goal'}
+      data-onboarding-target="daily-goal"
       data-tooltip={label}
       role="img"
     >

@@ -106,6 +106,7 @@ function TestPage({
                 <button
                   aria-label={`Ghost race: ${ghostMode === 'off' ? 'off' : ghostMode === 'best' ? 'personal best' : 'last run'}. Activate to change.`}
                   className="ghost-toggle"
+                  data-onboarding-target="ghost"
                   data-mode={ghostMode}
                   disabled={isActive}
                   onClick={() =>

@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { useLayoutEffect, useState } from 'react';
 
-const ONBOARDING_ITEMS = [
+// `isNew` marks steps added in the current ONBOARDING_VERSION. People who
+// finished an older tour only see these, as a short "what's new".
+export const ONBOARDING_ITEMS = [
   {
     selector: '[data-onboarding-target="settings"]',
     title: 'Choose your test',
@@ -10,7 +12,14 @@ const ONBOARDING_ITEMS = [
   {
     selector: '[data-onboarding-target="training"]',
     title: 'Train a weak spot',
-    text: 'Turn on training modes for awkward keys, quotes, code, numbers, or accuracy practice.'
+    text: 'Weak keys builds drills from the letters you miss and the letter pairs that slow you down. Quotes, code, numbers and accuracy lock are here too.',
+    isNew: true
+  },
+  {
+    selector: '[data-onboarding-target="daily-challenge"]',
+    title: 'Take the daily challenge',
+    text: 'The same 40 words for everyone, new every day. Sign in to get on the daily leaderboard.',
+    isNew: true
   },
   {
     selector: '[data-onboarding-target="typing"]',
@@ -19,36 +28,59 @@ const ONBOARDING_ITEMS = [
   },
   {
     selector: '[data-onboarding-target="restart-shortcut"]',
-    title: 'Use the restart shortcut',
-    text: 'Press Cmd or Ctrl plus Enter to restart without reaching for the mouse.'
+    title: 'Restart in one key',
+    text: 'Press Esc (or Cmd/Ctrl + Enter) to restart without reaching for the mouse.'
+  },
+  {
+    selector: '[data-onboarding-target="ghost"]',
+    title: 'Race your ghost',
+    text: 'Turn on the ghost to race a caret that replays your personal best or your last run.',
+    isNew: true
+  },
+  {
+    selector: '[data-onboarding-target="daily-goal"]',
+    title: 'Keep your streak',
+    text: 'Hit your daily goal to grow your streak. Change the goal in settings.',
+    isNew: true
   },
   {
     selector: '[data-onboarding-target="leaderboard"]',
     title: 'Compare rankings',
-    text: 'Open the leaderboard to filter scores by time, words, and specific modes.'
+    text: 'See all-time scores by mode, or switch to today\'s daily challenge ranking.',
+    isNew: true
   },
   {
     selector: '[data-onboarding-target="app-settings"]',
-    title: 'Tune the app',
-    text: 'Use settings for themes, keyboard display, sound, motion, and typing rules.'
+    title: 'Make it yours',
+    text: 'Themes (including high-contrast and colour-blind friendly), a readable font, text size, sound and motion.',
+    isNew: true
   },
   {
     selector: '[data-onboarding-target="account-dashboard"]',
-    title: 'Save your progress',
-    text: 'Sign in to keep your dashboard, profile, public stats, and eligible leaderboard results synced.'
+    title: 'Your progress is saved',
+    text: 'Results are kept in this browser, even without an account. Sign in to sync them across devices and appear on the leaderboard.',
+    isNew: true
   }
 ];
+
+export function getOnboardingSteps(status) {
+  return status === 'outdated'
+    ? ONBOARDING_ITEMS.filter((item) => item.isNew)
+    : ONBOARDING_ITEMS;
+}
 
 function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function Onboarding({ onDismiss }) {
+function Onboarding({ onDismiss, status = 'new' }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [spotlight, setSpotlight] = useState(null);
-  const step = ONBOARDING_ITEMS[stepIndex];
+  const steps = getOnboardingSteps(status);
+  const isWhatsNew = status === 'outdated';
+  const step = steps[stepIndex];
   const isFirstStep = stepIndex === 0;
-  const isLastStep = stepIndex === ONBOARDING_ITEMS.length - 1;
+  const isLastStep = stepIndex === steps.length - 1;
 
   useLayoutEffect(() => {
     const updateSpotlight = () => {
@@ -135,12 +167,12 @@ function Onboarding({ onDismiss }) {
         transition={{ duration: 0.24, ease: 'easeOut' }}
       >
         <p className="eyebrow">
-          quick start {stepIndex + 1}/{ONBOARDING_ITEMS.length}
+          {isWhatsNew ? "what's new" : 'quick start'} {stepIndex + 1}/{steps.length}
         </p>
         <h2 id="onboarding-title">{step.title}</h2>
         <p>{step.text}</p>
         <div className="onboarding-progress" aria-hidden="true">
-          {ONBOARDING_ITEMS.map((item, index) => (
+          {steps.map((item, index) => (
             <span className={index === stepIndex ? 'active' : ''} key={item.title} />
           ))}
         </div>
@@ -168,7 +200,7 @@ function Onboarding({ onDismiss }) {
             }}
             type="button"
           >
-            {isLastStep ? 'Start typing' : 'Next'}
+            {isLastStep ? (isWhatsNew ? 'Got it' : 'Start typing') : 'Next'}
           </button>
         </div>
       </motion.section>
