@@ -50,9 +50,32 @@ export function useCaretPosition(currentLetterRef, wordDisplayRef, deps) {
     const animationFrameId = window.requestAnimationFrame(updateCaretPosition);
     window.addEventListener('resize', updateCaretPosition);
 
+    // Re-measure when typing font or size settings change layout.
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updateCaretPosition);
+    resizeObserver?.observe(currentElement);
+    resizeObserver?.observe(wordDisplay);
+
+    const rootAttributeObserver =
+      typeof MutationObserver === 'undefined'
+        ? null
+        : new MutationObserver(() => window.requestAnimationFrame(updateCaretPosition));
+    rootAttributeObserver?.observe(document.documentElement, {
+      attributeFilter: ['data-typing-font', 'data-typing-font-size'],
+      attributes: true
+    });
+
+    const fontSet = document.fonts;
+    fontSet?.addEventListener?.('loadingdone', updateCaretPosition);
+
     return () => {
       window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', updateCaretPosition);
+      resizeObserver?.disconnect();
+      rootAttributeObserver?.disconnect();
+      fontSet?.removeEventListener?.('loadingdone', updateCaretPosition);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

@@ -6,7 +6,10 @@ import {
   loadTheme,
   MAX_CUSTOM_TEXT_LENGTH,
   MISTAKE_MODES,
+  normalizeReducedMotion,
   normalizeTimeMode,
+  normalizeTypingFont,
+  normalizeTypingFontSize,
   SOUND_STYLES,
   saveSettings,
   saveTheme,
@@ -30,7 +33,8 @@ export function useThemeSettings({
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [theme, setTheme] = useState('matrix');
 
-  const { accentColor, reducedMotion, soundStyle } = settings;
+  const { accentColor, reducedMotion, soundStyle, typingFont, typingFontSize } =
+    settings;
   const themePersonality = getThemePersonality(theme);
   const effectiveSoundStyle =
     soundStyle === 'theme' ? themePersonality.soundStyle : soundStyle;
@@ -67,8 +71,25 @@ export function useThemeSettings({
   }, [accentColor]);
 
   useEffect(() => {
-    document.documentElement.dataset.reducedMotion = String(reducedMotion);
+    // 'system' is resolved in CSS via prefers-reduced-motion; 'on'/'off' force it.
+    document.documentElement.dataset.reducedMotion =
+      reducedMotion === 'on' ? 'true' : reducedMotion === 'off' ? 'false' : 'system';
   }, [reducedMotion]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const fontFamilies = {
+      default: 'inherit',
+      readable: 'var(--font-readable, "Atkinson Hyperlegible", system-ui, sans-serif)',
+      mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
+    };
+    const fontScales = { small: '0.85', medium: '1', large: '1.2', xlarge: '1.45' };
+
+    root.dataset.typingFont = typingFont;
+    root.dataset.typingFontSize = typingFontSize;
+    root.style.setProperty('--typing-font-family', fontFamilies[typingFont]);
+    root.style.setProperty('--typing-font-scale', fontScales[typingFontSize]);
+  }, [typingFont, typingFontSize]);
 
   const handleSettingsChange = useCallback(
     (nextType, nextValue) => {
@@ -176,10 +197,15 @@ export function useThemeSettings({
         mistakeMode: MISTAKE_MODES.includes(nextOptions.mistakeMode)
           ? nextOptions.mistakeMode
           : settings.mistakeMode,
-        reducedMotion:
-          typeof nextOptions.reducedMotion === 'boolean'
-            ? nextOptions.reducedMotion
-            : settings.reducedMotion,
+        reducedMotion: normalizeReducedMotion(
+          nextOptions.reducedMotion,
+          settings.reducedMotion
+        ),
+        typingFont: normalizeTypingFont(nextOptions.typingFont, settings.typingFont),
+        typingFontSize: normalizeTypingFontSize(
+          nextOptions.typingFontSize,
+          settings.typingFontSize
+        ),
         accentColor:
           typeof nextOptions.accentColor === 'string'
             ? normalizeAccentColor(nextOptions.accentColor, settings.accentColor)

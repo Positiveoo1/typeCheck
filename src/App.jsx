@@ -210,6 +210,8 @@ function App() {
     testType,
     timeMode,
     trainingMode,
+    typingFont,
+    typingFontSize,
     wordMode,
   } = settings;
 
@@ -588,8 +590,17 @@ function App() {
   });
 
   return (
-    <MotionConfig reducedMotion={reducedMotion ? "always" : "never"}>
+    <MotionConfig
+      reducedMotion={
+        reducedMotion === "on" ? "always" : reducedMotion === "off" ? "never" : "user"
+      }
+    >
       <LayoutGroup>
+        <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {result
+            ? `Test complete. ${result.wpm} words per minute, ${result.accuracy} percent accuracy.`
+            : ""}
+        </div>
         <motion.div className="app" data-theme={theme} layout>
           <AnimatePresence>
             {(!isAuthReady || isPageLoading) && (
@@ -647,6 +658,8 @@ function App() {
               soundEnabled,
               soundStyle,
               soundVolume,
+              typingFont,
+              typingFontSize,
             }}
             testPage={{
               customText,
