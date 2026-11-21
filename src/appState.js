@@ -1,6 +1,7 @@
 import { getThemeIds, normalizeAccentColor } from './themePersonalities.js';
 import { DEFAULT_LANGUAGE, getLanguageIds } from './languages.js';
 import { getTrainingModeIds } from './trainingModes.js';
+import { normalizeGhostMode } from './ghostRuns.js';
 import {
   DEFAULT_DAILY_GOAL_TYPE,
   DEFAULT_DAILY_GOAL_VALUE,
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS = {
   dailyGoalType: DEFAULT_DAILY_GOAL_TYPE,
   dailyGoalValue: DEFAULT_DAILY_GOAL_VALUE,
   customText: 'Small steady practice makes typing feel effortless.',
+  ghostMode: 'off',
   language: DEFAULT_LANGUAGE,
   mistakeMode: 'backspace',
   reducedMotion: 'system',
@@ -141,6 +143,7 @@ export function loadSettings() {
         DEFAULT_SETTINGS.accentColor
       ),
       customText: normalizeCustomTextSetting(savedSettings?.customText),
+      ghostMode: normalizeGhostMode(savedSettings?.ghostMode),
       language: LANGUAGE_IDS.includes(savedSettings?.language)
         ? savedSettings.language
         : DEFAULT_SETTINGS.language,

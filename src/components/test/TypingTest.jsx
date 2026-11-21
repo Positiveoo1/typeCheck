@@ -1,15 +1,20 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import KeyboardHeatmap from "./KeyboardHeatmap.jsx";
 import ShortcutHints from "../test/components/ShortcutHints.jsx";
 import WordDisplay from "../test/components/WordDisplay.jsx";
 import { useCaretPosition } from "../test/hooks/useCaretPosition.js";
 import { usePressedKeys } from "../test/hooks/usePressedKeys.js";
+import { useGhostCaret } from "../test/hooks/useGhostCaret.js";
 import { useTypingEngine } from "../test/hooks/useTypingEngine.js";
+import { formatGhostLead, loadGhost } from "../../ghostRuns.js";
+import { getModeLabel } from "../../typingLogic.js";
 
 const ACCURACY_LOCK_MISTAKE_LIMIT = 5;
 
 function TypingTest({
   customText,
+  ghostMode = "off",
   testType,
   testValue,
   onFinish,
@@ -46,6 +51,25 @@ function TypingTest({
     engine.wordDisplayRef,
     [engine.targetText, engine.typedText],
   );
+
+  // The ghost is chosen once per run (restartKey) so beating the stored best
+  // mid-race never changes the opponent.
+  const ghostModeLabel = getModeLabel(testType, testValue, trainingMode, language);
+  const isGhostAllowed = ghostMode !== "off" && trainingMode !== "custom";
+  const ghost = useMemo(
+    () => (isGhostAllowed ? loadGhost(ghostModeLabel, ghostMode) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isGhostAllowed, ghostModeLabel, ghostMode, restartKey],
+  );
+  const { ghostLength, position: ghostCaretPosition } = useGhostCaret({
+    enabled: isGhostAllowed,
+    getElapsedMs: engine.getElapsedMs,
+    ghost,
+    hasStarted: engine.typedText.length > 0,
+    targetText: engine.targetText,
+    wordDisplayRef: engine.wordDisplayRef,
+  });
+  const showGhostLead = Boolean(ghost) && engine.typedText.length > 0;
 
   const { pressedKeys, pressedKeyStates } = usePressedKeys({
     inputRef: engine.inputRef,
@@ -98,12 +122,20 @@ function TypingTest({
           </>
         )}
       </div>
+      <div
+        className="ghost-lead"
+        data-visible={showGhostLead}
+        data-state={ghostLength === engine.typedText.length ? "level" : ghostLength > engine.typedText.length ? "behind" : "ahead"}
+      >
+        {showGhostLead && formatGhostLead(engine.typedText.length - ghostLength)}
+      </div>
       <WordDisplay
         activeTrainingMode={engine.activeTrainingMode}
         accuracyLockMistakeLimit={ACCURACY_LOCK_MISTAKE_LIMIT}
         caretPosition={caretPosition}
         currentLetterRef={engine.currentLetterRef}
         currentMistakes={engine.currentMistakes}
+        ghostCaretPosition={ghostCaretPosition}
         isAccuracyLock={engine.isAccuracyLock}
         isIdle={engine.isIdle}
         isReplay={engine.isReplay}

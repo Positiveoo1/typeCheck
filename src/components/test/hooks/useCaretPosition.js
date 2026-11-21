@@ -1,5 +1,19 @@
 import { useLayoutEffect, useState } from 'react';
 
+// Position of an element relative to the scrolling word display, in the
+// coordinate space of the absolutely positioned carets.
+export function measureCaretPosition(element, wordDisplay) {
+  const elementRect = element.getBoundingClientRect();
+  const displayRect = wordDisplay.getBoundingClientRect();
+
+  return {
+    height: elementRect.height,
+    left: elementRect.left - displayRect.left + wordDisplay.scrollLeft - 2,
+    top: elementRect.top - displayRect.top + wordDisplay.scrollTop,
+    visible: true
+  };
+}
+
 export function useCaretPosition(currentLetterRef, wordDisplayRef, deps) {
   const [caretPosition, setCaretPosition] = useState({
     height: 0,
@@ -34,15 +48,7 @@ export function useCaretPosition(currentLetterRef, wordDisplayRef, deps) {
         });
       }
 
-      const nextCurrentRect = currentElement.getBoundingClientRect();
-      const nextDisplayRect = wordDisplay.getBoundingClientRect();
-
-      setCaretPosition({
-        height: nextCurrentRect.height,
-        left: nextCurrentRect.left - nextDisplayRect.left + wordDisplay.scrollLeft - 2,
-        top: nextCurrentRect.top - nextDisplayRect.top + wordDisplay.scrollTop,
-        visible: true
-      });
+      setCaretPosition(measureCaretPosition(currentElement, wordDisplay));
     };
 
     updateCaretPosition();

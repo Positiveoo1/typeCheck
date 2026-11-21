@@ -9,6 +9,8 @@ function TestPage({
   dashboardResults,
   effectiveSoundStyle,
   finishTest,
+  ghostMode = 'off',
+  onGhostModeChange,
   handleCustomTextChange,
   handleLanguageChange,
   handleSettingsChange,
@@ -67,6 +69,7 @@ function TestPage({
       <AnimatePresence mode="wait">
         {result ? (
           <Results
+            ghostMode={ghostMode}
             historyResults={dashboardResults}
             key="results"
             onNextGame={restart}
@@ -98,6 +101,23 @@ function TestPage({
                 onLanguageChange={handleLanguageChange}
                 selectedLanguage={language}
               />
+              {trainingMode !== 'custom' && (
+                <button
+                  aria-label={`Ghost race: ${ghostMode === 'off' ? 'off' : ghostMode === 'best' ? 'personal best' : 'last run'}. Activate to change.`}
+                  className="ghost-toggle"
+                  data-mode={ghostMode}
+                  disabled={isActive}
+                  onClick={() =>
+                    onGhostModeChange({
+                      ghostMode: ghostMode === 'off' ? 'best' : ghostMode === 'best' ? 'last' : 'off'
+                    })
+                  }
+                  title="Race a ghost caret: off, personal best or last run"
+                  type="button"
+                >
+                  ghost: {ghostMode}
+                </button>
+              )}
             </div>
             <TypingTest
               onActiveChange={onActiveChange}
@@ -106,6 +126,7 @@ function TestPage({
               onStart={handleTestStart}
               mistakeMode={mistakeMode}
               restartKey={restartKey}
+              ghostMode={ghostMode}
               showKeyboard={showKeyboard}
               soundEnabled={soundEnabled}
               soundStyle={effectiveSoundStyle}

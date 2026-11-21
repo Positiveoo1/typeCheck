@@ -17,6 +17,7 @@ import {
   TRAINING_MODE_IDS
 } from '../../appState.js';
 import { normalizeDailyGoal } from '../../dailyProgress.js';
+import { normalizeGhostMode } from '../../ghostRuns.js';
 import {
   getThemePersonality,
   getUnlockedThemeIds,
@@ -201,6 +202,7 @@ export function useThemeSettings({
         ...nextOptions,
         dailyGoalType: dailyGoal.type,
         dailyGoalValue: dailyGoal.value,
+        ghostMode: normalizeGhostMode(nextOptions.ghostMode, settings.ghostMode),
         mistakeMode: MISTAKE_MODES.includes(nextOptions.mistakeMode)
           ? nextOptions.mistakeMode
           : settings.mistakeMode,

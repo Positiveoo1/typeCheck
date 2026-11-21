@@ -560,11 +560,25 @@ export function useTypingEngine({
     wordDisplayRef.current?.blur();
   }, [pauseWordTimer]);
 
+  // Elapsed run time in ms on the engine's own clock (words tests pause on
+  // blur), the same clock used for keystrokeLog timestamps.
+  const getElapsedMs = useCallback(
+    () =>
+      hasStartedRef.current
+        ? (startedAtRef.current === null
+            ? 0
+            : performance.now() - startedAtRef.current) +
+          accumulatedElapsedRef.current * 1000
+        : 0,
+    [],
+  );
+
   return {
     activeTrainingMode,
     currentMistakes,
     elapsedTime,
     focusInput,
+    getElapsedMs,
     handleChange,
     handleInputBlur,
     handleWordDisplayKeyDown,

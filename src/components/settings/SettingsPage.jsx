@@ -120,6 +120,7 @@ function SettingsPage({
   dailyGoalType,
   dailyGoalValue,
   dashboard,
+  ghostMode,
   mistakeMode,
   reducedMotion,
   showKeyboard,
@@ -344,6 +345,16 @@ function SettingsPage({
             { id: 'off', label: 'Off', description: 'Always animate.' }
           ]}
           value={reducedMotion}
+        />
+        <ChoiceGroup
+          label="Ghost race"
+          onChange={(value) => onPreferencesChange({ ghostMode: value })}
+          options={[
+            { id: 'off', label: 'Off', description: 'No ghost caret.' },
+            { id: 'best', label: 'Personal best', description: 'Race your fastest run in this mode.' },
+            { id: 'last', label: 'Last run', description: 'Race your previous run in this mode.' }
+          ]}
+          value={ghostMode}
         />
         <ChoiceGroup
           label="Typing font"

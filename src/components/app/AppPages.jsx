@@ -72,6 +72,7 @@ function AppPages({
               dailyGoalType={settings.dailyGoalType}
               dailyGoalValue={settings.dailyGoalValue}
               dashboard={dashboard}
+              ghostMode={settings.ghostMode}
               mistakeMode={settings.mistakeMode}
               onPreferencesChange={settings.onPreferencesChange}
               onSoundToggle={settings.onSoundToggle}

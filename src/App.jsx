@@ -53,6 +53,7 @@ import {
   isCloudResultEligible,
   serializeLeaderboardResult,
   serializePublicPlayer,
+import { recordGhostRun } from "./ghostRuns.js";
   serializeResult,
 } from "./services/typecheckData.js";
 import { getModeLabel } from "./typingLogic.js";
@@ -175,6 +176,7 @@ function App() {
         .setDoc(
           getPublicPlayerDocRef(firebase, user.uid),
           serializePublicPlayer(firebase, userProfile, user),
+    ghostMode,
           { merge: true },
         )
         .catch((error) => {
@@ -292,6 +294,7 @@ function App() {
         : 0;
 
       const isInvalidShortCustomTest = isTooShortCustomTest(nextResult);
+      recordGhostRun(completedResult, { isReplay: Boolean(replayTargetText) });
       const isPersonalBest =
         !isInvalidShortCustomTest &&
         Boolean(user) &&
@@ -311,6 +314,7 @@ function App() {
 
       setResult(completedResult);
       activeAttemptRef.current = null;
+      replayTargetText,
 
       if (isInvalidShortCustomTest) {
         notify({
@@ -639,6 +643,7 @@ function App() {
             onNotify={notify}
             profile={userProfile}
             user={user}
+              ghostMode,
           />
 
           <MobileTip
@@ -656,6 +661,8 @@ function App() {
           <AppPages
             currentPage={currentPage}
             currentStreak={dailyProgress.currentStreak}
+              ghostMode,
+              onGhostModeChange: handlePreferencesChange,
             dashboard={user ? dashboard : guestDashboard}
             leaderboard={leaderboard}
             navigate={navigate}

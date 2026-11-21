@@ -2,6 +2,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useTransform } from '
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getTypingStyle } from '../../typingIdentity.js';
 import { buildMistakeKeyCounts, calculateStats } from '../../typingLogic.js';
+import GhostResultLine from './GhostResultLine.jsx';
 import ShareResultButton from './ShareResultButton.jsx';
 import { ArrowForwardIcon, CloseIcon, ReplayIcon } from '../common/MaterialIcons.jsx';
 import KeyboardHeatmap from './KeyboardHeatmap.jsx';
@@ -678,6 +679,7 @@ function RecordCelebration() {
 }
 
 function Results({
+  ghostMode = 'off',
   historyResults = [],
   stats,
   onNextGame,
@@ -752,6 +754,7 @@ function Results({
           </>
         )}
       </motion.h2>
+      <GhostResultLine ghostMode={ghostMode} stats={stats} />
 
       {isInvalid && (
         <motion.div

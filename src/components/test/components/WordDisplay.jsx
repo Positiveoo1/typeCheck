@@ -8,6 +8,7 @@ function WordDisplay({
   caretPosition,
   currentLetterRef,
   currentMistakes,
+  ghostCaretPosition,
   isAccuracyLock,
   isIdle,
   isReplay,
@@ -86,6 +87,19 @@ function WordDisplay({
         data-visible={caretPosition.visible && isTypingFocused}
       />
 
+      {ghostCaretPosition && (
+        <span
+          className="typing-caret ghost-caret"
+          style={{
+            height: `${ghostCaretPosition.height}px`,
+            left: `${ghostCaretPosition.left}px`,
+            top: `${ghostCaretPosition.top}px`
+          }}
+          aria-hidden="true"
+          data-visible={ghostCaretPosition.visible}
+        />
+      )}
+
       {wordTokens.map((word) => (
         <span
           className={getWordStateClassName(
@@ -117,6 +131,7 @@ function WordDisplay({
             return (
               <span
                 className={className}
+                data-char-index={index}
                 key={`${char}-${index}`}
                 ref={isCurrent ? currentLetterRef : null}
               >
@@ -144,6 +159,7 @@ function WordDisplay({
                   ]
                     .filter(Boolean)
                     .join(' ')}
+                  data-char-index={word.space.index}
                   ref={isCurrent ? currentLetterRef : null}
                 >
                   {isWrongSpace ? wrongSpaceText : ' '}
