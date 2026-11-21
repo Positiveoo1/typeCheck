@@ -34,7 +34,15 @@ function AppPages({
       <Suspense fallback={null}>
         <AnimatePresence mode="wait">
           {currentPage === 'dashboard' ? (
-            <Dashboard key="dashboard" dashboard={dashboard} onNavigate={navigate} />
+            <Dashboard
+              key="dashboard"
+              dashboard={dashboard}
+              onNavigate={navigate}
+              onPracticeWeakKeys={() => {
+                testPage.handleTrainingModeChange?.('weak');
+                navigate('test');
+              }}
+            />
           ) : currentPage === 'leaderboard' ? (
             <Leaderboard
               key="leaderboard"

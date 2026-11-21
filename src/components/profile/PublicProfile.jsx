@@ -8,6 +8,7 @@ import {
   getRankTier,
   getTypingStyle
 } from '../../typingIdentity.js';
+import { BadgeList, StatRow, TierRail, getTierCaption } from './ProfileParts.jsx';
 
 function formatDate(value) {
   if (!value) return 'Pending';
@@ -48,150 +49,127 @@ function PublicProfile({ error, isLoading, onBack, playerName, results }) {
     completed: results.length,
     consistency,
     results
-  }).slice(0, 5);
-  const graphPeak = Math.max(...recentResults.map((result) => result.wpm), 1);
+  });
 
   return (
     <motion.main
-      className="public-profile-page"
-      layout
-      initial={{ opacity: 0, y: 16 }}
+      className="profile-page public-profile-page"
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.24, ease: 'easeOut' }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
     >
-      <section className="public-profile-hero">
-        <div className="public-profile-identity">
-          <div className="public-profile-avatar" aria-hidden="true">
-            {getPlayerInitials(playerName)}
-          </div>
-          <div>
-            <p className="eyebrow">player profile</p>
-            <h2>{playerName}</h2>
-            <p>
-              {rank.label} typist - {typingStyle.label}
-            </p>
-          </div>
+      <section className="prof-identity">
+        <div className="profile-avatar" aria-hidden="true">
+          <span>{getPlayerInitials(playerName)}</span>
         </div>
-        <button className="secondary-action" onClick={onBack} type="button">
-          Back to leaderboard
-        </button>
+        <div className="prof-identity-text">
+          <h2>{playerName}</h2>
+          {!isLoading && !error && (
+            <p className="prof-meta">
+              <span>
+                Level {rank.level} · {rank.label}
+              </span>
+              <span>{typingStyle.label} typist</span>
+            </p>
+          )}
+        </div>
+        <div className="prof-actions">
+          <button className="page-quiet-button" onClick={onBack} type="button">
+            Back to leaderboard
+          </button>
+        </div>
       </section>
 
-      <section className="public-profile-panel">
-        {isLoading ? (
-          <p className="leaderboard-message">Loading player profile...</p>
-        ) : error ? (
-          <p className="leaderboard-message error">{error}</p>
-        ) : (
-          <>
-            <div className="public-profile-player-card">
-              <div className="public-profile-rank">
-                <span>rank</span>
-                <strong>{rank.level}</strong>
-                <small>
-                  {rank.label} - {rank.progress}% to next tier
-                </small>
-              </div>
-              <div className="public-profile-style" data-tone={typingStyle.tone}>
-                <span>typing style</span>
-                <strong>{typingStyle.label}</strong>
-                <small>{typingStyle.description}</small>
-              </div>
-              <div
-                className="public-profile-graph"
-                aria-label="Recent public WPM results"
-              >
-                <div>
-                  <span>recent form</span>
-                  <strong>{averageWpm} avg WPM</strong>
-                </div>
-                <div className="mini-bars" aria-hidden="true">
-                  {recentResults.length === 0 ? (
-                    <i />
-                  ) : (
-                    recentResults.map((result, index) => (
-                      <i
-                        key={`${result.id}-bar`}
-                        style={{
-                          height: `${Math.max(12, (result.wpm / graphPeak) * 100)}%`
-                        }}
-                        title={`${result.wpm} WPM run ${index + 1}`}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
+      {isLoading ? (
+        <div className="prof-loading" aria-busy="true">
+          <span />
+          <span />
+          <span />
+          <p className="sr-only">Loading player profile</p>
+        </div>
+      ) : error ? (
+        <div className="lb-state is-error">
+          <p>{error}</p>
+          <span>Go back to the leaderboard and open the profile again.</span>
+        </div>
+      ) : (
+        <>
+          <section className="prof-journey" aria-labelledby="level-heading">
+            <div className="prof-journey-head">
+              <h3 id="level-heading">
+                Level {rank.level} · {rank.label}
+              </h3>
+              <p>{getTierCaption(bestResult?.wpm || 0)}</p>
             </div>
+            <TierRail bestWpm={bestResult?.wpm || 0} label={`${playerName}'s best`} />
+            <p className="prof-style">
+              Typing style: <strong>{typingStyle.label}</strong>. {typingStyle.description}
+            </p>
+          </section>
 
-            <div className="public-profile-stats">
-              <div>
-                <span>best wpm</span>
-                <strong>{bestResult?.wpm || 0}</strong>
-              </div>
-              <div>
-                <span>best accuracy</span>
-                <strong>{bestAccuracy}%</strong>
-              </div>
-              <div>
-                <span>avg accuracy</span>
-                <strong>{averageAccuracy}%</strong>
-              </div>
-              <div>
-                <span>consistency</span>
-                <strong>{consistency}%</strong>
-              </div>
-              <div>
-                <span>10 words runs</span>
-                <strong>{results.length}</strong>
-              </div>
-            </div>
+          <StatRow
+            label="Public stats"
+            items={[
+              { label: 'Best speed', value: bestResult?.wpm || 0, unit: 'WPM' },
+              { label: 'Average speed', value: averageWpm, unit: 'WPM' },
+              { label: 'Best accuracy', value: bestAccuracy, unit: '%' },
+              { label: 'Average accuracy', value: averageAccuracy, unit: '%' },
+              { label: 'Consistency', value: consistency, unit: '%' },
+              { label: 'Public runs', value: results.length, note: '10 words' }
+            ]}
+          />
 
-            <div className="public-profile-achievements">
-              <div className="section-heading">
-                <span>badges</span>
-                <strong>Public achievements</strong>
-              </div>
-              <div className="achievement-grid compact">
-                {achievements.map((badge) => (
-                  <div
-                    className={
-                      badge.isUnlocked
-                        ? 'achievement-badge unlocked'
-                        : 'achievement-badge'
-                    }
-                    key={badge.id}
-                  >
-                    <span>{badge.label.slice(0, 2)}</span>
-                    <strong>{badge.label}</strong>
-                    <small>{badge.detail}</small>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <BadgeList badges={achievements} />
 
-            <div className="public-profile-results">
-              <div className="section-heading">
-                <span>10 words</span>
-                <strong>Public results</strong>
-              </div>
-              {results.length === 0 ? (
-                <p className="leaderboard-message">No public 10 words results yet.</p>
-              ) : (
-                <div className="recent-list">
-                  {results.slice(0, 12).map((result) => (
-                    <div className="recent-item" key={result.id}>
-                      <strong>{result.wpm} WPM</strong>
-                      <small>{result.accuracy}% accuracy</small>
-                      <small>{formatDate(result.createdAt)}</small>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <section className="prof-section" aria-labelledby="public-results-heading">
+            <div className="prof-section-head">
+              <h3 id="public-results-heading">Recent 10-word runs</h3>
+              <p>
+                {recentResults.length} of {results.length}
+              </p>
             </div>
-          </>
-        )}
-      </section>
+            {results.length === 0 ? (
+              <div className="lb-state">
+                <p>No public 10-word runs yet.</p>
+                <span>Runs appear here once this player is ranked.</span>
+              </div>
+            ) : (
+              <div className="dash-table-wrap">
+                <table className="dash-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Date</th>
+                      <th className="num" scope="col">
+                        Speed
+                      </th>
+                      <th className="num" scope="col">
+                        Accuracy
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentResults.map((result) => (
+                      <tr className={result === bestResult ? 'is-best' : ''} key={result.id}>
+                        <td>
+                          {formatDate(result.createdAt)}
+                          {result === bestResult && (
+                            <span className="page-pill dash-pill">Best run</span>
+                          )}
+                        </td>
+                        <td className="num">
+                          <strong>{result.wpm}</strong> <small>WPM</small>
+                        </td>
+                        <td className="num">{result.accuracy}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </motion.main>
   );
 }

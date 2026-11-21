@@ -1,25 +1,22 @@
-import { motion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  CATEGORY_FILTERS,
   DEFAULT_MODE_FILTER,
   formatLeaderboardDate,
   getBestEntryPerPlayer,
-  getEntryTestType,
-  getLeaderboardSummary,
   getModeOptions,
   getPlayerInitials,
   sortLeaderboardEntries
 } from '../../leaderboardLogic.js';
+import { getRankTier } from '../../typingIdentity.js';
 import {
   formatDailyResetCountdown,
   getDailyChallengeKey,
   getMsUntilDailyReset
 } from '../../dailyChallenge.js';
 import { loadDailyLeaderboard } from '../../services/typecheckData.js';
-import { CheckIcon, ChevronDownIcon, EmojiEventsIcon } from '../common/MaterialIcons.jsx';
+import { ArrowForwardIcon, CheckIcon } from '../common/MaterialIcons.jsx';
 
-const TIER_LABELS = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 const EMPTY_DAILY = { dateKey: '', entries: [], error: '', isLoading: false };
 
 // Loads today's daily-challenge board when the Daily tab is open, and keeps
@@ -65,140 +62,151 @@ function useDailyLeaderboard(isActive) {
   return { ...daily, dateKey, resetMs: getMsUntilDailyReset(now) };
 }
 
-function FilterDropdown({ hint, id, label, onSelect, options, value }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const rootRef = useRef(null);
+function useIsNarrow(query = '(max-width: 900px)') {
+  const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    const media = window.matchMedia(query);
+    const update = () => setIsNarrow(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [query]);
 
-    function handlePointerDown(event) {
-      if (rootRef.current && !rootRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
+  return isNarrow;
+}
 
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') setIsOpen(false);
-    }
+function playerKey(entry) {
+  return entry.userId || `name:${entry.playerName}`;
+}
 
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
-
-  const activeOption = options.find((option) => option.value === value);
-  const labelId = `${id}-label`;
-  const buttonId = `${id}-trigger`;
-
+function VerifiedMark() {
   return (
-    <div className="filter-dropdown" ref={rootRef}>
-      <span className="filter-dropdown-label" id={labelId}>
-        {label}
-        {hint && <small className="filter-scope-hint">{hint}</small>}
-      </span>
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="true"
-        aria-labelledby={`${labelId} ${buttonId}`}
-        className={isOpen ? 'filter-dropdown-trigger open' : 'filter-dropdown-trigger'}
-        id={buttonId}
-        onClick={() => setIsOpen((current) => !current)}
-        type="button"
-      >
-        <span>{activeOption?.label ?? value}</span>
-        <ChevronDownIcon />
-      </button>
-      {isOpen && (
-        <ul aria-labelledby={labelId} className="filter-dropdown-menu">
-          {options.map((option) => {
-            const isActive = option.value === value;
-
-            return (
-              <li key={option.value}>
-                <button
-                  aria-pressed={isActive}
-                  className={isActive ? 'active' : ''}
-                  onClick={() => {
-                    onSelect(option.value);
-                    setIsOpen(false);
-                  }}
-                  type="button"
-                >
-                  <span>{option.label}</span>
-                  {isActive && <CheckIcon />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+    <span
+      aria-label="Verified result"
+      className="lb-verified"
+      role="img"
+      title="Verified: stats recomputed on the server"
+    >
+      <CheckIcon className="material-icon" />
+    </span>
   );
 }
 
-function RankRow({ entry, rank, topWpm, isCurrentUser, onOpenProfile, index }) {
-  const tier = rank <= 3 ? rank : 0;
-  const barPct = topWpm > 0 ? Math.max(6, Math.round((entry.wpm / topWpm) * 100)) : 0;
+function PlayerPane({ allEntries, entry, isDaily, modeLabel, onOpenProfile, rank }) {
+  const bestByMode = useMemo(() => {
+    if (!entry || isDaily) return [];
+    const key = playerKey(entry);
+    const own = allEntries.filter((item) => playerKey(item) === key);
+    const best = getBestEntryPerPlayer(
+      [...own].sort(sortLeaderboardEntries).map((item) => ({ ...item, userId: item.modeLabel }))
+    );
+    const order = getModeOptions(best);
+    return order.map((mode) => best.find((item) => item.modeLabel === mode));
+  }, [allEntries, entry, isDaily]);
+
+  if (!entry) return null;
+
+  const overallBest = Math.max(entry.wpm, ...bestByMode.map((item) => item.wpm));
+  // Bars start near the slowest mode, not at zero, so the differences show.
+  const barFloor = Math.max(
+    0,
+    Math.floor((Math.min(...bestByMode.map((item) => item.wpm), overallBest) - 10) / 10) * 10
+  );
+  const tier = getRankTier(overallBest);
 
   return (
-    <motion.button
-      className={['rank-row', isCurrentUser ? 'current-user' : '']
-        .filter(Boolean)
-        .join(' ')}
-      data-tier={tier || undefined}
-      key={`${entry.id}-${rank}`}
-      onClick={() => onOpenProfile(entry.userId)}
-      role="row"
-      type="button"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, delay: Math.min(index * 0.02, 0.3) }}
-    >
-      <span className="rank-num" data-label="rank" role="cell">
-        {tier === 1 ? <EmojiEventsIcon /> : null}#{rank}
-      </span>
-      <span className="rank-player" data-label="player" role="cell">
-        <span className="rank-avatar" aria-hidden="true">
+    <aside className="lb-pane" aria-label={`${entry.playerName} preview`}>
+      <div className="lb-pane-identity">
+        <span className="lb-avatar lb-avatar-large" aria-hidden="true">
           {getPlayerInitials(entry.playerName)}
         </span>
-        <span className="rank-player-name">
-          {entry.playerName}
-          {entry.verified && (
-            <span
-              aria-label="verified result"
-              className="rank-verified"
-              title="Verified: stats recomputed on the server"
-            >
-              <CheckIcon />
-            </span>
-          )}
-          {isCurrentUser && <span className="rank-you">you</span>}
-        </span>
-        {tier > 0 && <em className={`rank-medal tier-${tier}`}>{TIER_LABELS[tier]}</em>}
-      </span>
-      <span className="rank-wpm" data-label="wpm" role="cell">
-        <span
-          className="rank-wpm-bar"
-          style={{ width: `${barPct}%` }}
-          aria-hidden="true"
-        />
-        <b>{entry.wpm}</b>
-      </span>
-      <span className="rank-accuracy" data-label="accuracy" role="cell">
-        {entry.accuracy}%
-      </span>
-      <span className="rank-mode" data-label="mode" role="cell">
-        {entry.modeLabel}
-      </span>
-      <span className="rank-date" data-label="date" role="cell">
-        {formatLeaderboardDate(entry.createdAt)}
-      </span>
-    </motion.button>
+        <div>
+          <h3>
+            {entry.playerName}
+            {entry.verified && <VerifiedMark />}
+          </h3>
+          <p>
+            Level {tier.level} · {tier.label}
+          </p>
+        </div>
+      </div>
+
+      <dl className="lb-pane-figures">
+        <div>
+          <dt>Rank</dt>
+          <dd>#{rank}</dd>
+        </div>
+        <div>
+          <dt>{isDaily ? 'Best today' : modeLabel}</dt>
+          <dd>
+            {entry.wpm}
+            <small>WPM</small>
+          </dd>
+        </div>
+        <div>
+          <dt>Accuracy</dt>
+          <dd>
+            {entry.accuracy}
+            <small>%</small>
+          </dd>
+        </div>
+      </dl>
+
+      {isDaily ? (
+        <p className="lb-pane-note">
+          {entry.attempts} {entry.attempts === 1 ? 'attempt' : 'attempts'} today
+          {entry.language ? ` · ${entry.language}` : ''}.
+        </p>
+      ) : (
+        bestByMode.length > 0 && (
+          <div className="lb-pane-modes">
+            <h4>Best by mode</h4>
+            <ul>
+              {bestByMode.map((item) => (
+                <li
+                  className={item.modeLabel === modeLabel ? 'is-current' : ''}
+                  key={item.modeLabel}
+                >
+                  <span>{item.modeLabel}</span>
+                  <span className="lb-pane-bar" aria-hidden="true">
+                    <i
+                      style={{
+                        width: `${Math.max(4, Math.round(((item.wpm - barFloor) / (overallBest - barFloor || 1)) * 100))}%`
+                      }}
+                    />
+                  </span>
+                  <strong>{item.wpm}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      )}
+
+      <button
+        className="page-quiet-button lb-pane-action"
+        onClick={() => onOpenProfile(entry.userId)}
+        type="button"
+      >
+        View full profile
+        <ArrowForwardIcon />
+      </button>
+    </aside>
+  );
+}
+
+function SkeletonRows() {
+  return (
+    <tbody aria-hidden="true" className="lb-skeleton">
+      {Array.from({ length: 8 }, (_, index) => (
+        <tr key={index}>
+          <td colSpan={5}>
+            <span style={{ width: `${70 - index * 5}%` }} />
+          </td>
+        </tr>
+      ))}
+    </tbody>
   );
 }
 
@@ -212,202 +220,221 @@ function Leaderboard({
   const [view, setView] = useState('all');
   const isDailyView = view === 'daily';
   const daily = useDailyLeaderboard(isDailyView);
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [modeFilter, setModeFilter] = useState(DEFAULT_MODE_FILTER);
-  const rankedEntries = useMemo(
-    () => [...entries].sort(sortLeaderboardEntries),
-    [entries]
-  );
-  const categoryEntries = useMemo(
-    () =>
-      rankedEntries.filter(
-        (entry) => categoryFilter === 'all' || getEntryTestType(entry) === categoryFilter
-      ),
-    [categoryFilter, rankedEntries]
-  );
-  const modeOptions = useMemo(() => getModeOptions(categoryEntries), [categoryEntries]);
-  const effectiveModeFilter = modeOptions.includes(modeFilter) ? modeFilter : 'all';
+  const [selectedKey, setSelectedKey] = useState(null);
+  const isNarrow = useIsNarrow();
+  const prefersReducedMotion = useReducedMotion();
+  const rankedEntries = useMemo(() => [...entries].sort(sortLeaderboardEntries), [entries]);
+  const modeOptions = useMemo(() => getModeOptions(rankedEntries), [rankedEntries]);
+  const effectiveModeFilter =
+    modeFilter === 'all' || modeOptions.includes(modeFilter)
+      ? modeFilter
+      : modeOptions.includes(DEFAULT_MODE_FILTER)
+        ? DEFAULT_MODE_FILTER
+        : 'all';
   const allTimeEntries = useMemo(
     () =>
       getBestEntryPerPlayer(
-        categoryEntries.filter(
-          (entry) =>
-            effectiveModeFilter === 'all' || entry.modeLabel === effectiveModeFilter
+        rankedEntries.filter(
+          (entry) => effectiveModeFilter === 'all' || entry.modeLabel === effectiveModeFilter
         )
       ).slice(0, 50),
-    [categoryEntries, effectiveModeFilter]
+    [effectiveModeFilter, rankedEntries]
   );
-  const dailyEntries = useMemo(
-    () =>
-      daily.entries.map((entry) => ({
-        ...entry,
-        modeLabel: `${entry.language} · ${entry.attempts} ${entry.attempts === 1 ? 'try' : 'tries'}`
-      })),
-    [daily.entries]
-  );
-  const filteredEntries = isDailyView ? dailyEntries : allTimeEntries;
+  const filteredEntries = isDailyView ? daily.entries : allTimeEntries;
   const isLoading = isDailyView ? daily.isLoading : isAllTimeLoading;
   const error = isDailyView ? daily.error : allTimeError;
-  const activeFilterLabel = isDailyView
-    ? 'daily challenge'
-    : effectiveModeFilter === 'all'
-      ? `${categoryFilter === 'all' ? 'all modes' : `${categoryFilter} modes`}`
-      : effectiveModeFilter;
-  const activeCategoryLabel =
-    CATEGORY_FILTERS.find((filter) => filter.id === categoryFilter)?.label ?? 'all';
-  const summary = useMemo(
-    () => getLeaderboardSummary(filteredEntries),
-    [filteredEntries]
+  const selectedIndex = Math.max(
+    0,
+    filteredEntries.findIndex((entry) => playerKey(entry) === selectedKey)
   );
+  const selectedEntry = filteredEntries[selectedIndex] || null;
+  const modeLabel = effectiveModeFilter === 'all' ? 'Best run' : effectiveModeFilter;
+  const showPane = !isNarrow && filteredEntries.length > 0 && !isLoading && !error;
+
+  const handleRowSelect = (entry) => {
+    if (isNarrow) {
+      onOpenProfile(entry.userId);
+      return;
+    }
+    setSelectedKey(playerKey(entry));
+  };
 
   return (
     <motion.main
-      className="leaderboard-page"
-      layout
-      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.24, ease: 'easeOut' }}
+      className="leaderboard-page"
+      exit={{ opacity: 0 }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
     >
-      <section className="leaderboard-hero">
-        <div className="leaderboard-hero-copy">
-          <p className="eyebrow">leaderboard</p>
-          <h2>{activeFilterLabel} rankings</h2>
+      <header className="lb-toolbar">
+        <div className="lb-title">
+          <h2>Leaderboard</h2>
           <p>
             {isDailyView
-              ? `TypeCheck Daily ${daily.dateKey}: the same 40 words for everyone, best run per player.`
-              : 'Fast scores, clean comparisons, and the best public runs from every mode.'}
+              ? `Daily challenge ${daily.dateKey}: the same 40 words for everyone, best run per player. Resets in ${formatDailyResetCountdown(daily.resetMs)}.`
+              : 'Each player’s best run, ranked by WPM, then accuracy, then date.'}
           </p>
         </div>
-        {/* entries ring folded into the same summary grid as the other stats,
-            instead of floating separately with empty space around it */}
-        <div className="leaderboard-summary-grid" aria-label="Leaderboard summary">
-          <span>
-            <strong>{summary.topWpm}</strong>
-            <small>top wpm</small>
-          </span>
-          <span>
-            <strong>{summary.averageAccuracy}%</strong>
-            <small>avg accuracy</small>
-          </span>
-          <span>
-            <strong>{isDailyView ? summary.totalEntries : summary.modeCount}</strong>
-            <small>{isDailyView ? 'players' : 'modes played'}</small>
-          </span>
-          <span className="leaderboard-summary-entries">
-            <EmojiEventsIcon />
-            <strong>{summary.totalEntries}</strong>
-            <small>entries</small>
-          </span>
-        </div>
-      </section>
-
-      <section className="leaderboard-panel">
-        <div className="section-heading">
-          <span>top players</span>
-          <strong>Ranked by WPM, accuracy, then date</strong>
-        </div>
-
-        {/* Type and Mode are two dropdowns instead of two rows of pill
-            buttons — Mode's option list still depends on the active Type,
-            shown via the "for <type>" hint next to its label. */}
-        <div className="leaderboard-tabs" role="group" aria-label="Leaderboard view">
+        <div className="segmented" role="group" aria-label="Leaderboard view">
           {[
-            { id: 'all', label: 'all-time' },
-            { id: 'daily', label: 'daily' }
+            { id: 'all', label: 'All-time' },
+            { id: 'daily', label: 'Daily challenge' }
           ].map((tab) => (
             <button
               aria-pressed={view === tab.id}
-              className={view === tab.id ? 'leaderboard-tab active' : 'leaderboard-tab'}
+              className={view === tab.id ? 'active' : ''}
               key={tab.id}
-              onClick={() => setView(tab.id)}
+              onClick={() => {
+                setView(tab.id);
+                setSelectedKey(null);
+              }}
               type="button"
             >
               {tab.label}
             </button>
           ))}
         </div>
+      </header>
 
-        {isDailyView && (
-          <p className="leaderboard-daily-meta">
-            Today ({daily.dateKey}, UTC) · resets in{' '}
-            {formatDailyResetCountdown(daily.resetMs)}
-          </p>
-        )}
-
-        {!isDailyView && (
-          <div className="leaderboard-filters" aria-label="Leaderboard filters">
-            <FilterDropdown
-              id="type-filter"
-              label="type"
-              onSelect={(next) => {
-                setCategoryFilter(next);
-                setModeFilter('all');
+      {!isDailyView && (
+        <nav aria-label="Leaderboard mode" className="lb-modes">
+          {[...modeOptions, 'all'].map((mode) => (
+            <button
+              aria-pressed={effectiveModeFilter === mode}
+              className={effectiveModeFilter === mode ? 'active' : ''}
+              key={mode}
+              onClick={() => {
+                setModeFilter(mode);
+                setSelectedKey(null);
               }}
-              options={CATEGORY_FILTERS.map((filter) => ({
-                label: filter.label,
-                value: filter.id
-              }))}
-              value={categoryFilter}
-            />
-            <FilterDropdown
-              hint={`for ${activeCategoryLabel}`}
-              id="mode-filter"
-              label="mode"
-              onSelect={setModeFilter}
-              options={[
-                { label: 'all modes', value: 'all' },
-                ...modeOptions.map((mode) => ({ label: mode, value: mode }))
-              ]}
-              value={effectiveModeFilter}
-            />
-          </div>
-        )}
+              type="button"
+            >
+              {mode === 'all' ? 'All modes' : mode}
+            </button>
+          ))}
+        </nav>
+      )}
 
-        {!currentUserId && (
-          <div className="leaderboard-auth-prompt">
-            <strong>Want to see yourself here?</strong>
-            <span>
-              Log in or create an account, finish a test, and claim your spot on the
-              board.
-            </span>
-          </div>
-        )}
+      {!currentUserId && (
+        <p className="lb-auth-prompt">
+          <strong>Want to see yourself here?</strong> Sign in, finish a test, and your best
+          run is ranked automatically.
+        </p>
+      )}
 
-        {isLoading ? (
-          <p className="leaderboard-message">Loading leaderboard...</p>
-        ) : error ? (
-          <p className="leaderboard-message error">{error}</p>
-        ) : filteredEntries.length === 0 ? (
-          <p className="leaderboard-message">
-            {isDailyView
-              ? "No one has finished today's challenge yet. Be the first!"
-              : 'No saved results match this filter yet.'}
-          </p>
-        ) : (
-          <div className="rank-board" role="table" aria-label="Global typing leaderboard">
-            <div className="rank-board-head" role="row">
-              <span role="columnheader">rank</span>
-              <span role="columnheader">player</span>
-              <span role="columnheader">wpm</span>
-              <span role="columnheader">accuracy</span>
-              <span role="columnheader">{isDailyView ? 'details' : 'mode'}</span>
-              <span role="columnheader">date</span>
+      <div className={showPane ? 'lb-layout has-pane' : 'lb-layout'}>
+        <div className="lb-board">
+          {error ? (
+            <div className="lb-state is-error">
+              <p>{error}</p>
+              <span>Check your connection and open the leaderboard again.</span>
             </div>
-            {filteredEntries.map((entry, index) => (
-              <RankRow
-                entry={entry}
-                index={index}
-                isCurrentUser={Boolean(currentUserId && entry.userId === currentUserId)}
-                key={`${entry.id}-${index + 1}`}
-                onOpenProfile={onOpenProfile}
-                rank={index + 1}
-                topWpm={summary.topWpm}
-              />
-            ))}
-          </div>
+          ) : !isLoading && filteredEntries.length === 0 ? (
+            <div className="lb-state">
+              <p>
+                {isDailyView
+                  ? 'No one has finished today’s challenge yet.'
+                  : 'No ranked runs in this mode yet.'}
+              </p>
+              <span>
+                {isDailyView
+                  ? 'Take the daily challenge and be first on the board.'
+                  : 'Pick another mode, or set the first score here.'}
+              </span>
+            </div>
+          ) : (
+            <table className="lb-table" aria-busy={isLoading || undefined}>
+              <caption className="sr-only">
+                {isDailyView ? 'Daily challenge ranking' : `${modeLabel} ranking`}
+              </caption>
+              <thead>
+                <tr>
+                  <th className="lb-col-rank" scope="col">
+                    Rank
+                  </th>
+                  <th scope="col">Player</th>
+                  <th className="num" scope="col">
+                    WPM
+                  </th>
+                  <th className="num" scope="col">
+                    Accuracy
+                  </th>
+                  <th className="num lb-col-date" scope="col">
+                    {isDailyView ? 'Attempts' : effectiveModeFilter === 'all' ? 'Mode' : 'Date'}
+                  </th>
+                </tr>
+              </thead>
+              {isLoading ? (
+                <SkeletonRows />
+              ) : (
+                <tbody>
+                  {filteredEntries.map((entry, index) => {
+                    const rank = index + 1;
+                    const isCurrentUser = Boolean(currentUserId && entry.userId === currentUserId);
+                    const isSelected = showPane && index === selectedIndex;
+
+                    return (
+                      <tr
+                        aria-selected={showPane ? isSelected : undefined}
+                        className={[
+                          isSelected ? 'is-selected' : '',
+                          isCurrentUser ? 'is-you' : '',
+                          rank <= 3 ? 'is-podium' : ''
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        key={`${entry.id}-${rank}`}
+                        onClick={() => handleRowSelect(entry)}
+                      >
+                        <td className="lb-col-rank">{rank}</td>
+                        <td>
+                          <button
+                            className="lb-player"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRowSelect(entry);
+                            }}
+                            type="button"
+                          >
+                            <span className="lb-avatar" aria-hidden="true">
+                              {getPlayerInitials(entry.playerName)}
+                            </span>
+                            <span className="lb-player-name">{entry.playerName}</span>
+                            {entry.verified && <VerifiedMark />}
+                            {isCurrentUser && <span className="page-pill">You</span>}
+                          </button>
+                        </td>
+                        <td className="num lb-wpm">{entry.wpm}</td>
+                        <td className="num">{entry.accuracy}%</td>
+                        <td className="num lb-col-date">
+                          {isDailyView
+                            ? entry.attempts
+                            : effectiveModeFilter === 'all'
+                              ? entry.modeLabel
+                              : formatLeaderboardDate(entry.createdAt)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              )}
+            </table>
+          )}
+        </div>
+
+        {showPane && (
+          <PlayerPane
+            allEntries={rankedEntries}
+            entry={selectedEntry}
+            isDaily={isDailyView}
+            modeLabel={modeLabel}
+            onOpenProfile={onOpenProfile}
+            rank={selectedIndex + 1}
+          />
         )}
-      </section>
+      </div>
     </motion.main>
   );
 }

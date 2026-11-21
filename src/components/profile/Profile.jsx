@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getStreaks } from "../../dailyProgress.js";
-import { EditIcon } from "../common/MaterialIcons.jsx";
+import { CloseIcon, EditIcon } from "../common/MaterialIcons.jsx";
+import { BadgeList, StatRow, TierRail, getTierCaption } from "./ProfileParts.jsx";
 
 import {
   getAchievementBadges,
@@ -23,7 +24,7 @@ const PROFILE_FIELDS = [
   { id: "website", label: "Website", placeholder: "https://example.com" },
 ];
 const CONTRIBUTION_WEEKS = 53;
-const DAY_LABELS = ["", "monday", "", "wednesday", "", "friday", ""];
+const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
 const ACCOUNT_SECURITY_WINDOW_DAYS = 30;
 const PASSWORD_RESET_EMAIL_LIMIT = 4;
 
@@ -55,11 +56,10 @@ function formatDuration(seconds) {
   const safeSeconds = Math.max(0, Math.round(Number(seconds) || 0));
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const remainingSeconds = safeSeconds % 60;
 
-  return [hours, minutes, remainingSeconds]
-    .map((part) => String(part).padStart(2, "0"))
-    .join(":");
+  if (hours > 0) return { value: `${hours} h ${minutes}`, unit: "min" };
+  if (minutes > 0) return { value: String(minutes), unit: "min" };
+  return { value: String(safeSeconds), unit: "s" };
 }
 
 function normalizeUrl(value) {
@@ -108,37 +108,14 @@ function getRecentEvents(events) {
     .filter((date) => date && date >= windowStart);
 }
 
-function StatCard({ label, value, wide = false }) {
-  return (
-    <div className={wide ? "profile-stat profile-stat-wide" : "profile-stat"}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function BadgeShelf({ badges }) {
-  return (
-    <div className="achievement-grid" aria-label="Achievement badges">
-      {badges.map((badge) => (
-        <div
-          className={
-            badge.isUnlocked
-              ? "achievement-badge unlocked"
-              : "achievement-badge"
-          }
-          key={badge.id}
-        >
-          <span>{badge.label.slice(0, 2)}</span>
-          <strong>{badge.label}</strong>
-          <small>{badge.detail}</small>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function ActivityGrid({ results }) {
+  const scrollRef = useRef(null);
+
+  // Narrow screens can't show a whole year: open on the most recent weeks.
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (node) node.scrollLeft = node.scrollWidth;
+  }, []);
   const today = new Date();
   const todayUtc = new Date(
     Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
@@ -168,21 +145,15 @@ function ActivityGrid({ results }) {
   const testsInRange = days.reduce((total, day) => total + day.count, 0);
 
   return (
-    <div
-      className="profile-contrib"
-      aria-label="Typing activity in the last 12 months"
-    >
-      <div className="profile-contrib-top">
-        <button type="button">last 12 months</button>
-        <strong>{testsInRange} tests</strong>
-        <div className="profile-contrib-legend" aria-hidden="true">
-          <span>less</span>
-          {[0, 1, 2, 3, 4].map((level) => (
-            <i data-level={level} key={level} />
-          ))}
-          <span>more</span>
-        </div>
+    <section className="prof-section" aria-labelledby="activity-heading">
+      <div className="prof-section-head">
+        <h3 id="activity-heading">Activity</h3>
+        <p>
+          {testsInRange.toLocaleString()} {testsInRange === 1 ? "test" : "tests"} in the
+          last 12 months · days in UTC
+        </p>
       </div>
+      <div className="profile-contrib" ref={scrollRef}>
       <div className="profile-contrib-body">
         <div className="profile-contrib-labels" aria-hidden="true">
           {DAY_LABELS.map((label, index) => (
@@ -199,8 +170,15 @@ function ActivityGrid({ results }) {
           ))}
         </div>
       </div>
-      <p>Note: All activity data is using UTC time.</p>
-    </div>
+      </div>
+      <div className="profile-contrib-legend" aria-hidden="true">
+        <span>Less</span>
+        {[0, 1, 2, 3, 4].map((level) => (
+          <i data-level={level} key={level} />
+        ))}
+        <span>More</span>
+      </div>
+    </section>
   );
 }
 
@@ -383,177 +361,150 @@ function Profile({
     }
   };
 
+  const typingTime = formatDuration(stats.totalTypingSeconds);
+  const metaParts = [
+    profile.username && user.displayName ? user.displayName : "",
+    profile.occupation,
+    profile.city,
+  ].filter(Boolean);
+
   return (
     <motion.main
       className="profile-page"
-      layout
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.24, ease: "easeOut" }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
     >
-      <section className="profile-hero">
-        <div className="profile-identity">
-          <button
-            aria-label="View profile photo"
-            className="profile-avatar"
-            onClick={() => setIsAvatarPreviewOpen(true)}
-            type="button"
+      <section className="prof-identity">
+        <button
+          aria-label="View profile photo"
+          className="profile-avatar"
+          onClick={() => setIsAvatarPreviewOpen(true)}
+          type="button"
+        >
+          {user.photoURL ? (
+            <img alt="" src={user.photoURL} />
+          ) : (
+            <span aria-hidden="true">{avatarInitial}</span>
+          )}
+        </button>
+        <div className="prof-identity-text">
+          <h2
+            className={!profile.username ? "is-fallback" : ""}
+            title={!profile.username ? profileName : undefined}
           >
-            {user.photoURL ? (
-              <img alt="" src={user.photoURL} />
-            ) : (
-              <span aria-hidden="true">{avatarInitial}</span>
-            )}
-          </button>
-          <div className="profile-identity-text">
-            <p className="eyebrow">profile</p>
-            <h2
-              className={!profile.username ? "profile-name-fallback" : ""}
-              title={!profile.username ? profileName : undefined}
-            >
-              {profileName}
-            </h2>
-            {profile.username && user.displayName && <p>{user.displayName}</p>}
-            <p
+            {profileName}
+          </h2>
+          <p className="prof-meta">
+            {metaParts.map((part) => (
+              <span key={part}>{part}</span>
+            ))}
+            <span
               aria-label={joinedAge ? `Account created ${joinedAge.toLowerCase()}` : undefined}
               className="profile-joined"
-              data-tooltip={joinedAge || ''}
+              data-tooltip={joinedAge || ""}
               tabIndex={joinedAge ? 0 : undefined}
             >
               Joined {formatDate(profile.joinedAt)}
+            </span>
+          </p>
+          {(profile.github || profile.website) && (
+            <p className="prof-links">
+              {profile.github && (
+                <a href={profile.github} rel="noreferrer" target="_blank">
+                  GitHub
+                </a>
+              )}
+              {profile.website && (
+                <a href={profile.website} rel="noreferrer" target="_blank">
+                  Website
+                </a>
+              )}
             </p>
-          </div>
+          )}
         </div>
-        <div className="profile-actions">
-          <button
-            aria-label="Edit profile"
-            className="profile-edit-button"
-            onClick={openEditProfile}
-            type="button"
-          >
-            <EditIcon className="material-icon edit-profile-icon" />
+        <div className="prof-actions">
+          <button className="page-quiet-button" onClick={openEditProfile} type="button">
+            <EditIcon className="material-icon" />
+            Edit profile
           </button>
-          <button className="sign-out" onClick={onSignOut} type="button">
+          <button className="page-quiet-button" onClick={onSignOut} type="button">
             Sign out
           </button>
         </div>
       </section>
 
-      <section className="profile-grid">
-        <div className="profile-stats-panel">
-          <div className="section-heading">
-            <span>typing stats</span>
-            <strong>Lifetime snapshot</strong>
-          </div>
-          <div className="profile-stats-grid">
-            <StatCard label="started" value={stats.started} />
-            <StatCard label="best wpm" value={stats.bestWpm} />
-            <StatCard label="completed" value={stats.completed} />
-            <StatCard label="not completed" value={stats.incomplete} />
-            <StatCard
-              label="streak"
-              value={`${stats.streak} ${stats.streak === 1 ? 'day' : 'days'}`}
-            />
-            <StatCard
-              label="typing time"
-              value={formatDuration(stats.totalTypingSeconds)}
-            />
-            <StatCard
-              label="estimated words"
-              value={stats.estimatedWords}
-              wide
-            />
-          </div>
-          <div className="profile-identity-strip">
-            <div>
-              <span>rank tier</span>
-              <strong>Level {stats.rank.level}</strong>
-              <span
-                aria-label={`${stats.rank.progress}% progress through ${stats.rank.label}`}
-                aria-valuemax="100"
-                aria-valuemin="0"
-                aria-valuenow={stats.rank.progress}
-                className="profile-level-track"
-                role="progressbar"
-              >
-                <i style={{ width: `${stats.rank.progress}%` }} />
-              </span>
-              <small>
-                {stats.rank.label} · {stats.rank.nextWpm
-                  ? `${stats.rank.wpmToNext} WPM to Level ${
-                      getRankTier(stats.rank.nextWpm).level
-                    }`
-                  : 'Top level reached'}
-              </small>
-            </div>
-            <div>
-              <span>typing style</span>
-              <strong>{stats.style.label}</strong>
-              <small>{stats.style.description}</small>
-            </div>
-            <div>
-              <span>consistency</span>
-              <strong>{stats.consistency}%</strong>
-              <small>Based on recent saved tests</small>
-            </div>
-          </div>
-          <BadgeShelf badges={achievementBadges} />
-          <ActivityGrid results={dashboard.results || []} />
-          <div className="profile-links">
-            {profile.github && (
-              <a href={profile.github} rel="noreferrer" target="_blank">
-                GitHub
-              </a>
-            )}
-            {profile.website && (
-              <a href={profile.website} rel="noreferrer" target="_blank">
-                Website
-              </a>
-            )}
-          </div>
+      <section className="prof-journey" aria-labelledby="level-heading">
+        <div className="prof-journey-head">
+          <h3 id="level-heading">
+            Level {stats.rank.level} · {stats.rank.label}
+          </h3>
+          <p>{getTierCaption(stats.bestWpm)}</p>
         </div>
+        <TierRail bestWpm={stats.bestWpm} />
+        <p className="prof-style">
+          Typing style: <strong>{stats.style.label}</strong>. {stats.style.description}
+        </p>
+      </section>
 
-        <div className="profile-stats-panel account-security-panel">
-          <div className="section-heading">
-            <span>account</span>
-            <strong>Password security</strong>
-          </div>
-          <div className="account-security-grid">
-            <div>
-              <span>reset emails left</span>
-              <strong>
-                {resetEmailsRemaining}/{PASSWORD_RESET_EMAIL_LIMIT}
-              </strong>
-              <small>Every {ACCOUNT_SECURITY_WINDOW_DAYS} days</small>
-            </div>
-          </div>
+      <StatRow
+        label="Lifetime stats"
+        items={[
+          { label: "Best speed", value: stats.bestWpm, unit: "WPM" },
+          {
+            label: "Tests completed",
+            value: stats.completed.toLocaleString(),
+            note: stats.incomplete ? `${stats.incomplete} not finished` : undefined,
+          },
+          {
+            label: "Streak",
+            value: stats.streak,
+            unit: stats.streak === 1 ? "day" : "days",
+          },
+          { label: "Typing time", value: typingTime.value, unit: typingTime.unit },
+          { label: "Words typed", value: stats.estimatedWords.toLocaleString(), note: "Estimated" },
+          { label: "Consistency", value: stats.consistency, unit: "%" },
+        ]}
+      />
 
-          <div className="account-security-actions">
-            <button
-              className="secondary-action"
-              disabled={
-                resetStatus === "sending" ||
-                resetEmailsRemaining === 0 ||
-                !isPasswordProvider
-              }
-              onClick={requestResetEmail}
-              type="button"
-            >
-              {resetStatus === "sending" ? "Sending" : "Send reset email"}
-            </button>
+      <BadgeList badges={achievementBadges} />
+      <ActivityGrid results={dashboard.results || []} />
+
+      <section className="prof-section prof-account" aria-labelledby="account-heading">
+        <div className="prof-section-head">
+          <h3 id="account-heading">Account</h3>
+          <p>{user.email}</p>
+        </div>
+        <div className="prof-account-row">
+          <div>
+            <strong>Password reset email</strong>
+            <span>
+              {isPasswordProvider
+                ? `${resetEmailsRemaining} of ${PASSWORD_RESET_EMAIL_LIMIT} left in the last ${ACCOUNT_SECURITY_WINDOW_DAYS} days.`
+                : "Not available: you signed in with a provider that manages its own password."}
+            </span>
             {resetMessage && (
-              <p
-                className={
-                  resetStatus === "error"
-                    ? "profile-status error"
-                    : "profile-status"
-                }
+              <span
+                className={resetStatus === "error" ? "profile-status error" : "profile-status"}
+                role="status"
               >
                 {resetMessage}
-              </p>
+              </span>
             )}
           </div>
+          <button
+            className="page-quiet-button"
+            disabled={
+              resetStatus === "sending" ||
+              resetEmailsRemaining === 0 ||
+              !isPasswordProvider
+            }
+            onClick={requestResetEmail}
+            type="button"
+          >
+            {resetStatus === "sending" ? "Sending…" : "Send reset email"}
+          </button>
         </div>
       </section>
 
@@ -581,17 +532,14 @@ function Profile({
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <div className="profile-modal-top">
-                <div className="section-heading">
-                  <span>setup</span>
-                  <strong>Public details</strong>
-                </div>
+                <h3 className="profile-modal-title">Edit public details</h3>
                 <button
                   aria-label="Close profile editor"
                   className="auth-close"
                   onClick={() => setIsEditOpen(false)}
                   type="button"
                 >
-                  x
+                  <CloseIcon />
                 </button>
               </div>
               {PROFILE_FIELDS.map((field) => (
@@ -618,11 +566,11 @@ function Profile({
                 </label>
               ))}
               <button
-                className="primary-action"
+                className="page-cta"
                 disabled={saveStatus === "saving"}
                 type="submit"
               >
-                {saveStatus === "saving" ? "Saving" : "Save profile"}
+                {saveStatus === "saving" ? "Saving…" : "Save profile"}
               </button>
               {saveStatus === "error" && (
                 <p className="profile-status error">Could not save profile.</p>
@@ -659,7 +607,7 @@ function Profile({
                 onClick={() => setIsAvatarPreviewOpen(false)}
                 type="button"
               >
-                x
+                <CloseIcon />
               </button>
               {user.photoURL ? (
                 <img alt="Your avatar" src={user.photoURL} />

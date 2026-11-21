@@ -253,3 +253,144 @@
 [data-reduced-motion='true'] .record-celebration {
   display: none;
 }
+
+.section-heading span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+/* Page vocabulary shared by dashboard, leaderboard and profile. */
+.segmented {
+  padding: 3px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.segmented button {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.segmented button:hover {
+  color: var(--heading);
+}
+
+.segmented button.active {
+  color: var(--bg);
+  background: var(--accent-2);
+}
+
+.page-pill {
+  padding: 2px 7px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2) 14%, transparent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.page-subtle {
+  color: var(--muted);
+}
+
+::selection {
+  color: var(--bg);
+  background: var(--accent-2);
+}
+
+.page-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 8px;
+  color: var(--bg);
+  background: var(--accent-2);
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.page-cta:hover {
+  color: var(--bg);
+  background: color-mix(in srgb, var(--accent-2) 86%, var(--heading));
+}
+
+.page-cta:active {
+  transform: translateY(1px);
+}
+
+.page-cta .material-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.page-quiet-button {
+  min-height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--heading);
+  background: var(--panel);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.page-quiet-button:hover {
+  border-color: color-mix(in srgb, var(--heading) 24%, transparent);
+  background: color-mix(in srgb, var(--heading) 7%, transparent);
+}
+
+.page-quiet-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-quiet-button .material-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+@media (max-width: 720px) {
+  .segmented {
+    max-width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .segmented button {
+    flex: 0 0 auto;
+  }
+}
