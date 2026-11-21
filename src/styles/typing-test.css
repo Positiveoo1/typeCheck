@@ -800,7 +800,7 @@
 .word-display {
   position: relative;
   width: 100%;
-  height: clamp(142px, 22vh, 196px);
+  height: calc(clamp(142px, 22vh, 196px) * max(1, var(--typing-font-scale, 1)));
   padding: clamp(22px, 4vh, 34px) 12px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -811,7 +811,8 @@
   text-align: left;
   background: transparent;
   cursor: text;
-  font-size: clamp(1.25rem, 2.55vw, 2rem);
+  font-family: var(--typing-font-family, inherit);
+  font-size: calc(clamp(1.25rem, 2.55vw, 2rem) * var(--typing-font-scale, 1));
   line-height: 1.68;
   letter-spacing: 0;
   white-space: normal;
@@ -1096,6 +1097,8 @@
 
 .word-space.wrong {
   color: var(--wrong);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
   background: color-mix(in srgb, var(--wrong) 11%, transparent);
   min-width: 0.55em;
   padding: 0 0.08em;
@@ -1111,12 +1114,16 @@
 }
 
 .letter.correct {
-  color: var(--text);
+  color: var(--correct, var(--text));
 }
 
+/* Underline is a non-colour cue so errors are visible without hue perception. */
 .letter.wrong {
   color: var(--wrong);
   background: color-mix(in srgb, var(--wrong) 11%, transparent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.12em;
 }
 
 .letter.current {

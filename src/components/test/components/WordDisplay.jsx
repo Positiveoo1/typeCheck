@@ -46,6 +46,7 @@ function WordDisplay({
       data-onboarding-target="typing"
       data-training-mode={trainingMode}
       ref={wordDisplayRef}
+      aria-label="Typing area. Start typing to begin the test."
       role="button"
       tabIndex="0"
     >

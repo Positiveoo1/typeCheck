@@ -1,3 +1,4 @@
+import { Atkinson_Hyperlegible } from 'next/font/google';
 import '../src/styles/base.css';
 import '../src/styles/animations.css';
 import '../src/styles/shared.css';
@@ -10,6 +11,13 @@ import '../src/styles/profile.css';
 import '../src/styles/settings.css';
 import '../src/styles/auth.css';
 import '../src/styles/onboarding.css';
+
+const atkinson = Atkinson_Hyperlegible({
+  display: 'swap',
+  subsets: ['latin'],
+  variable: '--font-readable',
+  weight: ['400', '700']
+});
 
 export const metadata = {
   title: 'TypeCheck',
@@ -32,7 +40,7 @@ export const viewport = {
 
 function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html className={atkinson.variable} lang="en">
       <body>{children}</body>
     </html>
   );

@@ -64,6 +64,7 @@ function FilterDropdown({ hint, id, label, onSelect, options, value }) {
         <ChevronDownIcon />
       </button>
       {isOpen && (
+        // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: custom listbox menu
         <ul aria-labelledby={labelId} className="filter-dropdown-menu" role="listbox">
           {options.map((option) => {
             const isActive = option.value === value;

@@ -673,7 +673,7 @@ function Profile({
                 x
               </button>
               {user.photoURL ? (
-                <img alt="Profile photo" src={user.photoURL} />
+                <img alt="Your avatar" src={user.photoURL} />
               ) : (
                 <span aria-hidden="true">{avatarInitial}</span>
               )}

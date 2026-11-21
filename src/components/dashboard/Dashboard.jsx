@@ -415,6 +415,7 @@ function ProgressChart({ results }) {
                   className={['dashboard-chart-point', edgeClass].filter(Boolean).join(' ')}
                   key={index}
                   style={{ left: `${x}%`, top: `${y}%` }}
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: focusable chart point exposes its value to keyboard users
                   tabIndex={0}
                 >
                   <span className="dashboard-chart-dot" />

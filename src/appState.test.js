@@ -7,6 +7,9 @@ import {
   isTooShortCustomTest,
   loadSettings,
   normalizeCustomTextSetting,
+  normalizeReducedMotion,
+  normalizeTypingFont,
+  normalizeTypingFontSize,
   normalizeDashboard,
   normalizeTimeMode,
   saveSettings,
@@ -75,7 +78,7 @@ describe('settings normalization', () => {
       accentColor: '#00ffaa',
       customText: 'one two',
       language: 'uzbek',
-      reducedMotion: true,
+      reducedMotion: 'on',
       showKeyboard: false,
       soundEnabled: false,
       soundStyle: 'bright',
@@ -84,6 +87,30 @@ describe('settings normalization', () => {
       timeMode: 300,
       trainingMode: 'code'
     });
+  });
+
+  it('migrates legacy boolean reducedMotion and validates accessibility options', () => {
+    assert.equal(normalizeReducedMotion(true), 'on');
+    assert.equal(normalizeReducedMotion(false), 'system');
+    assert.equal(normalizeReducedMotion('off'), 'off');
+    assert.equal(normalizeReducedMotion('bogus'), 'system');
+    assert.equal(normalizeTypingFont('readable'), 'readable');
+    assert.equal(normalizeTypingFont('comic'), 'default');
+    assert.equal(normalizeTypingFontSize('xlarge'), 'xlarge');
+    assert.equal(normalizeTypingFontSize('huge'), 'medium');
+
+    installLocalStorage({
+      [SETTINGS_KEY]: JSON.stringify({
+        reducedMotion: 'maybe',
+        typingFont: 'mono',
+        typingFontSize: 'enormous'
+      })
+    });
+
+    const settings = loadSettings();
+    assert.equal(settings.reducedMotion, 'system');
+    assert.equal(settings.typingFont, 'mono');
+    assert.equal(settings.typingFontSize, 'medium');
   });
 
   it('saves settings as JSON', () => {

@@ -16,6 +16,9 @@ export const ACCOUNT_SECURITY_WINDOW_DAYS = 30;
 export const PASSWORD_RESET_EMAIL_LIMIT = 4;
 export const MISTAKE_MODES = ['backspace', 'strict'];
 export const SOUND_STYLES = ['click', 'soft', 'bright', 'cream'];
+export const REDUCED_MOTION_OPTIONS = ['system', 'on', 'off'];
+export const TYPING_FONTS = ['default', 'readable', 'mono'];
+export const TYPING_FONT_SIZES = ['small', 'medium', 'large', 'xlarge'];
 export const TRAINING_MODE_IDS = getTrainingModeIds();
 export const LANGUAGE_IDS = getLanguageIds();
 export const MIN_CUSTOM_TIME = 5;
@@ -27,7 +30,7 @@ export const DEFAULT_SETTINGS = {
   customText: 'Small steady practice makes typing feel effortless.',
   language: DEFAULT_LANGUAGE,
   mistakeMode: 'backspace',
-  reducedMotion: false,
+  reducedMotion: 'system',
   showKeyboard: true,
   soundEnabled: true,
   soundStyle: 'cream',
@@ -35,9 +38,31 @@ export const DEFAULT_SETTINGS = {
   testType: 'time',
   timeMode: 30,
   trainingMode: 'standard',
+  typingFont: 'default',
+  typingFontSize: 'medium',
   accentColor: '',
   wordMode: 10
 };
+
+// Accepts 'system' | 'on' | 'off'. The legacy boolean maps true -> 'on' and
+// false -> 'system' so users who never opted in follow the OS preference.
+export function normalizeReducedMotion(value, fallback = DEFAULT_SETTINGS.reducedMotion) {
+  if (value === true) return 'on';
+  if (value === false) return 'system';
+
+  return REDUCED_MOTION_OPTIONS.includes(value) ? value : fallback;
+}
+
+export function normalizeTypingFont(value, fallback = DEFAULT_SETTINGS.typingFont) {
+  return TYPING_FONTS.includes(value) ? value : fallback;
+}
+
+export function normalizeTypingFontSize(
+  value,
+  fallback = DEFAULT_SETTINGS.typingFontSize
+) {
+  return TYPING_FONT_SIZES.includes(value) ? value : fallback;
+}
 
 export function normalizeTimeMode(value) {
   const numericValue = Number(value);
@@ -94,10 +119,9 @@ export function loadSettings() {
       mistakeMode: MISTAKE_MODES.includes(savedSettings?.mistakeMode)
         ? savedSettings.mistakeMode
         : DEFAULT_SETTINGS.mistakeMode,
-      reducedMotion:
-        typeof savedSettings?.reducedMotion === 'boolean'
-          ? savedSettings.reducedMotion
-          : DEFAULT_SETTINGS.reducedMotion,
+      reducedMotion: normalizeReducedMotion(savedSettings?.reducedMotion),
+      typingFont: normalizeTypingFont(savedSettings?.typingFont),
+      typingFontSize: normalizeTypingFontSize(savedSettings?.typingFontSize),
       accentColor: normalizeAccentColor(
         savedSettings?.accentColor,
         DEFAULT_SETTINGS.accentColor

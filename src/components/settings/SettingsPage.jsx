@@ -93,6 +93,26 @@ function ToggleSetting({ checked, description, label, onChange }) {
   );
 }
 
+function ChoiceGroup({ label, onChange, options, value }) {
+  return (
+    <div className="sound-style-cards" role="radiogroup" aria-label={label}>
+      {options.map((option) => (
+        <button
+          aria-checked={value === option.id}
+          className={value === option.id ? 'sound-style-card active' : 'sound-style-card'}
+          key={option.id}
+          onClick={() => onChange(option.id)}
+          role="radio"
+          type="button"
+        >
+          <span>{option.label}</span>
+          <small>{option.description}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SettingsPage({
   accentColor,
   dashboard,
@@ -102,6 +122,8 @@ function SettingsPage({
   soundEnabled,
   soundStyle,
   soundVolume,
+  typingFont,
+  typingFontSize,
   onPreferencesChange,
   onSoundToggle,
   onThemeChange,
@@ -292,13 +314,39 @@ function SettingsPage({
             label="Visual keyboard"
             onChange={(nextValue) => onPreferencesChange({ showKeyboard: nextValue })}
           />
-          <ToggleSetting
-            checked={reducedMotion}
-            description="Reduce page transitions and animated movement."
-            label="Reduced motion"
-            onChange={(nextValue) => onPreferencesChange({ reducedMotion: nextValue })}
-          />
         </div>
+
+        <ChoiceGroup
+          label="Reduced motion"
+          onChange={(value) => onPreferencesChange({ reducedMotion: value })}
+          options={[
+            { id: 'system', label: 'System', description: 'Follow your device setting.' },
+            { id: 'on', label: 'On', description: 'Minimise animated movement.' },
+            { id: 'off', label: 'Off', description: 'Always animate.' }
+          ]}
+          value={reducedMotion}
+        />
+        <ChoiceGroup
+          label="Typing font"
+          onChange={(value) => onPreferencesChange({ typingFont: value })}
+          options={[
+            { id: 'default', label: 'Default', description: 'Standard interface font.' },
+            { id: 'readable', label: 'Readable', description: 'Atkinson Hyperlegible, dyslexia friendly.' },
+            { id: 'mono', label: 'Monospace', description: 'Fixed-width letters.' }
+          ]}
+          value={typingFont}
+        />
+        <ChoiceGroup
+          label="Typing text size"
+          onChange={(value) => onPreferencesChange({ typingFontSize: value })}
+          options={[
+            { id: 'small', label: 'Small', description: 'Compact.' },
+            { id: 'medium', label: 'Medium', description: 'Default.' },
+            { id: 'large', label: 'Large', description: 'Easier to read.' },
+            { id: 'xlarge', label: 'Extra large', description: 'Maximum size.' }
+          ]}
+          value={typingFontSize}
+        />
       </section>
 
       <section className="settings-panel" aria-labelledby="sound-settings-title">

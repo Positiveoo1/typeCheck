@@ -323,6 +323,45 @@ export const THEME_PERSONALITIES = [
       label: 'Unlocked',
       isUnlocked: () => true
     }
+  },
+  {
+    id: 'contrast',
+    label: 'High contrast',
+    description: 'White on black, AAA text contrast.',
+    colors: ['#000000', '#ffd400', '#ffffff'],
+    defaultAccent: '#ffd400',
+    resultMotion: 'lift',
+    soundStyle: 'click',
+    unlock: {
+      label: 'Unlocked',
+      isUnlocked: () => true
+    }
+  },
+  {
+    id: 'contrast-light',
+    label: 'High contrast light',
+    description: 'Black on white, AAA text contrast.',
+    colors: ['#ffffff', '#00479e', '#000000'],
+    defaultAccent: '#00479e',
+    resultMotion: 'lift',
+    soundStyle: 'click',
+    unlock: {
+      label: 'Unlocked',
+      isUnlocked: () => true
+    }
+  },
+  {
+    id: 'colorblind',
+    label: 'Colour-blind safe',
+    description: 'Blue and orange, no red or green.',
+    colors: ['#0f1722', '#56b4e9', '#ff9b2e'],
+    defaultAccent: '#f0e442',
+    resultMotion: 'lift',
+    soundStyle: 'soft',
+    unlock: {
+      label: 'Unlocked',
+      isUnlocked: () => true
+    }
   }
 ];
 

@@ -77,6 +77,8 @@ function AppPages({
               soundEnabled={settings.soundEnabled}
               soundStyle={settings.soundStyle}
               soundVolume={settings.soundVolume}
+              typingFont={settings.typingFont}
+              typingFontSize={settings.typingFontSize}
               theme={theme}
             />
           ) : currentPage === 'privacy' || currentPage === 'terms' ? (
