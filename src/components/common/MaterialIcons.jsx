@@ -221,3 +221,11 @@ export function CalendarIcon({ className = 'material-icon' } = {}) {
     </MaterialIcon>
   );
 }
+
+export function GhostIcon({ className = 'material-icon' } = {}) {
+  return (
+    <MaterialIcon className={className}>
+      <path d="M12 2a8 8 0 0 0-8 8v11.5a.5.5 0 0 0 .85.35L7 19.7l2.15 2.15a.5.5 0 0 0 .7 0L12 19.7l2.15 2.15a.5.5 0 0 0 .7 0L17 19.7l2.15 2.15a.5.5 0 0 0 .85-.35V10a8 8 0 0 0-8-8Zm-3 10.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
+    </MaterialIcon>
+  );
+}

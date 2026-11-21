@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { GhostIcon } from '../common/MaterialIcons.jsx';
 import LanguagePicker from './LanguagePicker.jsx';
 import Results from './Results.jsx';
 import TestSettings from './TestSettings.jsx';
@@ -115,7 +116,10 @@ function TestPage({
                   title="Race a ghost caret: off, personal best or last run"
                   type="button"
                 >
-                  ghost: {ghostMode}
+                  <GhostIcon />
+                  <span>
+                    {ghostMode === 'off' ? 'Ghost off' : ghostMode === 'best' ? 'Ghost: best' : 'Ghost: last'}
+                  </span>
                 </button>
               )}
             </div>

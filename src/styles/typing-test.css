@@ -1299,31 +1299,55 @@
 
 .ghost-toggle {
   min-height: 38px;
-  padding: 0 12px;
-  border: 1px dashed rgba(var(--accent-2-rgb), 0.45);
+  padding: 0 13px 0 11px;
+  border: 1px solid rgba(var(--accent-rgb), 0.12);
   border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--muted);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.026);
   cursor: pointer;
   font: inherit;
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1;
+  /* Sits on the same line as the language picker, which starts 50px lower
+     and slides up once typing begins. */
+  transform: translateY(50px);
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease,
+    transform 180ms ease;
+}
+
+.ghost-toggle .material-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: currentColor;
 }
 
 .ghost-toggle[data-mode='best'],
 .ghost-toggle[data-mode='last'] {
+  border-color: rgba(var(--accent-2-rgb), 0.4);
   color: var(--accent-2);
 }
 
 .ghost-toggle:hover:not(:disabled),
 .ghost-toggle:focus-visible {
-  border-color: var(--accent-2);
+  border-color: rgba(var(--caret-rgb), 0.32);
   color: var(--accent-2);
 }
 
+.test-runner:has(.typing-live-stats[data-visible='true']) .ghost-toggle {
+  transform: translateY(0);
+}
+
 .ghost-toggle:disabled {
+  cursor: not-allowed;
   opacity: 0.5;
-  cursor: default;
 }
 
 .ghost-result-line {
