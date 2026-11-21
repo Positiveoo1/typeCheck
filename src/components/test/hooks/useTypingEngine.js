@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-<<<<<<< HEAD
+import { loadKeyStats } from "../../../keyStats.js";
 import {
   buildTrainingTarget,
   extendTrainingTarget,
   getTrainingMode,
   shouldExtendTarget,
 } from "../../../trainingModes.js";
-=======
-import { loadKeyStats } from "../../../keyStats.js";
-import { buildTrainingTarget, getTrainingMode } from "../../../trainingModes.js";
->>>>>>> worktree-agent-a97195e3804361d72
 import {
   buildWordTokens,
   calculateStats,
